@@ -17,6 +17,11 @@
   --border-color: #dee2e6;
   --shadow-color: rgba(0, 0, 0, 0.1);
 
+  /* Colores de Error/Feedback */
+  --error-color: #d62828;
+  --error-bg: #f8d7da;
+  --error-border: #f5c2c7;
+
   /* Tipografía */
   --body-font: 'Poppins', sans-serif;
   --biggest-font-size: 2rem;
@@ -132,6 +137,12 @@ main {
     transform: translateY(0);
 }
 
+.button:disabled {
+    background-color: var(--text-color-light);
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* === FORMS === */
 .form__input {
     width: 100%;
@@ -169,6 +180,15 @@ main {
   background-color: var(--surface-color);
   border-radius: 8px;
   box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.placeholder.error {
+    color: var(--error-color);
+    border: 1px solid var(--error-border);
+    background-color: var(--error-bg);
+    font-style: normal;
+    font-weight: 500;
 }
 
 .section-title {
@@ -233,4 +253,21 @@ main {
 /* Responsive Grid for Dashboard */
 .dashboard-grid {
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+/* === UTILS === */
+.spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: var(--white-color);
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 0.5rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }

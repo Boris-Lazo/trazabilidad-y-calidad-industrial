@@ -3,14 +3,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const ordenIdInput = document.getElementById('ordenId');
     const dashboardContainer = document.getElementById('dashboard-container');
 
-    fetchButton.addEventListener('click', async () => {
+    const fetchDashboard = async () => {
         const ordenId = ordenIdInput.value;
         if (!ordenId) {
             dashboardContainer.innerHTML = '<p class="placeholder">Por favor, ingrese un ID de orden.</p>';
             return;
         }
 
-        dashboardContainer.innerHTML = '<p class="placeholder">Cargando datos...</p>';
+        // Estado de carga: Deshabilitar botón y mostrar spinner
+        fetchButton.disabled = true;
+        fetchButton.innerHTML = '<span class="spinner"></span> Consultando...';
+        dashboardContainer.innerHTML = '<p class="placeholder">Cargando datos del sistema...</p>';
 
         try {
             const response = await fetch(`/api/dashboard/orden-produccion/${ordenId}`);
@@ -24,8 +27,21 @@ document.addEventListener('DOMContentLoaded', () => {
             renderDashboard(data);
 
         } catch (error) {
-            dashboardContainer.innerHTML = `<p class="placeholder error">Error al cargar el dashboard: ${error.message}</p>`;
+            dashboardContainer.innerHTML = `<p class="placeholder error">⚠️ Error al cargar el dashboard: ${error.message}</p>`;
             console.error('Error al obtener el dashboard:', error);
+        } finally {
+            // Restaurar estado del botón
+            fetchButton.disabled = false;
+            fetchButton.innerHTML = 'Consultar Dashboard';
+        }
+    };
+
+    fetchButton.addEventListener('click', fetchDashboard);
+
+    // Soporte para tecla "Enter" (Accesibilidad y Eficiencia)
+    ordenIdInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            fetchDashboard();
         }
     });
 
