@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitácora de Turno | PROD-SYS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                PROD-SYS
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/bitacora.html" class="nav-item active">🧩 Bitácora de Turno</a>
+                <a href="/" class="nav-item">Dashboard</a>
+
+                <div class="nav-group-label">Producción</div>
+                <a href="/ordenes.html" class="nav-item">Órdenes</a>
+                <a href="/ejecucion.html" class="nav-item">Ejecución</a>
+                <a href="/incidentes.html" class="nav-item">Incidentes</a>
+
+                <div class="nav-group-label">Control y Seguimiento</div>
+                <a href="/calidad.html" class="nav-item">Calidad</a>
+                <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+
+                <div class="nav-group-label">Sistema</div>
+                <a href="/configuracion.html" class="nav-item">Configuración</a>
+                <a href="/auditoria.html" class="nav-item">Auditoría</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <h1>🧩 Bitácora de Turno</h1>
+                    <div id="turno-info" style="text-align: right;">
+                        <span id="label-fecha-operativa" style="font-weight: 600; color: var(--text-main);">--/--/----</span>
+                        <span id="label-turno" class="badge badge-info" style="margin-left: 1rem;">Turno -</span>
+                        <span id="label-estado-bitacora" class="badge badge-success" style="margin-left: 0.5rem;">Cargando...</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="page-content">
+
+                <!-- Estado de Bitácora -->
+                <div id="no-active-bitacora" class="card" style="display: none; text-align: center; padding: 3rem;">
+                    <h2>No hay una bitácora abierta</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 2rem;">Para comenzar a registrar datos, debes abrir la bitácora del turno actual.</p>
+                    <button id="btn-abrir-bitacora" class="button button-primary" style="padding: 1rem 2rem; font-size: 1rem;">Abrir Bitácora de Turno</button>
+                </div>
+
+                <div id="active-bitacora-content" style="display: none;">
+
+                    <!-- Resumen del Turno -->
+                    <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 2rem;">
+                        <div class="stat-card">
+                            <div class="stat-label">Registros Realizados</div>
+                            <div class="stat-value" id="stat-registros">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Muestras de Calidad</div>
+                            <div class="stat-value" id="stat-muestras">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Desperdicio Total</div>
+                            <div class="stat-value" id="stat-merma">0 kg</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Incidentes</div>
+                            <div class="stat-value" id="stat-incidentes">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Procesos -->
+                    <div class="card">
+                        <div class="card-title">
+                            Procesos Productivos
+                            <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">Estado de registro por proceso</span>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Proceso</th>
+                                        <th>Estado de Registro</th>
+                                        <th>Último Registro</th>
+                                        <th style="text-align: right;">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lista-procesos-body">
+                                    <!-- Se cargará dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Botón de Cierre -->
+                    <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                        <button id="btn-resumen-turno" class="button button-outline">Ver Resumen Acumulado</button>
+                        <button id="btn-cerrar-turno" class="button button-primary" style="background-color: var(--danger);">Finalizar y Cerrar Turno</button>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Cierre de Turno -->
+    <div id="modal-cierre" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="card" style="max-width: 600px; width: 90%;">
+            <div class="card-title">Finalizar Bitácora de Turno</div>
+            <div style="margin-bottom: 1.5rem;">
+                <p>Estás por cerrar la bitácora. Asegúrate de que todos los datos importantes hayan sido registrados.</p>
+                <div id="alertas-cierre" class="mt-4" style="padding: 1rem; background: rgba(245, 158, 11, 0.1); border-left: 4px solid var(--warning); display: none;">
+                    <strong style="color: var(--warning);">Advertencias:</strong>
+                    <ul id="lista-alertas" style="margin-top: 0.5rem; font-size: 0.85rem; list-style: disc; margin-left: 1.5rem;">
+                    </ul>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Observaciones Generales de Cierre (Reemplaza correo de fin de turno)</label>
+                <textarea id="resumen-cierre" rows="4" placeholder="Escribe aquí las novedades más importantes del turno..."></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                <button id="btn-cancelar-cierre" class="button button-outline">Cancelar</button>
+                <button id="btn-confirmar-cierre" class="button button-primary">Confirmar Cierre</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/bitacora.js"></script>
+
+</body>
+</html>

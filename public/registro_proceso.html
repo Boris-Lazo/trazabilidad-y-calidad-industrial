@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro por Proceso | PROD-SYS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+        .quality-sample {
+            background: rgba(255,255,255,0.02);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                PROD-SYS
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/bitacora.html" class="nav-item">🧩 Bitácora de Turno</a>
+                <a href="/" class="nav-item">Dashboard</a>
+                <!-- Simplificado para el registro -->
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <a href="/bitacora.html" class="button button-outline" style="padding: 0.25rem 0.5rem;">&larr; Volver</a>
+                    <h1 id="proceso-titulo">Registro de Proceso</h1>
+                </div>
+            </header>
+
+            <div class="page-content">
+
+                <div id="loader" style="text-align: center; padding: 3rem;">
+                    <p>Cargando configuración de proceso...</p>
+                </div>
+
+                <div id="registro-container" style="display: none;">
+
+                    <form id="form-registro">
+
+                        <!-- A. CALIDAD -->
+                        <div class="card">
+                            <div class="section-header">🛡️ A. Calidad</div>
+
+                            <div id="config-especifica-calidad" class="mb-4">
+                                <!-- Parámetros específicos por proceso se cargarán aquí -->
+                            </div>
+
+                            <div class="quality-sample">
+                                <div style="display: flex; justify-content: space-between; align-items: center; mb-4">
+                                    <h4 style="margin-bottom:0">Captura de Muestra</h4>
+                                    <span class="badge badge-info" id="hora-muestra">Hora: --:--</span>
+                                </div>
+                                <div class="form-grid mt-4" id="campos-calidad">
+                                    <!-- Campos de calidad dinámicos -->
+                                </div>
+                                <div class="form-group mt-4">
+                                    <label>Grado de Aceptación</label>
+                                    <select id="grado-aceptacion">
+                                        <option value="aceptable">Aceptable ✅</option>
+                                        <option value="revision">En espera de revisión ⏳</option>
+                                        <option value="rechazo">Rechazo ❌</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- B. PRODUCCIÓN DEL TURNO -->
+                        <div class="card">
+                            <div class="section-header">⚙️ B. Producción del Turno</div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Máquina</label>
+                                    <select id="select-maquina" required>
+                                        <option value="">Seleccione máquina...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Orden de Producción</label>
+                                    <select id="select-orden" required>
+                                        <option value="">Seleccione orden...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label id="label-unidad-produccion">Total Producido</label>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="number" id="cantidad-producida" step="0.01" placeholder="0.00">
+                                        <span id="unidad-medida">---</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- C. DESPERDICIO -->
+                        <div class="card">
+                            <div class="section-header">♻️ C. Desperdicio</div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Merma / Desperdicio (kg)</label>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="number" id="merma-kg" step="0.01" placeholder="0.00">
+                                        <span>kg</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Motivo de desperdicio</label>
+                                    <select id="motivo-merma">
+                                        <option value="arranque">Arranque de máquina</option>
+                                        <option value="fallo_tecnico">Fallo técnico</option>
+                                        <option value="calidad">Problema de calidad</option>
+                                        <option value="otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- HISTORIAL DE CORRECCIONES -->
+                        <div id="section-history" class="card" style="display: none;">
+                            <div class="section-header">📜 Historial de Correcciones</div>
+                            <div class="table-container">
+                                <table style="font-size: 0.8rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Usuario</th>
+                                            <th>Motivo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="history-body">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- D. OBSERVACIONES / DECISIÓN -->
+                        <div class="card">
+                            <div class="section-header">📝 D. Observaciones y Decisión</div>
+                            <div class="form-group">
+                                <label id="label-observaciones">Notas adicionales</label>
+                                <textarea id="observaciones" rows="3" placeholder="Obligatorio si hay desviaciones o rechazos..."></textarea>
+                                <p id="error-observaciones" class="text-error" style="display:none; font-size: 0.8rem; margin-top: 0.5rem;">Este campo es obligatorio debido al estado de calidad o merma reportado.</p>
+                            </div>
+                        </div>
+
+                        <!-- ACCIONES -->
+                        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-bottom: 4rem;">
+                            <button type="button" id="btn-guardado-parcial" class="button button-outline">Guardado Parcial (Borrador)</button>
+                            <button type="submit" class="button button-primary" style="padding: 0.75rem 2rem;">Registrar Captura</button>
+                        </div>
+
+                    </form>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Motivo de Corrección -->
+    <div id="modal-motivo" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="card" style="max-width: 500px; width: 90%;">
+            <div class="card-title">Motivo de la Corrección</div>
+            <p style="margin-bottom: 1rem; color: var(--text-muted);">Estás modificando un registro existente. Por favor, indica el motivo del cambio para el historial de auditoría.</p>
+            <div class="form-group">
+                <textarea id="motivo-correccion" rows="3" placeholder="Ej: Error de dedo en el pesaje anterior..."></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+                <button id="btn-cancelar-motivo" class="button button-outline">Cancelar</button>
+                <button id="btn-confirmar-guardar" class="button button-primary">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/registro_proceso.js"></script>
+
+</body>
+</html>

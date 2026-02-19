@@ -12,6 +12,18 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
         db.serialize(() => {
             console.log("Creando tablas si no existen...");
 
+            db.run(`CREATE TABLE IF NOT EXISTS bitacora_turno (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fecha_operativa DATE,
+                turno TEXT, -- T1, T2, T3
+                estado TEXT DEFAULT 'en_curso', -- 'en_curso', 'cerrado'
+                usuario_id INTEGER,
+                fecha_apertura DATETIME DEFAULT CURRENT_TIMESTAMP,
+                fecha_cierre DATETIME,
+                resumen_cierre TEXT,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );`);
+
             db.run(`CREATE TABLE IF NOT EXISTS orden_produccion (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 codigo_orden TEXT UNIQUE,
@@ -81,8 +93,10 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
                 observaciones TEXT,
                 fecha_hora DATETIME,
                 linea_ejecucion_id INTEGER,
+                bitacora_id INTEGER,
                 estado TEXT DEFAULT 'completado', -- 'abierto' o 'completado'
-                FOREIGN KEY (linea_ejecucion_id) REFERENCES lineas_ejecucion(id)
+                FOREIGN KEY (linea_ejecucion_id) REFERENCES lineas_ejecucion(id),
+                FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id)
             );`);
 
             db.run(`CREATE TABLE IF NOT EXISTS lotes (
@@ -98,7 +112,9 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
                 codigo_muestra TEXT UNIQUE,
                 fecha_analisis DATE,
                 lote_id INTEGER,
-                FOREIGN KEY (lote_id) REFERENCES lotes(id)
+                bitacora_id INTEGER,
+                FOREIGN KEY (lote_id) REFERENCES lotes(id),
+                FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id)
             );`);
 
             db.run(`CREATE TABLE IF NOT EXISTS RECURSO (
