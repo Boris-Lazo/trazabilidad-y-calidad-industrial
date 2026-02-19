@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-UI/UX Pro Max Search - BM25 search engine for UI/UX style guides
+BÚSQUEDA UI/UX PRO MAX - Motor de búsqueda BM25 para guías de estilo UI/UX
 Usage: python search.py "<query>" [--domain <domain>] [--stack <stack>] [--max-results 3]
        python search.py "<query>" --design-system [-p "Project Name"]
        python search.py "<query>" --design-system --persist [-p "Project Name"] [--page "dashboard"]
@@ -28,7 +28,7 @@ if sys.stderr.encoding and sys.stderr.encoding.lower() != 'utf-8':
 
 
 def format_output(result):
-    """Format results for Claude consumption (token-optimized)"""
+    """Formatea los resultados para el consumo de la IA (optimizado para tokens)"""
     if "error" in result:
         return f"Error: {result['error']}"
 

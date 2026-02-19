@@ -1,10 +1,19 @@
 
+/**
+ * LÓGICA DE GESTIÓN DE ÓRDENES
+ * Permite listar las órdenes de producción existentes y registrar nuevas órdenes
+ * a través de un formulario interactivo.
+ */
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Referencias a elementos del formulario y la tabla
     const formCrearOrden = document.getElementById('form-crear-orden');
     const tablaOrdenesBody = document.querySelector('#tabla-ordenes tbody');
     const mensajeCreacion = document.getElementById('mensaje-creacion');
 
-    // Función para cargar y mostrar las órdenes de producción
+    /**
+     * Función para cargar y mostrar las órdenes de producción desde la API.
+     */
     async function cargarOrdenes() {
         try {
             const response = await fetch('/api/ordenes-produccion');

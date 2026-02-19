@@ -1,7 +1,13 @@
-/* === GOOGLE FONTS === */
+/**
+ * HOJA DE ESTILOS PRINCIPAL - TEMA INDUSTRIAL OSCURO (ALTO CONTRASTE)
+ * Este archivo define la apariencia visual de todo el sistema, incluyendo
+ * la paleta de colores, tipografía, componentes y diseño responsivo.
+ */
+
+/* === IMPORTACIÓN DE TIPOGRAFÍAS (Google Fonts) === */
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
 
-/* === VARIABLES CSS - INDUSTRIAL DARK THEME (HIGH CONTRAST) === */
+/* === VARIABLES GLOBALES Y TEMA === */
 :root {
   --sidebar-width: 260px;
   --header-height: 60px;
@@ -37,7 +43,7 @@
   --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
 
-/* === RESET & BASE === */
+/* === ESTILOS BASE Y REINICIO (RESET) === */
 * {
   box-sizing: border-box;
   padding: 0;
@@ -76,7 +82,7 @@ button, .button {
   transition: all 0.2s ease;
 }
 
-/* === LAYOUT === */
+/* === DISEÑO DE ESTRUCTURA (LAYOUT) === */
 .app-container {
   display: flex;
   min-height: 100vh;
@@ -168,7 +174,7 @@ button, .button {
   margin: 0 auto;
 }
 
-/* === COMPONENTS === */
+/* === COMPONENTES DE LA INTERFAZ === */
 
 /* CARDS */
 .card {
@@ -307,7 +313,7 @@ input:focus, select:focus, textarea:focus {
 .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
 .badge-info { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
 
-/* DASHBOARD SPECIFIC */
+/* ESTILOS ESPECÍFICOS DEL DASHBOARD */
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

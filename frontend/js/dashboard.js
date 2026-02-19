@@ -1,13 +1,24 @@
 
+/**
+ * LÓGICA DEL DASHBOARD PRINCIPAL
+ * Este script se encarga de obtener los datos del resumen operativo desde la API
+ * y actualizar los contadores, tablas e incidentes en la interfaz.
+ */
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Referencias a elementos del DOM para contadores
     const countOrdenes = document.getElementById('count-ordenes-activas');
     const countLineas = document.getElementById('count-lineas-ejecucion');
     const countIncidentes = document.getElementById('count-incidentes-activos');
     const countRegistros = document.getElementById('count-registros-abiertos');
 
+    // Referencias a tablas y listas
     const tablaOrdenesBody = document.querySelector('#tabla-ordenes-activas tbody');
     const listaIncidentes = document.getElementById('lista-incidentes-criticos');
 
+    /**
+     * Obtiene el resumen desde el backend y actualiza la interfaz.
+     */
     async function cargarResumen() {
         try {
             const response = await fetch('/api/dashboard/summary');

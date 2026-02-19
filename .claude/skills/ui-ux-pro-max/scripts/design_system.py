@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Design System Generator - Aggregates search results and applies reasoning
-to generate comprehensive design system recommendations.
+GENERADOR DE SISTEMA DE DISEÑO - Agrega resultados de búsqueda y aplica razonamiento
+para generar recomendaciones integrales de sistemas de diseño.
 
 Usage:
     from design_system import generate_design_system
@@ -35,7 +35,7 @@ SEARCH_CONFIG = {
 
 # ============ DESIGN SYSTEM GENERATOR ============
 class DesignSystemGenerator:
-    """Generates design system recommendations from aggregated searches."""
+    """Genera recomendaciones de sistemas de diseño a partir de búsquedas agregadas."""
 
     def __init__(self):
         self.reasoning_data = self._load_reasoning()
@@ -240,7 +240,7 @@ class DesignSystemGenerator:
 BOX_WIDTH = 90  # Wider box for more content
 
 def format_ascii_box(design_system: dict) -> str:
-    """Format design system as ASCII box with emojis (MCP-style)."""
+    """Formatea el sistema de diseño como una caja ASCII con emojis (estilo MCP)."""
     project = design_system.get("project_name", "PROJECT")
     pattern = design_system.get("pattern", {})
     style = design_system.get("style", {})
@@ -365,7 +365,7 @@ def format_ascii_box(design_system: dict) -> str:
 
 
 def format_markdown(design_system: dict) -> str:
-    """Format design system as markdown."""
+    """Formatea el sistema de diseño como Markdown."""
     project = design_system.get("project_name", "PROJECT")
     pattern = design_system.get("pattern", {})
     style = design_system.get("style", {})

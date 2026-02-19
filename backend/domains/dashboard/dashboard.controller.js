@@ -1,5 +1,9 @@
 
-// domains/dashboard/dashboard.controller.js
+/**
+ * CONTROLADOR DEL DASHBOARD
+ * Maneja la lógica para obtener resúmenes operativos y detalles consolidados
+ * de las órdenes de producción.
+ */
 const OrdenProduccion = require('../production/ordenProduccion.model');
 const LineaEjecucion = require('../production/lineaEjecucion.model');
 const RegistroTrabajo = require('../production/registroTrabajo.model');
@@ -7,6 +11,11 @@ const LoteProduccion = require('../quality/loteProduccion.model');
 const MuestraCalidad = require('../quality/muestraCalidad.model');
 
 const DashboardController = {
+    /**
+     * Obtiene un resumen general para el dashboard principal.
+     * Incluye contadores de órdenes, líneas e incidentes, así como
+     * una lista de las órdenes más recientes y los incidentes críticos.
+     */
     async getSummary(req, res, next) {
         try {
             const ordenes = await OrdenProduccion.findAll();
@@ -29,6 +38,11 @@ const DashboardController = {
         }
     },
 
+    /**
+     * Obtiene la información detallada y consolidada de una orden de producción específica.
+     * Recupera la orden, sus líneas de ejecución, registros de trabajo asociados,
+     * lotes y muestras de calidad.
+     */
     async getOrdenProduccionDashboard(req, res, next) {
         try {
             const { ordenProduccionId } = req.params;

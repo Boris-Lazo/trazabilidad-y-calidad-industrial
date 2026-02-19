@@ -1,5 +1,12 @@
 
+/**
+ * LÓGICA DE DETALLES DE ORDEN
+ * Este script recupera la información completa de una orden específica,
+ * incluyendo sus líneas de producción y el avance detallado de cada una.
+ */
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Obtener el ID de la orden desde los parámetros de la URL
     const urlParams = new URLSearchParams(window.location.search);
     const ordenId = urlParams.get('id');
 
@@ -8,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    /**
+     * Carga y renderiza todos los detalles de la orden de producción.
+     */
     async function cargarDetalles() {
         try {
             const response = await fetch(`/api/dashboard/orden-produccion/${ordenId}`);

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-UI/UX Pro Max Core - BM25 search engine for UI/UX style guides
+NÚCLEO UI/UX PRO MAX - Motor de búsqueda BM25 para guías de estilo UI/UX
+Este archivo contiene la lógica central de búsqueda y el algoritmo de ranking.
 """
 
 import csv
@@ -92,9 +93,9 @@ _STACK_COLS = {
 AVAILABLE_STACKS = list(STACK_CONFIG.keys())
 
 
-# ============ BM25 IMPLEMENTATION ============
+# ============ IMPLEMENTACIÓN DEL ALGORITMO BM25 ============
 class BM25:
-    """BM25 ranking algorithm for text search"""
+    """Algoritmo de ranking BM25 para búsqueda de texto"""
 
     def __init__(self, k1=1.5, b=0.75):
         self.k1 = k1
@@ -155,9 +156,9 @@ class BM25:
         return sorted(scores, key=lambda x: x[1], reverse=True)
 
 
-# ============ SEARCH FUNCTIONS ============
+# ============ FUNCIONES DE BÚSQUEDA ============
 def _load_csv(filepath):
-    """Load CSV and return list of dicts"""
+    """Carga un archivo CSV y devuelve una lista de diccionarios"""
     with open(filepath, 'r', encoding='utf-8') as f:
         return list(csv.DictReader(f))
 
@@ -210,7 +211,7 @@ def detect_domain(query):
 
 
 def search(query, domain=None, max_results=MAX_RESULTS):
-    """Main search function with auto-domain detection"""
+    """Función principal de búsqueda con detección automática de dominio"""
     if domain is None:
         domain = detect_domain(query)
 
