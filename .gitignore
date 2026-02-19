@@ -15,3 +15,8 @@ yarn-error.log*
 
 # IDE/Editor specific
 .idx/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
