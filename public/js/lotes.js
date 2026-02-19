@@ -42,16 +42,16 @@ document.addEventListener('DOMContentLoaded', () => {
             tablaLotesBody.innerHTML = ''; // Limpiar la tabla
 
             if (lotes.length === 0) {
-                tablaLotesBody.innerHTML = '<tr><td colspan="3">No hay lotes de producción.</td></tr>';
+                tablaLotesBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No hay lotes de producción registrados.</td></tr>';
                 return;
             }
 
             lotes.forEach(lote => {
                 const fila = `
                     <tr>
-                        <td>${lote.id}</td>
-                        <td>${lote.orden_produccion_id}</td>
-                        <td>${new Date(lote.fecha_creacion).toLocaleString()}</td>
+                        <td><strong>Lote #${lote.id}</strong></td>
+                        <td>Orden #${lote.orden_produccion_id}</td>
+                        <td style="color: var(--text-muted);">${new Date(lote.fecha_creacion).toLocaleString()}</td>
                     </tr>
                 `;
                 tablaLotesBody.innerHTML += fila;
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Error cargando lotes:', error);
-            tablaLotesBody.innerHTML = '<tr><td colspan="3">Error al cargar los datos.</td></tr>';
+            tablaLotesBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--danger);">Error al cargar los datos.</td></tr>';
         }
     }
 
@@ -71,8 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const orden_produccion_id = selectOrdenes.value;
 
         if (!orden_produccion_id) {
-            mensajeCreacion.textContent = 'Por favor, seleccione una orden de producción.';
-            mensajeCreacion.style.color = 'red';
+            mensajeCreacion.innerHTML = '<span style="color: var(--danger);">Por favor, seleccione una orden de producción.</span>';
             return;
         }
 
@@ -89,15 +88,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(resultado.error || 'No se pudo crear el lote.');
             }
 
-            mensajeCreacion.textContent = `¡Lote #${resultado.id} creado con éxito para la orden #${resultado.orden_produccion_id}!`;
-            mensajeCreacion.style.color = 'green';
+            mensajeCreacion.innerHTML = `<span style="color: var(--success); font-weight: 500;">¡Lote #${resultado.id} creado con éxito para la orden #${resultado.orden_produccion_id}!</span>`;
             formCrearLote.reset();
             cargarLotes(); // Recargar la lista de lotes
 
         } catch (error) {
             console.error('Error al crear el lote:', error);
-            mensajeCreacion.textContent = `Error: ${error.message}`;
-            mensajeCreacion.style.color = 'red';
+            mensajeCreacion.innerHTML = `<span style="color: var(--danger);">Error: ${error.message}</span>`;
         }
     });
 

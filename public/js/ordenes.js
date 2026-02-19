@@ -15,18 +15,23 @@ document.addEventListener('DOMContentLoaded', () => {
             tablaOrdenesBody.innerHTML = ''; // Limpiar la tabla antes de llenarla
 
             if (ordenes.length === 0) {
-                tablaOrdenesBody.innerHTML = '<tr><td colspan="5">No hay órdenes de producción.</td></tr>';
+                tablaOrdenesBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay órdenes de producción registradas.</td></tr>';
                 return;
             }
 
             ordenes.forEach(orden => {
+                let badgeClass = 'badge-info';
+                if (orden.estado.toLowerCase() === 'completado') badgeClass = 'badge-success';
+                if (orden.estado.toLowerCase() === 'cancelado') badgeClass = 'badge-error';
+                if (orden.estado.toLowerCase() === 'en proceso') badgeClass = 'badge-warning';
+
                 const fila = `
                     <tr>
-                        <td>${orden.id}</td>
+                        <td><strong>#${orden.id}</strong></td>
                         <td>${orden.producto}</td>
                         <td>${orden.cantidad}</td>
-                        <td><span class="status status-${orden.estado.toLowerCase()}">${orden.estado}</span></td>
-                        <td>${new Date(orden.fecha_inicio).toLocaleString()}</td>
+                        <td><span class="badge ${badgeClass}">${orden.estado}</span></td>
+                        <td style="color: var(--text-muted);">${new Date(orden.fecha_inicio).toLocaleString()}</td>
                     </tr>
                 `;
                 tablaOrdenesBody.innerHTML += fila;
@@ -34,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Error:', error);
-            tablaOrdenesBody.innerHTML = '<tr><td colspan="5">Error al cargar los datos.</td></tr>';
+            tablaOrdenesBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger);">Error al cargar los datos.</td></tr>';
         }
     }
 
@@ -55,7 +60,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ 
                     producto,
                     cantidad: parseInt(cantidad, 10),
-                    // La fecha de inicio y el estado se asignan en el backend
                 }),
             });
 
@@ -65,15 +69,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(resultado.error || 'No se pudo crear la orden.');
             }
 
-            mensajeCreacion.textContent = `¡Orden #${resultado.id} creada con éxito!`;
-            mensajeCreacion.style.color = 'green';
+            mensajeCreacion.innerHTML = `<span style="color: var(--success); font-weight: 500;">¡Orden #${resultado.id} creada con éxito!</span>`;
             formCrearOrden.reset(); // Limpiar el formulario
             cargarOrdenes(); // Recargar la lista de órdenes
 
         } catch (error) {
             console.error('Error al crear la orden:', error);
-            mensajeCreacion.textContent = `Error: ${error.message}`;
-            mensajeCreacion.style.color = 'red';
+            mensajeCreacion.innerHTML = `<span style="color: var(--danger); font-weight: 500;">Error: ${error.message}</span>`;
         }
     });
 

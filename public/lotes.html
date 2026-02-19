@@ -3,50 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Lotes de Producción</title>
+    <title>Lotes de Producción | PROD-SYS</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <a href="/">Dashboard</a>
-        <a href="/ordenes.html">Órdenes de Producción</a>
-        <a href="/lotes.html">Lotes de Producción</a>
-        <a href="/muestras.html">Muestras de Calidad</a>
-    </nav>
 
-    <div class="container">
-        <h1>Gestión de Lotes de Producción</h1>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                PROD-SYS
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item">
+                    Dashboard
+                </a>
+                <a href="/ordenes.html" class="nav-item">
+                    Órdenes de Producción
+                </a>
+                <a href="/lotes.html" class="nav-item active">
+                    Lotes de Producción
+                </a>
+                <a href="/muestras.html" class="nav-item">
+                    Muestras de Calidad
+                </a>
+            </nav>
+        </aside>
 
-        <div class="card">
-            <h2>Crear Nuevo Lote</h2>
-            <form id="form-crear-lote">
-                <div class="form-group">
-                    <label for="orden-produccion-id">Orden de Producción:</label>
-                    <select id="orden-produccion-id" name="orden-produccion-id" required>
-                        <option value="">Cargando órdenes...</option>
-                        <!-- Opciones se cargarán dinámicamente -->
-                    </select>
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Gestión de Lotes de Producción</h1>
+            </header>
+
+            <div class="page-content">
+                <div class="card">
+                    <div class="card-title">Crear Nuevo Lote</div>
+                    <form id="form-crear-lote">
+                        <div class="form-group">
+                            <label for="orden-produccion-id">Orden de Producción</label>
+                            <select id="orden-produccion-id" name="orden-produccion-id" required>
+                                <option value="">Cargando órdenes...</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="button">Crear Lote</button>
+                    </form>
+                    <div id="mensaje-creacion" class="mt-4"></div>
                 </div>
-                <button type="submit" class="button">Crear Lote</button>
-            </form>
-            <div id="mensaje-creacion" class="mensaje"></div>
-        </div>
 
-        <div class="card">
-            <h2>Lotes de Producción Existentes</h2>
-            <table id="tabla-lotes">
-                <thead>
-                    <tr>
-                        <th>ID del Lote</th>
-                        <th>ID de Orden de Producción</th>
-                        <th>Fecha de Creación</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Las filas se insertarán aquí dinámicamente -->
-                </tbody>
-            </table>
-        </div>
+                <div class="card">
+                    <div class="card-title">Lotes Registrados</div>
+                    <div class="table-container">
+                        <table id="tabla-lotes">
+                            <thead>
+                                <tr>
+                                    <th>ID del Lote</th>
+                                    <th>ID de Orden</th>
+                                    <th>Fecha de Creación</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Las filas se insertarán aquí dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script src="js/lotes.js"></script>

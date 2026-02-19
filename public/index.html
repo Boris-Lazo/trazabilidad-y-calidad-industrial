@@ -3,32 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Producción</title>
+    <title>Dashboard | Producción Industrial</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-    <header>
-        <h1>Dashboard de Producción Industrial</h1>
-    </header>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                PROD-SYS
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item active">
+                    Dashboard
+                </a>
+                <a href="/ordenes.html" class="nav-item">
+                    Órdenes de Producción
+                </a>
+                <a href="/lotes.html" class="nav-item">
+                    Lotes de Producción
+                </a>
+                <a href="/muestras.html" class="nav-item">
+                    Muestras de Calidad
+                </a>
+            </nav>
+        </aside>
 
-    <main>
-        <div class="container">
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Dashboard de Producción</h1>
+            </header>
 
-            <section class="controls">
-                <label for="ordenId">ID de Orden de Producción:</label>
-                <input type="number" id="ordenId" class="form__input" value="1" placeholder="Ej: 1">
-                <button id="fetchDashboard" class="button">Consultar Dashboard</button>
-            </section>
+            <div class="page-content">
+                <section class="card">
+                    <div class="card-title">Consultar Estado de Producción</div>
+                    <div class="controls" style="display: flex; gap: 1rem; align-items: flex-end;">
+                        <div class="form-group" style="margin-bottom: 0; flex: 1;">
+                            <label for="ordenId">ID de Orden de Producción</label>
+                            <input type="number" id="ordenId" value="1" placeholder="Ingrese ID de orden...">
+                        </div>
+                        <button id="fetchDashboard" class="button">Consultar</button>
+                    </div>
+                </section>
 
-            <section id="dashboard-container">
-                <div class="placeholder">
-                    <p>Ingrese un ID de orden y presione "Consultar" para ver el dashboard.</p>
+                <div id="dashboard-container">
+                    <div class="card" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                        <p>Ingrese un ID de orden y presione "Consultar" para ver los detalles.</p>
+                    </div>
                 </div>
-            </section>
-
-        </div>
-    </main>
+            </div>
+        </main>
+    </div>
 
     <script src="js/dashboard.js"></script>
 
