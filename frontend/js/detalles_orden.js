@@ -68,13 +68,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 tablaLineas.innerHTML = '<tr><td colspan="4" style="text-align: center;">No hay líneas asociadas</td></tr>';
             } else {
                 data.lineas_ejecucion.forEach(linea => {
+                    let lineaProducido = 0;
+                    if (linea.registros_trabajo) {
+                        linea.registros_trabajo.forEach(r => lineaProducido += (r.cantidad_producida || 0));
+                    }
+                    const pct = orden.cantidad_objetivo ? Math.min(Math.round((lineaProducido / orden.cantidad_objetivo) * 100), 100) : 0;
+
                     const fila = `
                         <tr>
                             <td><strong>Proceso #${linea.proceso_tipo_id}</strong></td>
                             <td><span class="badge badge-info">${linea.estado}</span></td>
                             <td>
-                                <div style="width: 100px; background: var(--border-color); height: 6px; border-radius: 3px;">
-                                    <div style="width: 60%; background: var(--success); height: 100%; border-radius: 3px;"></div>
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="flex: 1; background: var(--border-color); height: 6px; border-radius: 3px; overflow: hidden; min-width: 80px;">
+                                        <div style="width: ${pct}%; background: var(--success); height: 100%;"></div>
+                                    </div>
+                                    <span style="font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; font-family: var(--font-mono);">
+                                        ${lineaProducido} / ${orden.cantidad_objetivo}
+                                    </span>
                                 </div>
                             </td>
                             <td>
