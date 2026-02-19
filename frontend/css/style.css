@@ -1,23 +1,25 @@
 /* === GOOGLE FONTS === */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
 
-/* === VARIABLES CSS - DARK THEME === */
+/* === VARIABLES CSS - INDUSTRIAL LIGHT THEME === */
 :root {
   --sidebar-width: 260px;
   --header-height: 60px;
 
-  /* Colores - Paleta Oscura, Sobria y Profesional */
-  --primary-color: #3b82f6;
-  --primary-hover: #2563eb;
-  --secondary-color: #64748b;
-  --bg-color: #0f172a;      /* Fondo principal muy oscuro */
-  --sidebar-bg: #1e293b;    /* Sidebar un poco más claro que el fondo */
-  --sidebar-text: #f1f5f9;
-  --sidebar-hover: #334155;
-  --card-bg: #1e293b;       /* Tarjetas del mismo tono que el sidebar */
-  --text-main: #f1f5f9;     /* Texto claro */
-  --text-muted: #94a3b8;    /* Texto secundario */
-  --border-color: #334155;  /* Bordes sutiles */
+  /* Colores - Paleta Industrial, Sobria y Profesional */
+  --primary-color: #64748B;
+  --primary-hover: #475569;
+  --secondary-color: #94A3B8;
+  --cta-color: #F97316;
+  --cta-hover: #EA580C;
+  --bg-color: #F8FAFC;      /* Fondo principal claro */
+  --sidebar-bg: #FFFFFF;    /* Sidebar blanco */
+  --sidebar-text: #334155;
+  --sidebar-hover: #F1F5F9;
+  --card-bg: #FFFFFF;       /* Tarjetas blancas */
+  --text-main: #334155;     /* Texto oscuro */
+  --text-muted: #64748B;    /* Texto secundario */
+  --border-color: #E2E8F0;  /* Bordes suaves */
 
   --success: #10b981;
   --danger: #ef4444;
@@ -25,12 +27,13 @@
   --info: #3b82f6;
 
   /* Tipografía */
-  --font-family: 'Inter', sans-serif;
+  --font-family: 'Fira Sans', sans-serif;
+  --font-mono: 'Fira Code', monospace;
 
   /* Sombras */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.5);
-  --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
 /* === RESET & BASE === */
@@ -46,21 +49,30 @@ body {
   background-color: var(--bg-color);
   color: var(--text-main);
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4 {
+  font-family: var(--font-mono);
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-main);
   margin-bottom: 1rem;
 }
 
 a {
   text-decoration: none;
   color: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 ul {
   list-style: none;
+}
+
+button, .button {
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 /* === LAYOUT === */
@@ -89,7 +101,8 @@ ul {
   font-weight: 700;
   letter-spacing: -0.025em;
   border-bottom: 1px solid var(--border-color);
-  color: var(--primary-color);
+  color: var(--cta-color);
+  font-family: var(--font-mono);
 }
 
 .sidebar-nav {
@@ -109,7 +122,7 @@ ul {
 
 .nav-item:hover {
   background-color: var(--sidebar-hover);
-  color: white;
+  color: var(--text-main);
 }
 
 .nav-item.active {
@@ -166,6 +179,7 @@ ul {
 }
 
 .card-title {
+  font-family: var(--font-mono);
   font-size: 1.125rem;
   margin-bottom: 1.25rem;
   display: flex;
@@ -173,7 +187,7 @@ ul {
   justify-content: space-between;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.75rem;
-  color: var(--primary-color);
+  color: var(--cta-color);
 }
 
 /* BUTTONS */
@@ -192,12 +206,12 @@ ul {
 }
 
 .button-primary {
-  background-color: var(--primary-color);
+  background-color: var(--cta-color);
   color: white;
 }
 
 .button-primary:hover {
-  background-color: var(--primary-hover);
+  background-color: var(--cta-hover);
 }
 
 .button-outline {
@@ -223,7 +237,7 @@ table {
 }
 
 th {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--bg-color);
   padding: 0.75rem 1rem;
   font-weight: 600;
   color: var(--text-muted);
@@ -240,7 +254,7 @@ td {
 }
 
 tr:hover td {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: var(--bg-color);
 }
 
 /* FORMS */
@@ -263,7 +277,7 @@ textarea {
   padding: 0.625rem;
   border: 1px solid var(--border-color);
   border-radius: 0.375rem;
-  background-color: var(--bg-color);
+  background-color: #FFFFFF;
   color: var(--text-main);
   font-family: inherit;
   font-size: 0.875rem;
@@ -272,8 +286,8 @@ textarea {
 
 input:focus, select:focus, textarea:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  border-color: var(--cta-color);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
 }
 
 /* BADGES / STATUS */
@@ -286,32 +300,34 @@ input:focus, select:focus, textarea:focus {
   text-transform: capitalize;
 }
 
-.badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-.badge-error { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-.badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-.badge-info { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.badge-success { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.badge-error { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.badge-warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.badge-info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
 
 /* DASHBOARD SPECIFIC */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.5rem;
   margin-top: 1.5rem;
 }
 
 .stat-card {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--card-bg);
   padding: 1.5rem;
   border-radius: 0.5rem;
   border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
 }
 
 .stat-value {
+  font-family: var(--font-mono);
   font-size: 1.5rem;
   font-weight: 700;
-  color: white;
+  color: var(--text-main);
   margin: 0.5rem 0;
 }
 
@@ -328,7 +344,7 @@ input:focus, select:focus, textarea:focus {
 
 /* Retrocompatibilidad */
 .button {
-    background-color: var(--primary-color);
+    background-color: var(--cta-color);
     color: white;
     border: none;
     padding: 0.5rem 1rem;
@@ -336,13 +352,13 @@ input:focus, select:focus, textarea:focus {
     cursor: pointer;
 }
 .button:hover {
-    background-color: var(--primary-hover);
+    background-color: var(--cta-hover);
 }
 .form__input {
     width: 100%;
     padding: 0.625rem;
     border: 1px solid var(--border-color);
     border-radius: 0.375rem;
-    background-color: var(--bg-color);
+    background-color: #FFFFFF;
     color: var(--text-main);
 }

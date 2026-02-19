@@ -15,18 +15,10 @@
                 PROD-SYS
             </div>
             <nav class="sidebar-nav">
-                <a href="/" class="nav-item">
-                    Dashboard
-                </a>
-                <a href="/ordenes.html" class="nav-item">
-                    Órdenes de Producción
-                </a>
-                <a href="/lotes.html" class="nav-item active">
-                    Lotes de Producción
-                </a>
-                <a href="/muestras.html" class="nav-item">
-                    Muestras de Calidad
-                </a>
+                <a href="/" class="nav-item" aria-label="Navegar al Dashboard"><i data-lucide="layout" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;"></i> Dashboard</a>
+                <a href="/ordenes.html" class="nav-item" aria-label="Navegar a Ordenes">Órdenes de Producción</a>
+                <a href="/lotes.html" class="nav-item active">Lotes de Producción</a>
+                <a href="/muestras.html" class="nav-item" aria-label="Navegar a Muestras">Muestras de Calidad</a>
             </nav>
         </aside>
 
@@ -73,5 +65,7 @@
     </div>
 
     <script src="js/lotes.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

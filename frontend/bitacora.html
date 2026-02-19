@@ -15,21 +15,21 @@
                 PROD-SYS
             </div>
             <nav class="sidebar-nav">
-                <a href="/bitacora.html" class="nav-item active">🧩 Bitácora de Turno</a>
-                <a href="/" class="nav-item">Dashboard</a>
+                <a href="/bitacora.html" class="nav-item active"><i data-lucide="layout-grid" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;"></i> Bitácora de Turno</a>
+                <a href="/" class="nav-item" aria-label="Navegar al Dashboard"><i data-lucide="layout" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;"></i> Dashboard</a>
 
                 <div class="nav-group-label">Producción</div>
-                <a href="/ordenes.html" class="nav-item">Órdenes</a>
-                <a href="/ejecucion.html" class="nav-item">Ejecución</a>
-                <a href="/incidentes.html" class="nav-item">Incidentes</a>
+                <a href="/ordenes.html" class="nav-item" aria-label="Navegar a Ordenes"><i data-lucide="clipboard-list" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;"></i> Órdenes</a>
+                <a href="/ejecucion.html" class="nav-item" aria-label="Navegar a Ejecucion"><i data-lucide="play" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;"></i> Ejecución</a>
+                <a href="/incidentes.html" class="nav-item" aria-label="Navegar a Incidentes"><i data-lucide="alert-circle" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;"></i> Incidentes</a>
 
                 <div class="nav-group-label">Control y Seguimiento</div>
-                <a href="/calidad.html" class="nav-item">Calidad</a>
-                <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+                <a href="/calidad.html" class="nav-item" aria-label="Navegar a Calidad"><i data-lucide="check-circle" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;"></i> Calidad</a>
+                <a href="/trazabilidad.html" class="nav-item" aria-label="Navegar a Trazabilidad"><i data-lucide="link" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;"></i> Trazabilidad</a>
 
                 <div class="nav-group-label">Sistema</div>
-                <a href="/configuracion.html" class="nav-item">Configuración</a>
-                <a href="/auditoria.html" class="nav-item">Auditoría</a>
+                <a href="/configuracion.html" class="nav-item" aria-label="Navegar a Configuracion"><i data-lucide="settings" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;"></i> Configuración</a>
+                <a href="/auditoria.html" class="nav-item" aria-label="Navegar a Auditoria"><i data-lucide="shield-check" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;"></i> Auditoría</a>
             </nav>
         </aside>
 
@@ -37,7 +37,7 @@
         <main class="main-content">
             <header class="top-bar">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <h1>🧩 Bitácora de Turno</h1>
+                    <h1><i data-lucide="layout-grid" style="width: 24px; height: 24px; margin-right: 12px; vertical-align: middle;"></i> Bitácora de Turno</h1>
                     <div id="turno-info" style="text-align: right;">
                         <span id="label-fecha-operativa" style="font-weight: 600; color: var(--text-main);">--/--/----</span>
                         <span id="label-turno" class="badge badge-info" style="margin-left: 1rem;">Turno -</span>
@@ -136,5 +136,7 @@
 
     <script src="js/bitacora.js"></script>
 
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

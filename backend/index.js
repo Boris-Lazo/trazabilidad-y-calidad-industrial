@@ -21,7 +21,14 @@ const dashboardRoutes = require('./domains/dashboard/dashboard.routes');
 const app = express();
 
 // Middlewares de seguridad y rendimiento
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "script-src": ["'self'", "https://unpkg.com", "'unsafe-inline'"],
+        },
+    },
+}));
 app.use(compression());
 
 // Middleware para parsear JSON
