@@ -1,18 +1,21 @@
 
 const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
-const DB_SOURCE = "mfcalidad.sqlite";
+const DB_SOURCE = path.join(__dirname, '..', '..', 'mfcalidad.sqlite');
 
 const db = new sqlite3.Database(DB_SOURCE, (err) => {
     if (err) {
       console.error(err.message);
       throw err;
-    } else {
-        console.log('Conectado a la base de datos SQLite.');
-        db.serialize(() => {
-            console.log("Creando tablas si no existen...");
+    }
+    console.log('Conectado a la base de datos SQLite.');
+});
 
-            db.run(`CREATE TABLE IF NOT EXISTS bitacora_turno (
+db.serialize(() => {
+    console.log("Creando tablas si no existen...");
+
+    db.run(`CREATE TABLE IF NOT EXISTS bitacora_turno (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 fecha_operativa DATE,
                 turno TEXT, -- T1, T2, T3
@@ -126,23 +129,21 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
                 unidad_medida TEXT
             );`);
 
-            db.run(`CREATE TABLE IF NOT EXISTS CONSUMO (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cantidad_consumida REAL,
-                timestamp_consumo DATETIME,
-                registro_trabajo_id INTEGER,
-                recurso_id INTEGER,
-                FOREIGN KEY (registro_trabajo_id) REFERENCES registros_trabajo(id),
-                FOREIGN KEY (recurso_id) REFERENCES RECURSO(id)
-            );`, (err) => {
-                if (err) {
-                    console.error("Error creando la última tabla:", err.message);
-                } else {
-                    console.log("Esquema de la base de datos verificado/creado con éxito.");
-                }
-            });
-        });
-    }
+    db.run(`CREATE TABLE IF NOT EXISTS CONSUMO (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cantidad_consumida REAL,
+        timestamp_consumo DATETIME,
+        registro_trabajo_id INTEGER,
+        recurso_id INTEGER,
+        FOREIGN KEY (registro_trabajo_id) REFERENCES registros_trabajo(id),
+        FOREIGN KEY (recurso_id) REFERENCES RECURSO(id)
+    );`, (err) => {
+        if (err) {
+            console.error("Error creando la última tabla:", err.message);
+        } else {
+            console.log("Esquema de la base de datos verificado/creado con éxito.");
+        }
+    });
 });
 
 module.exports = db;

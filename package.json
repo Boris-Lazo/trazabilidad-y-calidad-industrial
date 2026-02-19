@@ -3,10 +3,11 @@
   "description": "Simple api sample in Node",
   "version": "1.0.0",
   "private": true,
-  "main": "index.js",
+  "main": "backend/index.js",
   "scripts": {
-    "dev": "nodemon index.js",
-    "start": "node index.js"
+    "dev": "nodemon backend/index.js",
+    "start": "node backend/index.js",
+    "seed": "node backend/seed.js"
   },
   "author": "Google LLC",
   "license": "Apache-2.0",

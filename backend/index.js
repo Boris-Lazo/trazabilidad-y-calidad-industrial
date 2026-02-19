@@ -1,6 +1,6 @@
 
 const path = require('path');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -27,8 +27,8 @@ app.use(compression());
 // Middleware para parsear JSON
 app.use(express.json());
 
-// Servir archivos estáticos desde la carpeta 'public'
-app.use(express.static('public'));
+// Servir archivos estáticos desde la carpeta 'frontend'
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
 // Integrar rutas de la API
 app.use('/api/procesos-tipo', procesoTipoRoutes);
@@ -45,55 +45,55 @@ app.use('/api/dashboard', dashboardRoutes);
 
 // Rutas del Frontend
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
 
 app.get('/ordenes.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'ordenes.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'ordenes.html'));
 });
 
 app.get('/detalles_orden.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'detalles_orden.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'detalles_orden.html'));
 });
 
 app.get('/ejecucion.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'ejecucion.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'ejecucion.html'));
 });
 
 app.get('/incidentes.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'incidentes.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'incidentes.html'));
 });
 
 app.get('/calidad.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'calidad.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'calidad.html'));
 });
 
 app.get('/trazabilidad.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'trazabilidad.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'trazabilidad.html'));
 });
 
 app.get('/configuracion.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'configuracion.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'configuracion.html'));
 });
 
 app.get('/auditoria.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'auditoria.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'auditoria.html'));
 });
 
 app.get('/lotes.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'lotes.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'lotes.html'));
 });
 
 app.get('/muestras.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'muestras.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'muestras.html'));
 });
 
 app.get('/bitacora.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'bitacora.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'bitacora.html'));
 });
 
 app.get('/registro_proceso.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'registro_proceso.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'registro_proceso.html'));
 });
 
 // Middleware de manejo de errores centralizado
