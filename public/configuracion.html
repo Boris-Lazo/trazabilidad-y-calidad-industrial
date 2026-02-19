@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración | PROD-SYS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">PROD-SYS</div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item">Dashboard</a>
+                <div class="nav-group-label">Producción</div>
+                <a href="/ordenes.html" class="nav-item">Órdenes</a>
+                <a href="/ejecucion.html" class="nav-item">Ejecución</a>
+                <a href="/incidentes.html" class="nav-item">Incidentes</a>
+                <div class="nav-group-label">Control y Seguimiento</div>
+                <a href="/calidad.html" class="nav-item">Calidad</a>
+                <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+                <div class="nav-group-label">Sistema</div>
+                <a href="/configuracion.html" class="nav-item active">Configuración</a>
+                <a href="/auditoria.html" class="nav-item">Auditoría</a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-bar"><h1>Configuración del Sistema</h1></header>
+            <div class="page-content">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <section class="card">
+                        <div class="card-title">Procesos Productivos</div>
+                        <ul style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <li style="padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 0.25rem;">Envasado</li>
+                            <li style="padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 0.25rem;">Etiquetado</li>
+                            <li style="padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 0.25rem;">Control de Calidad Final</li>
+                        </ul>
+                        <button class="button button-outline mt-4">+ Añadir Proceso</button>
+                    </section>
+                    <section class="card">
+                        <div class="card-title">Unidades de Medida</div>
+                        <ul style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <li style="padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 0.25rem;">kg - Kilogramos</li>
+                            <li style="padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 0.25rem;">ud - Unidades</li>
+                            <li style="padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 0.25rem;">L - Litros</li>
+                        </ul>
+                        <button class="button button-outline mt-4">+ Añadir Unidad</button>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calidad | PROD-SYS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">PROD-SYS</div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item">Dashboard</a>
+                <div class="nav-group-label">Producción</div>
+                <a href="/ordenes.html" class="nav-item">Órdenes</a>
+                <a href="/ejecucion.html" class="nav-item">Ejecución</a>
+                <a href="/incidentes.html" class="nav-item">Incidentes</a>
+                <div class="nav-group-label">Control y Seguimiento</div>
+                <a href="/calidad.html" class="nav-item active">Calidad</a>
+                <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+                <div class="nav-group-label">Sistema</div>
+                <a href="/configuracion.html" class="nav-item">Configuración</a>
+                <a href="/auditoria.html" class="nav-item">Auditoría</a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-bar"><h1>Evaluación de Calidad</h1></header>
+            <div class="page-content">
+                <div class="card">
+                    <div class="card-title">Órdenes Pendientes de Evaluación</div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>ID</th><th>Producto</th><th>Fecha Producción</th><th>Estado</th><th>Acciones</th></tr></thead>
+                            <tbody id="lista-calidad">
+                                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No hay lotes pendientes de evaluación en este momento.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

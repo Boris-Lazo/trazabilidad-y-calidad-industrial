@@ -11,7 +11,7 @@ const dbGet = (query, params) => new Promise((resolve, reject) => {
 });
 const dbRun = (query, params) => new Promise((resolve, reject) => {
     db.run(query, params, function (err) { 
-        err ? reject(err) : resolve({ lastID: this.lastID });
+        err ? reject(err) : resolve({ id: this.lastID });
     });
 });
 
@@ -20,12 +20,16 @@ const RegistroTrabajo = {
         return dbAll('SELECT * FROM registros_trabajo WHERE linea_ejecucion_id = ?', [lineaId]);
     },
 
-    async create({ linea_ejecucion_id, cantidad_producida, fecha_hora }) {
+    async create({ linea_ejecucion_id, cantidad_producida, merma_kg, parametros, observaciones, fecha_hora, estado }) {
         const result = await dbRun(
-            'INSERT INTO registros_trabajo (linea_ejecucion_id, cantidad_producida, fecha_hora) VALUES (?, ?, ?)',
-            [linea_ejecucion_id, cantidad_producida, fecha_hora]
+            'INSERT INTO registros_trabajo (linea_ejecucion_id, cantidad_producida, merma_kg, parametros, observaciones, fecha_hora, estado) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [linea_ejecucion_id, cantidad_producida, merma_kg || 0, parametros, observaciones, fecha_hora || new Date().toISOString(), estado || 'completado']
         );
-        return dbGet('SELECT * FROM registros_trabajo WHERE id = ?', [result.lastID]);
+        return dbGet('SELECT * FROM registros_trabajo WHERE id = ?', [result.id]);
+    },
+
+    async findAll() {
+        return dbAll('SELECT * FROM registros_trabajo ORDER BY fecha_hora DESC');
     }
 };
 

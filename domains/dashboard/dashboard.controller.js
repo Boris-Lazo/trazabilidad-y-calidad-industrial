@@ -7,6 +7,28 @@ const LoteProduccion = require('../quality/loteProduccion.model');
 const MuestraCalidad = require('../quality/muestraCalidad.model');
 
 const DashboardController = {
+    async getSummary(req, res, next) {
+        try {
+            const ordenes = await OrdenProduccion.findAll();
+            const lineas = await LineaEjecucion.findAll();
+            const registros = await RegistroTrabajo.findAll();
+            const incidentes = await require('../production/incidente.model').findAll();
+
+            const summary = {
+                ordenesActivas: ordenes.filter(o => o.estado === 'en proceso' || o.estado === 'abierta').length,
+                lineasEjecucion: lineas.filter(l => l.estado === 'activo').length,
+                registrosAbiertos: registros.filter(r => r.estado === 'abierto').length,
+                incidentesActivos: incidentes.filter(i => i.estado === 'abierto').length,
+                recentOrders: ordenes.filter(o => o.estado === 'en proceso' || o.estado === 'abierta').slice(0, 5),
+                criticalIncidents: incidentes.filter(i => i.severidad === 'alta' && i.estado === 'abierto').slice(0, 5)
+            };
+
+            res.status(200).json(summary);
+        } catch (error) {
+            next(error);
+        }
+    },
+
     async getOrdenProduccionDashboard(req, res, next) {
         try {
             const { ordenProduccionId } = req.params;

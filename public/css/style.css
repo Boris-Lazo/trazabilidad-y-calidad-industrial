@@ -117,6 +117,15 @@ ul {
   color: white;
 }
 
+.nav-group-label {
+  padding: 1.5rem 1rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
 /* MAIN CONTENT */
 .main-content {
   flex: 1;

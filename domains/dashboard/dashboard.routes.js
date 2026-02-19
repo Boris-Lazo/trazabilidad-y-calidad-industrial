@@ -4,6 +4,9 @@ const express = require('express');
 const router = express.Router();
 const DashboardController = require('./dashboard.controller');
 
+// GET /api/dashboard/summary -> Obtener el resumen operativo
+router.get('/summary', DashboardController.getSummary);
+
 // GET /api/dashboard/orden-produccion/:ordenProduccionId -> Obtener el dashboard de una orden de producción
 router.get('/orden-produccion/:ordenProduccionId', DashboardController.getOrdenProduccionDashboard);
 

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Incidentes | PROD-SYS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">PROD-SYS</div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item">Dashboard</a>
+                <div class="nav-group-label">Producción</div>
+                <a href="/ordenes.html" class="nav-item">Órdenes</a>
+                <a href="/ejecucion.html" class="nav-item">Ejecución</a>
+                <a href="/incidentes.html" class="nav-item active">Incidentes</a>
+                <div class="nav-group-label">Control y Seguimiento</div>
+                <a href="/calidad.html" class="nav-item">Calidad</a>
+                <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+                <div class="nav-group-label">Sistema</div>
+                <a href="/configuracion.html" class="nav-item">Configuración</a>
+                <a href="/auditoria.html" class="nav-item">Auditoría</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Gestión de Incidentes en Planta</h1>
+            </header>
+
+            <div class="page-content">
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem;">
+                    <!-- Crear Incidente -->
+                    <section class="card">
+                        <div class="card-title">Reportar Nuevo Incidente</div>
+                        <form id="form-incidente">
+                            <div class="form-group">
+                                <label for="titulo">Título Corto</label>
+                                <input type="text" id="titulo" name="titulo" required placeholder="Ej: Falla en motor de cinta">
+                            </div>
+                            <div class="form-group">
+                                <label for="severidad">Severidad</label>
+                                <select id="severidad" name="severidad">
+                                    <option value="baja">Baja (Informativo)</option>
+                                    <option value="media">Media (Desviación)</option>
+                                    <option value="alta">Alta (Parada de línea)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="linea_ejecucion_id">Línea Asociada</label>
+                                <select id="linea_ejecucion_id" name="linea_ejecucion_id">
+                                    <option value="">Ninguna / General</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="descripcion">Descripción del Problema</label>
+                                <textarea id="descripcion" name="descripcion" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="button button-primary" style="width: 100%;">Registrar Incidente</button>
+                        </form>
+                    </section>
+
+                    <!-- Listado Incidentes -->
+                    <section class="card">
+                        <div class="card-title">Incidentes Recientes</div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Incidente</th>
+                                        <th>Severidad</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-incidentes">
+                                    <tr><td colspan="5" style="text-align: center;">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para cierre (simulado con prompt por ahora o simplificado) -->
+
+    <script src="js/incidentes.js"></script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de Orden | PROD-SYS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">PROD-SYS</div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item">Dashboard</a>
+                <div class="nav-group-label">Producción</div>
+                <a href="/ordenes.html" class="nav-item active">Órdenes</a>
+                <a href="/ejecucion.html" class="nav-item">Ejecución</a>
+                <a href="/incidentes.html" class="nav-item">Incidentes</a>
+                <div class="nav-group-label">Control y Seguimiento</div>
+                <a href="/calidad.html" class="nav-item">Calidad</a>
+                <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+                <div class="nav-group-label">Sistema</div>
+                <a href="/configuracion.html" class="nav-item">Configuración</a>
+                <a href="/auditoria.html" class="nav-item">Auditoría</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar" style="justify-content: space-between;">
+                <h1 id="detalle-titulo">Cargando Orden...</h1>
+                <div id="detalle-estado"></div>
+            </header>
+
+            <div class="page-content">
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem;">
+                    <!-- Panel Izquierdo: Info General -->
+                    <div style="display: flex; flex-direction: column; gap: 2rem;">
+                        <section class="card">
+                            <div class="card-title">Información General</div>
+                            <div id="info-general" style="display: flex; flex-direction: column; gap: 1rem;">
+                                <!-- Se llena dinámicamente -->
+                            </div>
+                        </section>
+
+                        <section class="card">
+                            <div class="card-title">Resumen de Producción</div>
+                            <div id="resumen-produccion" class="dashboard-grid" style="grid-template-columns: 1fr; gap: 1rem;">
+                                <!-- Se llena dinámicamente -->
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Panel Derecho: Líneas e Historia -->
+                    <div style="display: flex; flex-direction: column; gap: 2rem;">
+                        <section class="card">
+                            <div class="card-title">Líneas de Ejecución</div>
+                            <div class="table-container">
+                                <table id="tabla-lineas">
+                                    <thead>
+                                        <tr>
+                                            <th>Proceso</th>
+                                            <th>Estado</th>
+                                            <th>Progreso</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Se llena dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <section class="card">
+                            <div class="card-title">Historial de Eventos</div>
+                            <div id="historial-eventos" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                <p style="color: var(--text-muted);">Cargando historial...</p>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/detalles_orden.js"></script>
+</body>
+</html>

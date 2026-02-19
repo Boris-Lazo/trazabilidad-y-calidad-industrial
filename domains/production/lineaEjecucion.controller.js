@@ -7,6 +7,18 @@ const LineaEjecucion = require('./lineaEjecucion.model');
  */
 const LineaEjecucionController = {
     /**
+     * Obtiene todas las líneas de ejecución.
+     */
+    async getAll(req, res, next) {
+        try {
+            const lineas = await LineaEjecucion.findAll();
+            res.status(200).json(lineas);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
      * Crea una nueva línea de ejecución.
      */
     async create(req, res, next) {

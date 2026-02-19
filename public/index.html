@@ -15,42 +15,77 @@
                 PROD-SYS
             </div>
             <nav class="sidebar-nav">
-                <a href="/" class="nav-item active">
-                    Dashboard
-                </a>
-                <a href="/ordenes.html" class="nav-item">
-                    Órdenes de Producción
-                </a>
-                <a href="/lotes.html" class="nav-item">
-                    Lotes de Producción
-                </a>
-                <a href="/muestras.html" class="nav-item">
-                    Muestras de Calidad
-                </a>
+                <a href="/" class="nav-item active">Dashboard</a>
+
+                <div class="nav-group-label">Producción</div>
+                <a href="/ordenes.html" class="nav-item">Órdenes</a>
+                <a href="/ejecucion.html" class="nav-item">Ejecución</a>
+                <a href="/incidentes.html" class="nav-item">Incidentes</a>
+
+                <div class="nav-group-label">Control y Seguimiento</div>
+                <a href="/calidad.html" class="nav-item">Calidad</a>
+                <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+
+                <div class="nav-group-label">Sistema</div>
+                <a href="/configuracion.html" class="nav-item">Configuración</a>
+                <a href="/auditoria.html" class="nav-item">Auditoría</a>
             </nav>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
             <header class="top-bar">
-                <h1>Dashboard de Producción</h1>
+                <h1>Panel de Control Operativo</h1>
             </header>
 
             <div class="page-content">
-                <section class="card">
-                    <div class="card-title">Consultar Estado de Producción</div>
-                    <div class="controls" style="display: flex; gap: 1rem; align-items: flex-end;">
-                        <div class="form-group" style="margin-bottom: 0; flex: 1;">
-                            <label for="ordenId">ID de Orden de Producción</label>
-                            <input type="number" id="ordenId" value="1" placeholder="Ingrese ID de orden...">
-                        </div>
-                        <button id="fetchDashboard" class="button">Consultar</button>
+                <!-- KPI / Overview Grid -->
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Órdenes Activas</div>
+                        <div class="stat-value" id="count-ordenes-activas">-</div>
                     </div>
-                </section>
+                    <div class="stat-card">
+                        <div class="stat-label">Líneas en Ejecución</div>
+                        <div class="stat-value" id="count-lineas-ejecucion">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Incidentes Activos</div>
+                        <div class="stat-value text-error" id="count-incidentes-activos">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Registros Abiertos</div>
+                        <div class="stat-value" id="count-registros-abiertos">-</div>
+                    </div>
+                </div>
 
-                <div id="dashboard-container">
-                    <div class="card" style="text-align: center; color: var(--text-muted); padding: 3rem;">
-                        <p>Ingrese un ID de orden y presione "Consultar" para ver los detalles.</p>
+                <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;">
+                    <!-- Órdenes Prioritarias -->
+                    <div class="card">
+                        <div class="card-title">Órdenes en Proceso</div>
+                        <div class="table-container">
+                            <table id="tabla-ordenes-activas">
+                                <thead>
+                                    <tr>
+                                        <th>Orden</th>
+                                        <th>Producto</th>
+                                        <th>Progreso</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td colspan="4" style="text-align: center;">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Incidentes Críticos -->
+                    <div class="card">
+                        <div class="card-title">Alertas Críticas</div>
+                        <div id="lista-incidentes-criticos" style="display: flex; flex-direction: column; gap: 1rem;">
+                            <p style="color: var(--text-muted); text-align: center;">Sin alertas activas.</p>
+                        </div>
                     </div>
                 </div>
             </div>

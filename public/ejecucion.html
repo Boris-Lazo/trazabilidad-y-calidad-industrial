@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejecución de Producción | PROD-SYS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .step { display: none; }
+        .step.active { display: block; }
+        .wizard-nav { display: flex; justify-content: space-between; margin-top: 2rem; }
+        .progress-bar { display: flex; margin-bottom: 2rem; gap: 0.5rem; }
+        .progress-step { flex: 1; height: 4px; background: var(--border-color); border-radius: 2px; }
+        .progress-step.active { background: var(--primary-color); }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">PROD-SYS</div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item">Dashboard</a>
+                <div class="nav-group-label">Producción</div>
+                <a href="/ordenes.html" class="nav-item">Órdenes</a>
+                <a href="/ejecucion.html" class="nav-item active">Ejecución</a>
+                <a href="/incidentes.html" class="nav-item">Incidentes</a>
+                <div class="nav-group-label">Control y Seguimiento</div>
+                <a href="/calidad.html" class="nav-item">Calidad</a>
+                <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+                <div class="nav-group-label">Sistema</div>
+                <a href="/configuracion.html" class="nav-item">Configuración</a>
+                <a href="/auditoria.html" class="nav-item">Auditoría</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Registro de Trabajo (Operador)</h1>
+            </header>
+
+            <div class="page-content">
+                <div id="selection-screen" class="card">
+                    <div class="card-title">Seleccionar Línea de Trabajo</div>
+                    <div class="form-group">
+                        <label for="linea-select">Línea en Ejecución</label>
+                        <select id="linea-select">
+                            <option value="">Cargando líneas activas...</option>
+                        </select>
+                    </div>
+                    <button id="start-work" class="button button-primary">Iniciar Registro</button>
+                </div>
+
+                <div id="wizard-screen" class="card" style="display: none;">
+                    <div class="card-title" id="wizard-title">Registro de Producción</div>
+
+                    <div class="progress-bar">
+                        <div class="progress-step active" data-step="1"></div>
+                        <div class="progress-step" data-step="2"></div>
+                        <div class="progress-step" data-step="3"></div>
+                    </div>
+
+                    <form id="wizard-form">
+                        <!-- Paso 1: Consumos y Parámetros -->
+                        <div class="step active" data-step="1">
+                            <h3>Paso 1: Insumos y Parámetros</h3>
+                            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Verifique los consumos iniciales y registre los parámetros de la máquina.</p>
+
+                            <div class="form-group">
+                                <label>Temperatura de Operación (°C)</label>
+                                <input type="number" name="param_temp" placeholder="Ej: 85">
+                            </div>
+                            <div class="form-group">
+                                <label>Presión (bar)</label>
+                                <input type="number" name="param_presion" placeholder="Ej: 2.4">
+                            </div>
+                            <div class="form-group">
+                                <label>Observaciones de Inicio</label>
+                                <textarea name="obs_inicio" rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Paso 2: Producción -->
+                        <div class="step" data-step="2">
+                            <h3>Paso 2: Resultados de Producción</h3>
+                            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Registre la cantidad final producida y la merma identificada.</p>
+
+                            <div class="form-group">
+                                <label>Cantidad Producida</label>
+                                <input type="number" name="cantidad_producida" required placeholder="0.00">
+                            </div>
+                            <div class="form-group">
+                                <label>Merma (kg)</label>
+                                <input type="number" name="merma_kg" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <!-- Paso 3: Confirmación -->
+                        <div class="step" data-step="3">
+                            <h3>Paso 3: Confirmación y Cierre</h3>
+                            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Revise los datos antes de finalizar el registro de trabajo.</p>
+
+                            <div id="summary-review" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem;">
+                                <!-- Se llena por JS -->
+                            </div>
+                        </div>
+
+                        <div class="wizard-nav">
+                            <button type="button" id="prev-step" class="button button-outline" style="visibility: hidden;">Anterior</button>
+                            <button type="button" id="next-step" class="button button-primary">Siguiente</button>
+                            <button type="submit" id="submit-work" class="button button-primary" style="display: none;">Finalizar Registro</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="success-screen" class="card" style="display: none; text-align: center; padding: 3rem;">
+                    <div style="font-size: 3rem; color: var(--success); margin-bottom: 1rem;">✓</div>
+                    <h2>¡Registro Completado!</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 2rem;">Los datos han sido guardados en el sistema de trazabilidad.</p>
+                    <button onclick="location.reload()" class="button button-primary">Nuevo Registro</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/ejecucion.js"></script>
+</body>
+</html>

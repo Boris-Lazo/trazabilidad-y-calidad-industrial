@@ -28,6 +28,10 @@ const dbRun = (query, params) => {
 };
 
 const LineaEjecucion = {
+    async findAll() {
+        return dbAll('SELECT * FROM lineas_ejecucion');
+    },
+
     async findByOrdenProduccionId(ordenProduccionId) {
         return dbAll('SELECT * FROM lineas_ejecucion WHERE orden_produccion_id = ?', [ordenProduccionId]);
     },

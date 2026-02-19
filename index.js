@@ -10,6 +10,7 @@ const procesoTipoRoutes = require('./domains/production/procesoTipo.routes');
 const ordenProduccionRoutes = require('./domains/production/ordenProduccion.routes');
 const lineaEjecucionRoutes = require('./domains/production/lineaEjecucion.routes');
 const registroTrabajoRoutes = require('./domains/production/registroTrabajo.routes');
+const incidenteRoutes = require('./domains/production/incidente.routes');
 const recursoRoutes = require('./domains/resources/recurso.routes');
 const consumoRoutes = require('./domains/resources/consumo.routes');
 const loteProduccionRoutes = require('./domains/quality/loteProduccion.routes');
@@ -33,6 +34,7 @@ app.use('/api/procesos-tipo', procesoTipoRoutes);
 app.use('/api/ordenes-produccion', ordenProduccionRoutes);
 app.use('/api/lineas-ejecucion', lineaEjecucionRoutes);
 app.use('/api/registros-trabajo', registroTrabajoRoutes);
+app.use('/api/incidentes', incidenteRoutes);
 app.use('/api/recursos', recursoRoutes);
 app.use('/api/consumos', consumoRoutes);
 app.use('/api/lotes', loteProduccionRoutes);
@@ -46,6 +48,34 @@ app.get('/', (req, res) => {
 
 app.get('/ordenes.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'ordenes.html'));
+});
+
+app.get('/detalles_orden.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'detalles_orden.html'));
+});
+
+app.get('/ejecucion.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'ejecucion.html'));
+});
+
+app.get('/incidentes.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'incidentes.html'));
+});
+
+app.get('/calidad.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'calidad.html'));
+});
+
+app.get('/trazabilidad.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'trazabilidad.html'));
+});
+
+app.get('/configuracion.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'configuracion.html'));
+});
+
+app.get('/auditoria.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'auditoria.html'));
 });
 
 app.get('/lotes.html', (req, res) => {

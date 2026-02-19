@@ -6,6 +6,9 @@ const LineaEjecucionController = require('./lineaEjecucion.controller');
 
 // Definición de las rutas para LineaEjecucion
 
+// GET /api/lineas-ejecucion -> Obtener todas las líneas
+router.get('/', LineaEjecucionController.getAll);
+
 // GET /api/lineas-ejecucion/orden/:ordenId -> Obtener todas las líneas para una orden específica
 router.get('/orden/:ordenId', LineaEjecucionController.getByOrderId);
 
