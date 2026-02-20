@@ -188,6 +188,7 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
                     db.run("ALTER TABLE muestras ADD COLUMN resultado TEXT", (err) => {});
                     db.run("ALTER TABLE muestras ADD COLUMN valor REAL", (err) => {});
                     db.run("ALTER TABLE muestras ADD COLUMN parametro TEXT", (err) => {});
+                    db.run("ALTER TABLE muestras ADD COLUMN codigo_muestra TEXT", (err) => {});
                 }
             });
         });

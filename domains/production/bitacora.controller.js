@@ -166,9 +166,21 @@ const BitacoraController = {
             const bitacora = await Bitacora.findById(bitacora_id);
             if (!bitacora) return res.status(404).json({ message: 'Bitácora no encontrada.' });
 
-            const status = await Bitacora.getProcesoStatus(bitacora_id, proceso_id);
-            const registros = await Bitacora.getRegistrosByProceso(bitacora_id, proceso_id);
-            const muestras = await Bitacora.getMuestrasByProceso(bitacora_id, proceso_id);
+            let status = await Bitacora.getProcesoStatus(bitacora_id, proceso_id);
+            let registros = await Bitacora.getRegistrosByProceso(bitacora_id, proceso_id);
+            let muestras = await Bitacora.getMuestrasByProceso(bitacora_id, proceso_id);
+
+            let esSugerencia = false;
+
+            // Si no hay datos en la bitácora actual, buscar los últimos registros como sugerencia
+            if (registros.length === 0 && muestras.length === 0 && !status) {
+                const lastBitacoraId = await Bitacora.getLastBitacoraId(proceso_id);
+                if (lastBitacoraId && lastBitacoraId != bitacora_id) {
+                    registros = await Bitacora.getRegistrosByProceso(lastBitacoraId, proceso_id);
+                    muestras = await Bitacora.getMuestrasByProceso(lastBitacoraId, proceso_id);
+                    esSugerencia = true;
+                }
+            }
 
             // Extraer producción y desperdicio de los registros
             const produccion = [];
@@ -232,6 +244,7 @@ const BitacoraController = {
                 parametros_operativos,
                 mezcla,
                 incidentes,
+                es_sugerencia: esSugerencia,
                 solo_lectura: bitacora.estado === 'CERRADA'
             });
         } catch (error) {

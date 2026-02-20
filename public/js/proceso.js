@@ -34,6 +34,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Listeners para cálculos automáticos
         document.body.addEventListener('input', (e) => {
+            if (e.target.classList.contains('input-mezcla-porcentaje') ||
+                e.target.classList.contains('input-mezcla-tipo') ||
+                e.target.classList.contains('input-mezcla-marca') ||
+                e.target.classList.contains('input-mezcla-lote')) {
+                trackCambio(e.target);
+            }
             if (e.target.classList.contains('input-mezcla-porcentaje')) {
                 calcularTotalMezcla();
             }
@@ -79,6 +85,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const res = await fetch(`/api/bitacora/proceso-data?bitacora_id=${currentBitacora.id}&proceso_id=${procesoId}`);
             const data = await res.json();
 
+            if (data.es_sugerencia) {
+                const banner = document.createElement('div');
+                banner.className = 'banner-sugerencia';
+                banner.innerHTML = 'ℹ️ Los datos mostrados son sugerencias del turno anterior. Confirme o modifique según sea necesario.';
+                banner.style = 'background: var(--primary-color); color: white; padding: 0.5rem 1rem; margin-bottom: 1rem; border-radius: 4px; font-size: 0.875rem;';
+                document.querySelector('.page-content').prepend(banner);
+            }
+
             if (data.no_operativo) {
                 document.getElementById('select-operatividad').value = 'no_operativo';
                 document.getElementById('select-operatividad').dispatchEvent(new Event('change'));
@@ -101,13 +115,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     // Agruparemos por 'codigo_muestra' si lo usamos, o por orden de inserción.
                     // TODO: Implementar carga estructurada para Extrusor PP
-                    data.muestras_estructuradas?.forEach(m => agregarMuestraExtrusor(m));
+                    data.muestras_estructuradas?.forEach(m => agregarMuestraExtrusor(m, data.es_sugerencia));
                     if (!data.muestras_estructuradas || data.muestras_estructuradas.length === 0) {
                         // Si no hay estructuradas, intentar agregar 3 vacías por defecto si es nuevo
-                        for(let i=0; i<3; i++) agregarMuestraExtrusor();
+                        for(let i=0; i<3; i++) agregarMuestraExtrusor({}, data.es_sugerencia);
                     }
                 } else {
-                    for(let i=0; i<3; i++) agregarMuestraExtrusor();
+                    for(let i=0; i<3; i++) agregarMuestraExtrusor({}, data.es_sugerencia);
                 }
 
                 // Cargar mezcla
@@ -115,10 +129,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const rows = document.querySelectorAll('#tbody-mezcla tr');
                     data.mezcla.forEach((m, i) => {
                         if (rows[i]) {
-                            rows[i].querySelector('.input-mezcla-tipo').value = m.tipo || '';
-                            rows[i].querySelector('.input-mezcla-marca').value = m.marca || '';
-                            rows[i].querySelector('.input-mezcla-lote').value = m.lote || '';
-                            rows[i].querySelector('.input-mezcla-porcentaje').value = m.porcentaje || '';
+                            const t = rows[i].querySelector('.input-mezcla-tipo');
+                            const ma = rows[i].querySelector('.input-mezcla-marca');
+                            const l = rows[i].querySelector('.input-mezcla-lote');
+                            const p = rows[i].querySelector('.input-mezcla-porcentaje');
+
+                            t.value = m.tipo || '';
+                            ma.value = m.marca || '';
+                            l.value = m.lote || '';
+                            p.value = m.porcentaje || '';
+
+                            if (data.es_sugerencia) {
+                                [t, ma, l, p].forEach(el => el.dataset.estado = 'sugerido');
+                            }
                         }
                     });
                     calcularTotalMezcla();
@@ -128,7 +151,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 data.incidentes?.forEach(inc => agregarIncidente(inc));
 
             } else {
-                data.muestras?.forEach(m => agregarMuestra(m));
+                data.muestras?.forEach(m => agregarMuestra(m, data.es_sugerencia));
             }
 
             data.produccion?.forEach(p => agregarProduccion(p));
@@ -152,6 +175,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- FUNCIONES AUXILIARES ---
+
+    function trackCambio(element) {
+        element.classList.add('campo-cambiado');
+        element.dataset.estado = 'cambiado';
+    }
+
+    function initTracking(selector) {
+        document.querySelectorAll(selector).forEach(el => {
+            el.addEventListener('input', () => trackCambio(el), { once: true });
+            el.addEventListener('change', () => trackCambio(el), { once: true });
+        });
+    }
 
     function actualizarBadgeEstado() {
         const isNoOperativo = document.getElementById('select-operatividad').value === 'no_operativo';
@@ -216,7 +251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- MANEJO DE FILAS ---
 
-    function agregarMuestraExtrusor(data = {}) {
+    function agregarMuestraExtrusor(data = {}, esSugerencia = false) {
         const tbody = document.getElementById('tbody-calidad-extrusor');
         const tr = document.createElement('tr');
         const index = Math.floor(tbody.children.length / 2) + 1;
@@ -230,9 +265,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <option value="Evento" ${data.tipo_ronda === 'Evento' ? 'selected' : ''}>Evento</option>
                 </select>
             </td>
-            <td><input type="number" class="form__input input-denier" value="${data.denier || ''}" step="0.1"></td>
-            <td><input type="number" class="form__input input-resistencia" value="${data.resistencia || ''}" step="0.1"></td>
-            <td><input type="number" class="form__input input-elongacion" value="${data.elongacion || ''}" step="0.1"></td>
+            <td><input type="number" class="form__input input-denier" value="${data.denier || ''}" step="0.1" data-estado="${esSugerencia ? 'sugerido' : ''}"></td>
+            <td><input type="number" class="form__input input-resistencia" value="${data.resistencia || ''}" step="0.1" data-estado="${esSugerencia ? 'sugerido' : ''}"></td>
+            <td><input type="number" class="form__input input-elongacion" value="${data.elongacion || ''}" step="0.1" data-estado="${esSugerencia ? 'sugerido' : ''}"></td>
             <td><input type="number" class="form__input input-tenacidad" value="${data.tenacidad || ''}" readonly style="background: rgba(255,255,255,0.05);"></td>
             <td><input type="number" class="form__input input-ancho" value="${data.ancho || ''}" step="0.1"></td>
             <td>
@@ -315,24 +350,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             trParams.remove();
         });
 
-        tr.querySelector('.select-color').addEventListener('change', () => {
-            checkObservacionesObligatorias();
-            actualizarBadgeEstado();
-        });
-        tr.querySelector('.select-estado').addEventListener('change', () => {
-            checkObservacionesObligatorias();
-            actualizarBadgeEstado();
+        tr.querySelectorAll('input, select').forEach(el => {
+            const evts = ['input', 'change'];
+            evts.forEach(evt => {
+                el.addEventListener(evt, () => {
+                    trackCambio(el);
+                    checkObservacionesObligatorias();
+                    actualizarBadgeEstado();
+                });
+            });
         });
 
         actualizarBadgeEstado();
     }
 
-    function agregarMuestra(data = {}) {
+    function agregarMuestra(data = {}, esSugerencia = false) {
         const tbody = document.getElementById('tbody-calidad');
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><input type="text" class="form__input" placeholder="Parámetro" value="${data.parametro || ''}"></td>
-            <td><input type="number" class="form__input" placeholder="Valor" value="${data.valor || ''}"></td>
+            <td><input type="text" class="form__input" placeholder="Parámetro" value="${data.parametro || ''}" data-estado="${esSugerencia ? 'sugerido' : ''}"></td>
+            <td><input type="number" class="form__input" placeholder="Valor" value="${data.valor || ''}" data-estado="${esSugerencia ? 'sugerido' : ''}"></td>
             <td>
                 <select class="form__input select-resultado">
                     <option value="Aceptable" ${data.resultado === 'Aceptable' ? 'selected' : ''}>✔ Aceptable</option>
@@ -343,9 +380,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             <td><button class="button button-outline btn-eliminar-fila" style="color: var(--danger);">Eliminar</button></td>
         `;
         tbody.appendChild(tr);
-        tr.querySelector('.select-resultado').addEventListener('change', () => {
-            checkObservacionesObligatorias();
-            actualizarBadgeEstado();
+        tr.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('input', () => {
+                trackCambio(el);
+                checkObservacionesObligatorias();
+                actualizarBadgeEstado();
+            });
+            el.addEventListener('change', () => {
+                trackCambio(el);
+                checkObservacionesObligatorias();
+                actualizarBadgeEstado();
+            });
         });
         tr.querySelector('.btn-eliminar-fila').addEventListener('click', () => {
             tr.remove();
@@ -437,6 +482,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         return hasProblem;
     }
 
+    function getEstadoCampo(el) {
+        if (el.dataset.estado === 'cambiado') return 'cambiado';
+        if (el.dataset.estado === 'sugerido') return 'confirmado_sin_cambio';
+        return 'nuevo';
+    }
+
     async function guardar(volver = false) {
         const isNoOperativo = document.getElementById('select-operatividad').value === 'no_operativo';
         const motivoNoOperativo = document.getElementById('motivo-no-operativo').value;
@@ -495,6 +546,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const pInputs = trParams.querySelectorAll('input');
                     const tInputs = trParams.querySelectorAll('.input-temp-zona');
 
+                    const estados = {};
+                    qInputs.forEach((inp, idx) => {
+                        const keys = ['tipo_ronda', 'denier', 'resistencia', 'elongacion', 'tenacidad', 'ancho', 'color', 'estado'];
+                        estados[keys[idx]] = getEstadoCampo(inp);
+                    });
+
+                    const pInputsNamed = {
+                        temp_pila: trParams.querySelector('.input-temp-pila'),
+                        temp_horno: trParams.querySelector('.input-temp-horno'),
+                        rpm_tornillo: trParams.querySelector('.input-rpm-tornillo'),
+                        presion_bar: trParams.querySelector('.input-presion-bar'),
+                        ratio_top_roller: trParams.querySelector('.input-ratio-top'),
+                        ratio_holding: trParams.querySelector('.input-ratio-hold'),
+                        ratio_annealing: trParams.querySelector('.input-ratio-ann'),
+                        ratio_stretching: trParams.querySelector('.input-ratio-stretch'),
+                        velocidad_embobinadores: trParams.querySelector('.input-vel-embob')
+                    };
+
+                    const paramEstados = {};
+                    for (const [k, el] of Object.entries(pInputsNamed)) {
+                        paramEstados[k] = getEstadoCampo(el);
+                    }
+                    paramEstados.temperaturas = Array.from(tInputs).map(ti => getEstadoCampo(ti));
+
                     muestras.push({
                         tipo_ronda: qInputs[0].value,
                         denier: qInputs[1].value,
@@ -504,17 +579,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                         ancho: qInputs[5].value,
                         color: qInputs[6].value,
                         estado: qInputs[7].value,
+                        _estados: estados,
                         parametros: {
                             temperaturas: Array.from(tInputs).map(ti => ti.value),
-                            temp_pila: trParams.querySelector('.input-temp-pila').value,
-                            temp_horno: trParams.querySelector('.input-temp-horno').value,
-                            rpm_tornillo: trParams.querySelector('.input-rpm-tornillo').value,
-                            presion_bar: trParams.querySelector('.input-presion-bar').value,
-                            ratio_top_roller: trParams.querySelector('.input-ratio-top').value,
-                            ratio_holding: trParams.querySelector('.input-ratio-hold').value,
-                            ratio_annealing: trParams.querySelector('.input-ratio-ann').value,
-                            ratio_stretching: trParams.querySelector('.input-ratio-stretch').value,
-                            velocidad_embobinadores: trParams.querySelector('.input-vel-embob').value
+                            temp_pila: pInputsNamed.temp_pila.value,
+                            temp_horno: pInputsNamed.temp_horno.value,
+                            rpm_tornillo: pInputsNamed.rpm_tornillo.value,
+                            presion_bar: pInputsNamed.presion_bar.value,
+                            ratio_top_roller: pInputsNamed.ratio_top_roller.value,
+                            ratio_holding: pInputsNamed.ratio_holding.value,
+                            ratio_annealing: pInputsNamed.ratio_annealing.value,
+                            ratio_stretching: pInputsNamed.ratio_stretching.value,
+                            velocidad_embobinadores: pInputsNamed.velocidad_embobinadores.value,
+                            _estados: paramEstados
                         }
                     });
                 }
@@ -525,7 +602,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         tipo: inputs[0].value,
                         marca: inputs[1].value,
                         lote: inputs[2].value,
-                        porcentaje: inputs[3].value
+                        porcentaje: inputs[3].value,
+                        _estados: {
+                            tipo: getEstadoCampo(inputs[0]),
+                            marca: getEstadoCampo(inputs[1]),
+                            lote: getEstadoCampo(inputs[2]),
+                            porcentaje: getEstadoCampo(inputs[3])
+                        }
                     };
                 }).filter(m => m.porcentaje);
 
@@ -549,7 +632,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return {
                         parametro: inputs[0].value,
                         valor: inputs[1].value,
-                        resultado: inputs[2].value
+                        resultado: inputs[2].value,
+                        _estados: {
+                            parametro: getEstadoCampo(inputs[0]),
+                            valor: getEstadoCampo(inputs[1]),
+                            resultado: getEstadoCampo(inputs[2])
+                        }
                     };
                 });
                 data = { ...data, muestras };

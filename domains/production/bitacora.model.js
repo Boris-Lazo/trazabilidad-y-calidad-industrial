@@ -74,6 +74,21 @@ const Bitacora = {
         `, [bitacoraId, procesoTipoId]);
     },
 
+    async getLastBitacoraId(procesoId) {
+        // Encontrar la bitácora más reciente que tenga registros para este proceso
+        // Pero NO la actual si queremos "el último registrado" para sugerencia.
+        // Aunque si el usuario recarga, igual quiere lo que ya guardó.
+        // Sin embargo, para la "sugerencia" inicial suele ser la bitácora anterior.
+        const row = await dbGet(`
+            SELECT rt.bitacora_id
+            FROM registros_trabajo rt
+            JOIN lineas_ejecucion le ON rt.linea_ejecucion_id = le.id
+            WHERE le.proceso_tipo_id = ?
+            ORDER BY rt.id DESC LIMIT 1
+        `, [procesoId]);
+        return row ? row.bitacora_id : null;
+    },
+
     async saveProcesoData(data) {
         const {
             bitacora_id, proceso_id,
