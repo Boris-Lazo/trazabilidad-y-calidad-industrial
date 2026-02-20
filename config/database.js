@@ -65,7 +65,16 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
                 password TEXT,
                 rol TEXT,
                 nombre TEXT
-            );`);
+            );`, () => {
+                // Asegurar existencia de usuario admin inicial
+                db.get("SELECT COUNT(*) as count FROM usuarios WHERE username = 'admin'", (err, row) => {
+                    if (!err && row && row.count === 0) {
+                        const bcrypt = require('bcryptjs');
+                        const hashedPassword = bcrypt.hashSync('admin_password', 10);
+                        db.run("INSERT INTO usuarios (username, password, rol, nombre) VALUES ('admin', ?, 'ADMIN', 'Administrador Sistema')", [hashedPassword]);
+                    }
+                });
+            });
 
             db.run(`CREATE TABLE IF NOT EXISTS PROCESO_TIPO (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

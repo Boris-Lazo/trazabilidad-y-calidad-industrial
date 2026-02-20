@@ -32,19 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
         viewApertura.style.display = 'block';
         viewAbierta.style.display = 'none';
 
-        // Cargar lista de inspectores
-        try {
-            const response = await fetch('/api/bitacora/inspectores');
-            const inspectores = await response.json();
-            const datalist = document.getElementById('inspectores-list');
-            datalist.innerHTML = '';
-            inspectores.forEach(ins => {
-                const option = document.createElement('option');
-                option.value = ins.nombre;
-                datalist.appendChild(option);
-            });
-        } catch (error) {
-            console.error('Error al cargar inspectores:', error);
+        // En el MVP con Autenticación, el inspector es el usuario logueado.
+        const user = Auth.getUser();
+        if (user) {
+            document.getElementById('inspector').value = user.nombre || user.username;
+            document.getElementById('inspector').readOnly = true;
         }
     }
 
@@ -102,13 +94,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     formAbrir.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const inspector = document.getElementById('inspector').value;
+        // El inspector ya se envía automáticamente por el backend usando el token,
+        // pero lo mantenemos en el body por compatibilidad si fuera necesario,
+        // aunque el backend ahora lo ignora y usa req.user.
 
         try {
             const response = await fetch('/api/bitacora/abrir', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ inspector })
+                body: JSON.stringify({ })
             });
 
             if (response.ok) {

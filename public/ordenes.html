@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Órdenes de Producción | PROD-SYS</title>
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/auth.js"></script>
 </head>
 <body>
 
@@ -31,6 +32,10 @@
                 <a href="/configuracion.html" class="nav-item">Configuración</a>
                 <a href="/auditoria.html" class="nav-item">Auditoría</a>
             </nav>
+            <div class="sidebar-footer" style="padding: 1rem; border-top: 1px solid var(--border-color);">
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;" id="user-display">Usuario: -</div>
+                <button onclick="Auth.logout()" class="button button-outline" style="width: 100%; font-size: 0.75rem;">Cerrar Sesión</button>
+            </div>
         </aside>
 
         <!-- Main Content -->

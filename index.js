@@ -4,8 +4,11 @@ require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const compression = require('compression');
+const cookieParser = require('cookie-parser');
 
 // Importar rutas
+const authRoutes = require('./domains/auth/auth.routes');
+const authMiddleware = require('./domains/auth/auth.middleware');
 const procesoTipoRoutes = require('./domains/production/procesoTipo.routes');
 const bitacoraRoutes = require('./domains/production/bitacora.routes');
 const ordenProduccionRoutes = require('./domains/production/ordenProduccion.routes');
@@ -21,16 +24,30 @@ const dashboardRoutes = require('./domains/dashboard/dashboard.routes');
 const app = express();
 
 // Middlewares de seguridad y rendimiento
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'"], // Deshabilitar inline scripts estrictamente
+    },
+  },
+}));
 app.use(compression());
-
-// Middleware para parsear JSON
+app.use(cookieParser());
 app.use(express.json());
 
-// Servir archivos estáticos desde la carpeta 'public'
-app.use(express.static('public'));
+// --- RUTAS PÚBLICAS ---
+app.use('/api/auth', authRoutes);
+app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
+app.use('/js/auth.js', (req, res) => res.sendFile(path.join(__dirname, 'public', 'js', 'auth.js')));
+app.use('/js/login.js', (req, res) => res.sendFile(path.join(__dirname, 'public', 'js', 'login.js')));
 
-// Integrar rutas de la API
+// --- PROTECCIÓN GLOBAL ---
+// Aplicar middleware a todas las rutas que siguen (API y archivos estáticos)
+app.use(authMiddleware);
+
+// --- RUTAS PROTEGIDAS (API) ---
 app.use('/api/procesos-tipo', procesoTipoRoutes);
 app.use('/api/bitacora', bitacoraRoutes);
 app.use('/api/ordenes-produccion', ordenProduccionRoutes);
@@ -43,58 +60,14 @@ app.use('/api/lotes', loteProduccionRoutes);
 app.use('/api/muestras', muestraCalidadRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Rutas del Frontend
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// --- RUTAS PROTEGIDAS (Frontend - Archivos Estáticos) ---
+// Solo se sirven si pasaron por authMiddleware
+app.use(express.static('public'));
 
-app.get('/ordenes.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'ordenes.html'));
-});
-
-app.get('/detalles_orden.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'detalles_orden.html'));
-});
-
-app.get('/ejecucion.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'ejecucion.html'));
-});
-
-app.get('/incidentes.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'incidentes.html'));
-});
-
-app.get('/calidad.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'calidad.html'));
-});
-
-app.get('/trazabilidad.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'trazabilidad.html'));
-});
-
-app.get('/configuracion.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'configuracion.html'));
-});
-
-app.get('/auditoria.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'auditoria.html'));
-});
-
-app.get('/lotes.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'lotes.html'));
-});
-
-app.get('/muestras.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'muestras.html'));
-});
-
-app.get('/bitacora.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'bitacora.html'));
-});
-
-app.get('/proceso.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'proceso.html'));
-});
+// Fallback para las páginas principales (opcional si express.static ya las sirve, pero útil para control)
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/ordenes.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ordenes.html')));
+app.get('/bitacora.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'bitacora.html')));
 
 // Middleware de manejo de errores centralizado
 app.use((err, req, res, next) => {

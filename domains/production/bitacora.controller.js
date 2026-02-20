@@ -85,10 +85,8 @@ const BitacoraController = {
 
     async abrirBitacora(req, res) {
         try {
-            const { inspector } = req.body;
-            if (!inspector) {
-                return res.status(400).json({ message: 'El inspector es obligatorio.' });
-            }
+            // Requirement 6: El usuario autenticado queda asociado como inspector_responsable
+            const inspector = req.user.nombre || req.user.username;
 
             const existing = await Bitacora.findAbierta();
             if (existing) {
@@ -184,6 +182,12 @@ const BitacoraController = {
             const { id } = req.params;
             const bitacora = await Bitacora.findById(id);
             if (!bitacora) return res.status(404).json({ message: 'Bitácora no encontrada.' });
+
+            // Requirement 6: Solo el mismo usuario que abrió la bitácora puede cerrarla (excepto ADMIN)
+            const currentUser = req.user.nombre || req.user.username;
+            if (bitacora.inspector !== currentUser && req.user.rol !== 'ADMIN') {
+                return res.status(403).json({ message: 'Solo el inspector que abrió la bitácora puede cerrarla.' });
+            }
 
             // Validar que todos los procesos tengan registro (según requerimiento)
             // "Botón visible solo si: todos los procesos operativos tienen registro"
