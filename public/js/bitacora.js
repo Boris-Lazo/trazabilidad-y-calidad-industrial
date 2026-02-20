@@ -28,9 +28,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function showApertura() {
+    async function showApertura() {
         viewApertura.style.display = 'block';
         viewAbierta.style.display = 'none';
+
+        // Cargar lista de inspectores
+        try {
+            const response = await fetch('/api/bitacora/inspectores');
+            const inspectores = await response.json();
+            const datalist = document.getElementById('inspectores-list');
+            datalist.innerHTML = '';
+            inspectores.forEach(ins => {
+                const option = document.createElement('option');
+                option.value = ins.nombre;
+                datalist.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error al cargar inspectores:', error);
+        }
     }
 
     function showAbierta(data) {

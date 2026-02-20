@@ -38,6 +38,10 @@ const Bitacora = {
         return dbGet('SELECT * FROM bitacora_turno WHERE id = ?', [id]);
     },
 
+    async getInspectores() {
+        return dbAll('SELECT nombre FROM usuarios', []);
+    },
+
     async getResumenProcesos(bitacoraId) {
         // Esta función calculará el estado de cada proceso para una bitácora específica.
         // Por ahora retornamos una lista de procesos tipos y luego el controlador calculará el estado.

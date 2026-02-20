@@ -3,6 +3,15 @@ const Bitacora = require('./bitacora.model');
 const { getTurnoActual } = require('./turno.utils');
 
 const BitacoraController = {
+    async getInspectores(req, res) {
+        try {
+            const inspectores = await Bitacora.getInspectores();
+            res.json(inspectores);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    },
+
     async getEstadoActual(req, res) {
         try {
             let bitacora = await Bitacora.findAbierta();

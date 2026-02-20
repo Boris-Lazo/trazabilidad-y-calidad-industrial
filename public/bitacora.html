@@ -48,7 +48,8 @@
                         <form id="form-abrir-bitacora">
                             <div class="form-group">
                                 <label for="inspector">Nombre del Inspector</label>
-                                <input type="text" id="inspector" placeholder="Ej. Juan Pérez" required>
+                                <input type="text" id="inspector" list="inspectores-list" placeholder="Ej. Juan Pérez" required>
+                                <datalist id="inspectores-list"></datalist>
                             </div>
                             <button type="submit" class="button button-primary" style="width: 100%;">Abrir Bitácora</button>
                         </form>
