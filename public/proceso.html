@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro por Proceso | PROD-SYS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                PROD-SYS
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item">Dashboard</a>
+                <div class="nav-group-label">Producción</div>
+                <a href="/bitacora.html" class="nav-item active">Bitácora de Turno</a>
+                <a href="/ordenes.html" class="nav-item">Órdenes</a>
+                <a href="/ejecucion.html" class="nav-item">Ejecución</a>
+                <a href="/incidentes.html" class="nav-item">Incidentes</a>
+                <div class="nav-group-label">Control y Seguimiento</div>
+                <a href="/calidad.html" class="nav-item">Calidad</a>
+                <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+                <div class="nav-group-label">Sistema</div>
+                <a href="/configuracion.html" class="nav-item">Configuración</a>
+                <a href="/auditoria.html" class="nav-item">Auditoría</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <a href="/bitacora.html" class="button button-outline" style="padding: 0.25rem 0.75rem;">← Volver</a>
+                    <h1 id="proceso-titulo" style="margin-bottom: 0;">Proceso: -</h1>
+                </div>
+                <div id="breadcrumb" style="font-size: 0.875rem; color: var(--text-muted);">
+                    Bitácora Turno <span id="bread-turno">-</span> – <span id="bread-fecha">-</span>  >  <span id="bread-proceso">-</span>
+                </div>
+            </header>
+
+            <div class="page-content">
+
+                <!-- SECCIÓN: ESTADO DEL PROCESO -->
+                <div class="card" style="border-left: 5px solid var(--warning);">
+                    <div class="card-title">ESTADO DEL PROCESO</div>
+                    <div style="display: flex; gap: 2rem; align-items: flex-start;">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="select-operatividad">Disponibilidad</label>
+                            <select id="select-operatividad" class="form__input">
+                                <option value="operativo">✅ Operativo (Producción normal)</option>
+                                <option value="no_operativo">🚫 No Operativo (Parada / Sin plan)</option>
+                            </select>
+                        </div>
+                        <div id="group-motivo" class="form-group" style="flex: 2; display: none;">
+                            <label for="motivo-no-operativo">Motivo de no operatividad</label>
+                            <input type="text" id="motivo-no-operativo" class="form__input" placeholder="Ej. Falta de personal, sin programación de órdenes...">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="secciones-operativas">
+                    <!-- SECCIÓN 1: CALIDAD -->
+                <div class="card">
+                    <div class="card-title">1. CALIDAD (Muestras)</div>
+                    <div class="table-container mb-4">
+                        <table id="tabla-calidad">
+                            <thead>
+                                <tr>
+                                    <th>Parámetro</th>
+                                    <th>Valor</th>
+                                    <th>Resultado</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-calidad">
+                                <!-- Filas de muestras -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button id="btn-agregar-muestra" class="button button-outline">+ Agregar Muestra</button>
+                </div>
+
+                <!-- SECCIÓN 2: PRODUCCIÓN -->
+                <div class="card">
+                    <div class="card-title">2. PRODUCCIÓN DEL TURNO</div>
+                    <div class="table-container mb-4">
+                        <table id="tabla-produccion">
+                            <thead>
+                                <tr>
+                                    <th>Máquina</th>
+                                    <th>Orden</th>
+                                    <th>Producción</th>
+                                    <th>Unidad</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-produccion">
+                                <!-- Filas de producción -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button id="btn-agregar-produccion" class="button button-outline">+ Agregar Registro</button>
+                </div>
+
+                <!-- SECCIÓN 3: DESPERDICIO -->
+                <div class="card">
+                    <div class="card-title">3. DESPERDICIO</div>
+                    <div class="table-container mb-4">
+                        <table id="tabla-desperdicio">
+                            <thead>
+                                <tr>
+                                    <th>Máquina</th>
+                                    <th>Orden</th>
+                                    <th>Desperdicio (kg)</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-desperdicio">
+                                <!-- Filas de desperdicio -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button id="btn-agregar-desperdicio" class="button button-outline">+ Agregar Desperdicio</button>
+                </div>
+
+                </div>
+
+                <!-- SECCIÓN 4: OBSERVACIONES -->
+                <div class="card">
+                    <div class="card-title">4. OBSERVACIONES / DECISIÓN</div>
+                    <div class="form-group">
+                        <label for="observaciones">Notas del Inspector</label>
+                        <textarea id="observaciones" rows="4" placeholder="Escriba aquí cualquier desviación, rechazo o incidente..."></textarea>
+                    </div>
+                    <div id="aviso-obligatorio" class="text-error" style="display: none; font-size: 0.875rem; margin-top: -0.5rem; margin-bottom: 1rem;">
+                        ⚠ Las observaciones son obligatorias cuando hay rechazos o desviaciones.
+                    </div>
+                </div>
+
+                <!-- BOTONES FINALES -->
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-bottom: 4rem;">
+                    <button id="btn-guardar" class="button button-outline">Guardar</button>
+                    <button id="btn-guardar-volver" class="button button-primary">Guardar y volver</button>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="js/proceso.js"></script>
+
+</body>
+</html>

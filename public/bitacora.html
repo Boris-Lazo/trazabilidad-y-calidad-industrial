@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitácora de Turno | PROD-SYS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                PROD-SYS
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item">Dashboard</a>
+
+                <div class="nav-group-label">Producción</div>
+                <a href="/bitacora.html" class="nav-item active">Bitácora de Turno</a>
+                <a href="/ordenes.html" class="nav-item">Órdenes</a>
+                <a href="/ejecucion.html" class="nav-item">Ejecución</a>
+                <a href="/incidentes.html" class="nav-item">Incidentes</a>
+
+                <div class="nav-group-label">Control y Seguimiento</div>
+                <a href="/calidad.html" class="nav-item">Calidad</a>
+                <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+
+                <div class="nav-group-label">Sistema</div>
+                <a href="/configuracion.html" class="nav-item">Configuración</a>
+                <a href="/auditoria.html" class="nav-item">Auditoría</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Bitácora de Turno</h1>
+            </header>
+
+            <div class="page-content">
+                <!-- Estado: Bitácora Cerrada (Pantalla de Apertura) -->
+                <div id="view-apertura" style="display: none;">
+                    <div class="card" style="max-width: 500px; margin: 2rem auto;">
+                        <div class="card-title">Abrir Nueva Bitácora</div>
+                        <p class="mb-4">No hay una bitácora abierta para el turno actual.</p>
+                        <form id="form-abrir-bitacora">
+                            <div class="form-group">
+                                <label for="inspector">Nombre del Inspector</label>
+                                <input type="text" id="inspector" placeholder="Ej. Juan Pérez" required>
+                            </div>
+                            <button type="submit" class="button button-primary" style="width: 100%;">Abrir Bitácora</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Estado: Bitácora Abierta -->
+                <div id="view-abierta" style="display: none;">
+                    <!-- Encabezado fijo (contexto operativo) -->
+                    <div class="card" style="background-color: rgba(59, 130, 246, 0.1); border-color: var(--primary-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h2 style="margin-bottom: 0.25rem;">Turno <span id="info-turno">-</span> – <span id="info-fecha">-</span></h2>
+                                <p style="color: var(--text-muted);">Inspector: <strong id="info-inspector" style="color: var(--text-main);">-</strong></p>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="badge badge-info" id="info-estado">EN CURSO</div>
+                                <p id="warning-horario" class="text-error" style="display: none; font-size: 0.75rem; margin-top: 0.5rem;">
+                                    ⚠ Bitácora creada fuera del horario del turno
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla central: Procesos del turno -->
+                    <div class="card">
+                        <div class="card-title">Procesos del Turno</div>
+                        <div class="table-container">
+                            <table id="tabla-procesos">
+                                <thead>
+                                    <tr>
+                                        <th>Proceso</th>
+                                        <th>Estado</th>
+                                        <th>Última actualización</th>
+                                        <th style="text-align: right;">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-procesos">
+                                    <!-- Se llena dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Botón de Cierre -->
+                    <div style="text-align: right;">
+                        <button id="btn-cerrar-bitacora" class="button button-outline" style="border-color: var(--danger); color: var(--danger);">
+                            Cerrar Bitácora
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Cierre (Simple overlay) -->
+    <div id="modal-cierre" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+        <div class="card" style="max-width: 500px; width: 90%;">
+            <div class="card-title">Resumen del Turno</div>
+            <div id="resumen-cierre" class="mb-4">
+                <!-- Se llena dinámicamente -->
+            </div>
+            <p class="mb-4">¿Cerrar bitácora de todas formas? Una vez cerrada quedará inmutable.</p>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button onclick="document.getElementById('modal-cierre').style.display='none'" class="button button-outline">Cancelar</button>
+                <button id="confirmar-cierre" class="button button-primary" style="background-color: var(--danger);">Confirmar y Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/bitacora.js"></script>
+
+</body>
+</html>

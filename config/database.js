@@ -12,6 +12,17 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
         db.serialize(() => {
             console.log("Creando tablas si no existen...");
 
+            db.run(`CREATE TABLE IF NOT EXISTS bitacora_turno (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                turno TEXT,
+                fecha_operativa DATE,
+                inspector TEXT,
+                estado TEXT DEFAULT 'EN CURSO',
+                fuera_de_horario BOOLEAN DEFAULT 0,
+                fecha_apertura DATETIME DEFAULT CURRENT_TIMESTAMP,
+                fecha_cierre DATETIME
+            );`);
+
             db.run(`CREATE TABLE IF NOT EXISTS orden_produccion (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 codigo_orden TEXT UNIQUE,
@@ -81,8 +92,10 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
                 observaciones TEXT,
                 fecha_hora DATETIME,
                 linea_ejecucion_id INTEGER,
+                bitacora_id INTEGER,
                 estado TEXT DEFAULT 'completado', -- 'abierto' o 'completado'
-                FOREIGN KEY (linea_ejecucion_id) REFERENCES lineas_ejecucion(id)
+                FOREIGN KEY (linea_ejecucion_id) REFERENCES lineas_ejecucion(id),
+                FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id)
             );`);
 
             db.run(`CREATE TABLE IF NOT EXISTS lotes (
@@ -98,7 +111,14 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
                 codigo_muestra TEXT UNIQUE,
                 fecha_analisis DATE,
                 lote_id INTEGER,
-                FOREIGN KEY (lote_id) REFERENCES lotes(id)
+                bitacora_id INTEGER,
+                proceso_tipo_id INTEGER,
+                resultado TEXT, -- 'Aceptable', 'En espera', 'Rechazo'
+                valor REAL,
+                parametro TEXT,
+                FOREIGN KEY (lote_id) REFERENCES lotes(id),
+                FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+                FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id)
             );`);
 
             db.run(`CREATE TABLE IF NOT EXISTS RECURSO (
@@ -108,6 +128,16 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
                 descripcion TEXT,
                 tipo TEXT,
                 unidad_medida TEXT
+            );`);
+
+            db.run(`CREATE TABLE IF NOT EXISTS bitacora_proceso_status (
+                bitacora_id INTEGER,
+                proceso_tipo_id INTEGER,
+                no_operativo BOOLEAN DEFAULT 0,
+                motivo_no_operativo TEXT,
+                PRIMARY KEY (bitacora_id, proceso_tipo_id),
+                FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+                FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id)
             );`);
 
             db.run(`CREATE TABLE IF NOT EXISTS CONSUMO (
@@ -123,6 +153,13 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
                     console.error("Error creando la última tabla:", err.message);
                 } else {
                     console.log("Esquema de la base de datos verificado/creado con éxito.");
+                    // Migraciones sutiles para columnas faltantes
+                    db.run("ALTER TABLE registros_trabajo ADD COLUMN bitacora_id INTEGER", (err) => {});
+                    db.run("ALTER TABLE muestras ADD COLUMN bitacora_id INTEGER", (err) => {});
+                    db.run("ALTER TABLE muestras ADD COLUMN proceso_tipo_id INTEGER", (err) => {});
+                    db.run("ALTER TABLE muestras ADD COLUMN resultado TEXT", (err) => {});
+                    db.run("ALTER TABLE muestras ADD COLUMN valor REAL", (err) => {});
+                    db.run("ALTER TABLE muestras ADD COLUMN parametro TEXT", (err) => {});
                 }
             });
         });

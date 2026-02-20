@@ -7,6 +7,7 @@ const compression = require('compression');
 
 // Importar rutas
 const procesoTipoRoutes = require('./domains/production/procesoTipo.routes');
+const bitacoraRoutes = require('./domains/production/bitacora.routes');
 const ordenProduccionRoutes = require('./domains/production/ordenProduccion.routes');
 const lineaEjecucionRoutes = require('./domains/production/lineaEjecucion.routes');
 const registroTrabajoRoutes = require('./domains/production/registroTrabajo.routes');
@@ -31,6 +32,7 @@ app.use(express.static('public'));
 
 // Integrar rutas de la API
 app.use('/api/procesos-tipo', procesoTipoRoutes);
+app.use('/api/bitacora', bitacoraRoutes);
 app.use('/api/ordenes-produccion', ordenProduccionRoutes);
 app.use('/api/lineas-ejecucion', lineaEjecucionRoutes);
 app.use('/api/registros-trabajo', registroTrabajoRoutes);
@@ -84,6 +86,14 @@ app.get('/lotes.html', (req, res) => {
 
 app.get('/muestras.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'muestras.html'));
+});
+
+app.get('/bitacora.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'bitacora.html'));
+});
+
+app.get('/proceso.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'proceso.html'));
 });
 
 // Middleware de manejo de errores centralizado
