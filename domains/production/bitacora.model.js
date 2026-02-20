@@ -174,7 +174,7 @@ const Bitacora = {
 
                     if (isExtrusorPP && muestras_estructuradas) {
                         for (const m of muestras_estructuradas) {
-                            const res = m.color === 'Aceptable' ? 'Aceptable' : (m.color === 'Rechazo' ? 'Rechazo' : 'En espera');
+                            const res = m.estado || 'En espera';
                             // Guardamos la tenacidad como parámetro principal de calidad para que aparezca en reportes generales
                             await dbRun(`
                                 INSERT INTO muestras (parametro, valor, resultado, bitacora_id, proceso_tipo_id, lote_id, fecha_analisis, codigo_muestra)

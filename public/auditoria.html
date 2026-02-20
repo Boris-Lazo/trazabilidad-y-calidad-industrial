@@ -5,29 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auditoría | PROD-SYS</title>
     <link rel="stylesheet" href="css/style.css">
+        <script src="https://unpkg.com/lucide@latest"></script>
     <script src="js/auth.js"></script>
+    <script src="js/ui-utils.js"></script>
 </head>
 <body>
     <div class="app-container">
+                <!-- Sidebar -->
         <aside class="sidebar">
-            <div class="sidebar-header">PROD-SYS</div>
+            <div class="sidebar-header">
+                <span>PROD-SYS</span>
+                <button id="btn-toggle-sidebar" class="btn-icon" title="Contraer/Expandir">
+                    <i data-lucide="menu"></i>
+                </button>
+            </div>
             <nav class="sidebar-nav">
-                <a href="/" class="nav-item">Dashboard</a>
+                <a href="/" class="nav-item ">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+
                 <div class="nav-group-label">Producción</div>
-                <a href="/bitacora.html" class="nav-item">Bitácora de Turno</a>
-                <a href="/ordenes.html" class="nav-item">Órdenes</a>
-                <a href="/ejecucion.html" class="nav-item">Ejecución</a>
-                <a href="/incidentes.html" class="nav-item">Incidentes</a>
+                <a href="/bitacora.html" class="nav-item ">
+                    <i data-lucide="book-open"></i>
+                    <span>Bitácora de Turno</span>
+                </a>
+                <a href="/ordenes.html" class="nav-item ">
+                    <i data-lucide="clipboard-list"></i>
+                    <span>Órdenes</span>
+                </a>
+                <a href="/ejecucion.html" class="nav-item ">
+                    <i data-lucide="play-circle"></i>
+                    <span>Ejecución</span>
+                </a>
+                <a href="/incidentes.html" class="nav-item ">
+                    <i data-lucide="alert-triangle"></i>
+                    <span>Incidentes</span>
+                </a>
+
                 <div class="nav-group-label">Control y Seguimiento</div>
-                <a href="/calidad.html" class="nav-item">Calidad</a>
-                <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+                <a href="/calidad.html" class="nav-item ">
+                    <i data-lucide="check-circle"></i>
+                    <span>Calidad</span>
+                </a>
+                <a href="/trazabilidad.html" class="nav-item ">
+                    <i data-lucide="search"></i>
+                    <span>Trazabilidad</span>
+                </a>
+
                 <div class="nav-group-label">Sistema</div>
-                <a href="/configuracion.html" class="nav-item">Configuración</a>
-                <a href="/auditoria.html" class="nav-item active">Auditoría</a>
+                <a href="/configuracion.html" class="nav-item ">
+                    <i data-lucide="settings"></i>
+                    <span>Configuración</span>
+                </a>
+                <a href="/auditoria.html" class="nav-item active">
+                    <i data-lucide="shield"></i>
+                    <span>Auditoría</span>
+                </a>
             </nav>
-            <div class="sidebar-footer" style="padding: 1rem; border-top: 1px solid var(--border-color);">
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;" id="user-display">Usuario: -</div>
-                <button onclick="Auth.logout()" class="button button-outline" style="width: 100%; font-size: 0.75rem;">Cerrar Sesión</button>
+            <div class="sidebar-footer">
+                <div id="user-display">Usuario: -</div>
+                <button onclick="Auth.logout()" class="button button-outline" title="Cerrar Sesión">
+                    <i data-lucide="log-out"></i>
+                    <span>Cerrar Sesión</span>
+                </button>
             </div>
         </aside>
         <main class="main-content">
