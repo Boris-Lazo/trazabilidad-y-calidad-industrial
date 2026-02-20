@@ -19,22 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelectorAll('.section-extrusor').forEach(el => el.style.display = 'block');
         document.getElementById('calidad-generico').style.display = 'none';
 
-        // Ajustar labels de orden si es necesario
-        // Pero el orden ya está en el HTML
-
-        // Inicializar Temperaturas (12)
-        const gridTemps = document.getElementById('grid-temperaturas');
-        for (let i = 1; i <= 12; i++) {
-            const div = document.createElement('div');
-            div.className = 'form-group';
-            div.innerHTML = `
-                <label style="font-size: 0.7rem;">Z${i}</label>
-                <input type="number" class="form__input input-temp" data-zona="${i}" placeholder="0">
-            `;
-            gridTemps.appendChild(div);
-        }
-
-        // Inicializar Materias Pras (6 filas)
+        // Inicializar Materias Primas (6 filas)
         const tbodyMezcla = document.getElementById('tbody-mezcla');
         for (let i = 0; i < 6; i++) {
             const tr = document.createElement('tr');
@@ -52,9 +37,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (e.target.classList.contains('input-mezcla-porcentaje')) {
                 calcularTotalMezcla();
             }
-            if (e.target.id === 'rpm-tornillo' || e.target.id === 'ratio-stretching') {
-                calcularVelocidadEmbobinadores();
-            }
+            actualizarBadgeEstado();
+        });
+
+        document.body.addEventListener('change', (e) => {
+            actualizarBadgeEstado();
         });
 
     } else {
@@ -94,9 +81,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (data.no_operativo) {
                 document.getElementById('select-operatividad').value = 'no_operativo';
-                document.getElementById('group-motivo').style.display = 'block';
+                document.getElementById('select-operatividad').dispatchEvent(new Event('change'));
                 document.getElementById('motivo-no-operativo').value = data.motivo_no_operativo;
-                document.getElementById('secciones-operativas').style.display = 'none';
             }
 
             if (isExtrusorPP) {
@@ -124,22 +110,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     for(let i=0; i<3; i++) agregarMuestraExtrusor();
                 }
 
-                // Cargar parámetros operativos
-                if (data.parametros_operativos) {
-                    const po = data.parametros_operativos;
-                    const tempInputs = document.querySelectorAll('.input-temp');
-                    po.temperaturas?.forEach((t, i) => { if(tempInputs[i]) tempInputs[i].value = t; });
-                    document.getElementById('temp-pila').value = po.temp_pila || '';
-                    document.getElementById('temp-horno').value = po.temp_horno || '';
-                    document.getElementById('rpm-tornillo').value = po.rpm_tornillo || '';
-                    document.getElementById('presion-bar').value = po.presion_bar || '';
-                    document.getElementById('ratio-top-roller').value = po.ratio_top_roller || '';
-                    document.getElementById('ratio-holding').value = po.ratio_holding || '';
-                    document.getElementById('ratio-annealing').value = po.ratio_annealing || '';
-                    document.getElementById('ratio-stretching').value = po.ratio_stretching || '';
-                    calcularVelocidadEmbobinadores();
-                }
-
                 // Cargar mezcla
                 if (data.mezcla) {
                     const rows = document.querySelectorAll('#tbody-mezcla tr');
@@ -165,6 +135,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             data.desperdicio?.forEach(d => agregarDesperdicio(d));
             document.getElementById('observaciones').value = data.observaciones || '';
 
+            actualizarBadgeEstado();
+
             if (data.solo_lectura) {
                 document.querySelectorAll('input, select, textarea, button').forEach(el => {
                     if (!el.classList.contains('button-outline') || el.id === 'btn-guardar') {
@@ -181,6 +153,48 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- FUNCIONES AUXILIARES ---
 
+    function actualizarBadgeEstado() {
+        const isNoOperativo = document.getElementById('select-operatividad').value === 'no_operativo';
+        const motivoNoOperativo = document.getElementById('motivo-no-operativo').value.trim();
+
+        const tbodyCalidad = isExtrusorPP ? document.getElementById('tbody-calidad-extrusor') : document.getElementById('tbody-calidad');
+        const numMuestras = isExtrusorPP ? (tbodyCalidad.children.length / 2) : tbodyCalidad.children.length;
+
+        const hasRegistros = document.getElementById('tbody-produccion').children.length > 0;
+
+        let hasRechazo = false;
+        if (isExtrusorPP) {
+            hasRechazo = Array.from(document.querySelectorAll('.select-estado')).some(s => s.value === 'Rechazado' || s.value === 'En espera');
+        } else {
+            hasRechazo = Array.from(document.querySelectorAll('.select-resultado')).some(s => s.value === 'Rechazo' || s.value === 'En espera');
+        }
+
+        const hasIncidente = document.getElementById('tbody-incidentes').children.length > 0;
+
+        let estado = 'Sin datos';
+        let badgeClass = 'badge-outline';
+
+        if (hasRechazo || hasIncidente) {
+            estado = 'Revisión';
+            badgeClass = 'badge-error';
+        } else if (isNoOperativo && motivoNoOperativo && numMuestras > 0) {
+            estado = 'Completo';
+            badgeClass = 'badge-success';
+        } else if (!isNoOperativo && hasRegistros && numMuestras > 0) {
+            estado = 'Completo';
+            badgeClass = 'badge-success';
+        } else if (hasRegistros || numMuestras > 0 || (isNoOperativo && motivoNoOperativo)) {
+            estado = 'Parcial';
+            badgeClass = 'badge-warning';
+        }
+
+        const badge = document.getElementById('badge-estado-proceso');
+        if (badge) {
+            badge.textContent = estado;
+            badge.className = `badge ${badgeClass}`;
+        }
+    }
+
     function calcularTotalMezcla() {
         let total = 0;
         document.querySelectorAll('.input-mezcla-porcentaje').forEach(input => {
@@ -193,13 +207,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         return total;
     }
 
-    function calcularVelocidadEmbobinadores() {
-        const rpm = parseFloat(document.getElementById('rpm-tornillo').value) || 0;
-        const stretch = parseFloat(document.getElementById('ratio-stretching').value) || 0;
-        // Formula simplificada para el sistema: RPM * Factor * Stretch
-        // Usamos un factor de 0.5 como ejemplo, idealmente vendría de configuración.
+    function calcularVelocidadEmbobinadores(trParams) {
+        const rpm = parseFloat(trParams.querySelector('.input-rpm-tornillo').value) || 0;
+        const stretch = parseFloat(trParams.querySelector('.input-ratio-stretch').value) || 0;
         const velocidad = rpm * 0.5 * stretch;
-        document.getElementById('velocidad-embobinadores').value = velocidad.toFixed(2);
+        trParams.querySelector('.input-vel-embob').value = velocidad.toFixed(2);
     }
 
     // --- MANEJO DE FILAS ---
@@ -207,9 +219,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     function agregarMuestraExtrusor(data = {}) {
         const tbody = document.getElementById('tbody-calidad-extrusor');
         const tr = document.createElement('tr');
-        const index = tbody.children.length + 1;
+        const index = Math.floor(tbody.children.length / 2) + 1;
         tr.innerHTML = `
             <td>${index}</td>
+            <td>
+                <select class="form__input select-tipo-ronda">
+                    <option value="Inicio" ${data.tipo_ronda === 'Inicio' ? 'selected' : ''}>Inicio</option>
+                    <option value="Intermedia" ${data.tipo_ronda === 'Intermedia' ? 'selected' : '' || (!data.tipo_ronda && index > 1) ? 'selected' : ''}>Intermedia</option>
+                    <option value="Final" ${data.tipo_ronda === 'Final' ? 'selected' : ''}>Final</option>
+                    <option value="Evento" ${data.tipo_ronda === 'Evento' ? 'selected' : ''}>Evento</option>
+                </select>
+            </td>
             <td><input type="number" class="form__input input-denier" value="${data.denier || ''}" step="0.1"></td>
             <td><input type="number" class="form__input input-resistencia" value="${data.resistencia || ''}" step="0.1"></td>
             <td><input type="number" class="form__input input-elongacion" value="${data.elongacion || ''}" step="0.1"></td>
@@ -217,28 +237,94 @@ document.addEventListener('DOMContentLoaded', async () => {
             <td><input type="number" class="form__input input-ancho" value="${data.ancho || ''}" step="0.1"></td>
             <td>
                 <select class="form__input select-color">
-                    <option value="Aceptable" ${data.color === 'Aceptable' ? 'selected' : ''}>Aceptable</option>
-                    <option value="Observación" ${data.color === 'Observación' ? 'selected' : ''}>Observación</option>
-                    <option value="Rechazo" ${data.color === 'Rechazo' ? 'selected' : ''}>Rechazo</option>
+                    <option value="A" ${data.color === 'A' ? 'selected' : ''}>A</option>
+                    <option value="B" ${data.color === 'B' ? 'selected' : ''}>B</option>
+                    <option value="C" ${data.color === 'C' ? 'selected' : ''}>C</option>
                 </select>
             </td>
+            <td>
+                <select class="form__input select-estado">
+                    <option value="Aprobado" ${data.estado === 'Aprobado' ? 'selected' : ''}>Aprobado</option>
+                    <option value="Rechazado" ${data.estado === 'Rechazado' ? 'selected' : ''}>Rechazado</option>
+                    <option value="En espera" ${data.estado === 'En espera' ? 'selected' : ''}>En espera</option>
+                </select>
+            </td>
+            <td><button class="button button-outline btn-toggle-params">⚙️</button></td>
             <td><button class="button button-outline btn-eliminar-fila" style="color: var(--danger);">×</button></td>
         `;
         tbody.appendChild(tr);
 
-        // Listener para Tenacidad
+        // Row de Parámetros
+        const trParams = document.createElement('tr');
+        trParams.className = 'row-parametros';
+        trParams.style.display = 'none';
+        trParams.innerHTML = `
+            <td colspan="10" style="background: rgba(0,0,0,0.15); padding: 1rem; border-bottom: 2px solid var(--primary-color);">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                    <div>
+                        <h4 style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase;">Temperaturas Zonas (1-12)</h4>
+                        <div class="grid-temps container-temps"></div>
+                    </div>
+                    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.75rem;">
+                        <div class="form-group"><label style="font-size: 0.75rem;">Pila</label><input type="number" class="form__input input-temp-pila" value="${data.parametros?.temp_pila || ''}"></div>
+                        <div class="form-group"><label style="font-size: 0.75rem;">Horno</label><input type="number" class="form__input input-temp-horno" value="${data.parametros?.temp_horno || ''}"></div>
+                        <div class="form-group"><label style="font-size: 0.75rem;">RPM</label><input type="number" class="form__input input-rpm-tornillo" value="${data.parametros?.rpm_tornillo || ''}"></div>
+                        <div class="form-group"><label style="font-size: 0.75rem;">Presión</label><input type="number" class="form__input input-presion-bar" value="${data.parametros?.presion_bar || ''}"></div>
+                        <div class="form-group"><label style="font-size: 0.75rem;">TopR</label><input type="number" step="0.01" class="form__input input-ratio-top" value="${data.parametros?.ratio_top_roller || ''}"></div>
+                        <div class="form-group"><label style="font-size: 0.75rem;">Hold</label><input type="number" step="0.01" class="form__input input-ratio-hold" value="${data.parametros?.ratio_holding || ''}"></div>
+                        <div class="form-group"><label style="font-size: 0.75rem;">Ann</label><input type="number" step="0.01" class="form__input input-ratio-ann" value="${data.parametros?.ratio_annealing || ''}"></div>
+                        <div class="form-group"><label style="font-size: 0.75rem;">Stretch</label><input type="number" step="0.01" class="form__input input-ratio-stretch" value="${data.parametros?.ratio_stretching || ''}"></div>
+                        <div class="form-group"><label style="font-size: 0.75rem;">Vel. Emb.</label><input type="number" class="form__input input-vel-embob" readonly value="${data.parametros?.velocidad_embobinadores || ''}" style="background: rgba(255,255,255,0.05);"></div>
+                    </div>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(trParams);
+
+        const containerTemps = trParams.querySelector('.container-temps');
+        for (let i = 1; i <= 12; i++) {
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.style.marginBottom = '0';
+            div.innerHTML = `
+                <label style="font-size: 0.65rem; margin-bottom: 2px;">Z${i}</label>
+                <input type="number" class="form__input input-temp-zona" style="padding: 4px;" data-zona="${i}" value="${data.parametros?.temperaturas?.[i-1] || ''}">
+            `;
+            containerTemps.appendChild(div);
+        }
+
+        // Listeners
+        tr.querySelector('.btn-toggle-params').addEventListener('click', () => {
+            trParams.style.display = trParams.style.display === 'none' ? 'table-row' : 'none';
+        });
+
         const updateTenacidad = () => {
             const denier = parseFloat(tr.querySelector('.input-denier').value) || 0;
             const res = parseFloat(tr.querySelector('.input-resistencia').value) || 0;
-            if (denier > 0) {
-                tr.querySelector('.input-tenacidad').value = (res / denier).toFixed(2);
-            }
+            if (denier > 0) tr.querySelector('.input-tenacidad').value = (res / denier).toFixed(2);
         };
         tr.querySelector('.input-denier').addEventListener('input', updateTenacidad);
         tr.querySelector('.input-resistencia').addEventListener('input', updateTenacidad);
-        tr.querySelector('.btn-eliminar-fila').addEventListener('click', () => tr.remove());
 
-        tr.querySelector('.select-color').addEventListener('change', checkObservacionesObligatorias);
+        trParams.querySelectorAll('.input-rpm-tornillo, .input-ratio-stretch').forEach(input => {
+            input.addEventListener('input', () => calcularVelocidadEmbobinadores(trParams));
+        });
+
+        tr.querySelector('.btn-eliminar-fila').addEventListener('click', () => {
+            tr.remove();
+            trParams.remove();
+        });
+
+        tr.querySelector('.select-color').addEventListener('change', () => {
+            checkObservacionesObligatorias();
+            actualizarBadgeEstado();
+        });
+        tr.querySelector('.select-estado').addEventListener('change', () => {
+            checkObservacionesObligatorias();
+            actualizarBadgeEstado();
+        });
+
+        actualizarBadgeEstado();
     }
 
     function agregarMuestra(data = {}) {
@@ -257,8 +343,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             <td><button class="button button-outline btn-eliminar-fila" style="color: var(--danger);">Eliminar</button></td>
         `;
         tbody.appendChild(tr);
-        tr.querySelector('.select-resultado').addEventListener('change', checkObservacionesObligatorias);
-        tr.querySelector('.btn-eliminar-fila').addEventListener('click', () => tr.remove());
+        tr.querySelector('.select-resultado').addEventListener('change', () => {
+            checkObservacionesObligatorias();
+            actualizarBadgeEstado();
+        });
+        tr.querySelector('.btn-eliminar-fila').addEventListener('click', () => {
+            tr.remove();
+            actualizarBadgeEstado();
+        });
+        actualizarBadgeEstado();
     }
 
     function agregarProduccion(data = {}) {
@@ -272,7 +365,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             <td><button class="button button-outline btn-eliminar-fila" style="color: var(--danger);">×</button></td>
         `;
         tbody.appendChild(tr);
-        tr.querySelector('.btn-eliminar-fila').addEventListener('click', () => tr.remove());
+        tr.querySelector('.btn-eliminar-fila').addEventListener('click', () => {
+            tr.remove();
+            actualizarBadgeEstado();
+        });
+        actualizarBadgeEstado();
     }
 
     function agregarDesperdicio(data = {}) {
@@ -287,7 +384,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             <td><button class="button button-outline btn-eliminar-fila" style="color: var(--danger);">×</button></td>
         `;
         tbody.appendChild(tr);
-        tr.querySelector('.btn-eliminar-fila').addEventListener('click', () => tr.remove());
+        tr.querySelector('.btn-eliminar-fila').addEventListener('click', () => {
+            tr.remove();
+            actualizarBadgeEstado();
+        });
+        actualizarBadgeEstado();
     }
 
     function agregarIncidente(data = {}) {
@@ -307,7 +408,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             <td><button class="button button-outline btn-eliminar-fila" style="color: var(--danger);">×</button></td>
         `;
         tbody.appendChild(tr);
-        tr.querySelector('.btn-eliminar-fila').addEventListener('click', () => tr.remove());
+        tr.querySelector('.btn-eliminar-fila').addEventListener('click', () => {
+            tr.remove();
+            actualizarBadgeEstado();
+        });
+        actualizarBadgeEstado();
     }
 
     // Event listeners
@@ -320,8 +425,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     function checkObservacionesObligatorias() {
         let hasProblem = false;
         if (isExtrusorPP) {
-            const colores = Array.from(document.querySelectorAll('.select-color')).map(s => s.value);
-            hasProblem = colores.some(c => c === 'Rechazo' || c === 'Observación');
+            const estados = Array.from(document.querySelectorAll('.select-estado')).map(s => s.value);
+            hasProblem = estados.some(e => e === 'Rechazado' || e === 'En espera');
         } else {
             const resultados = Array.from(document.querySelectorAll('.select-resultado')).map(s => s.value);
             hasProblem = resultados.some(r => r === 'Rechazo' || r === 'En espera');
@@ -335,9 +440,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function guardar(volver = false) {
         const isNoOperativo = document.getElementById('select-operatividad').value === 'no_operativo';
         const motivoNoOperativo = document.getElementById('motivo-no-operativo').value;
+        const observaciones = document.getElementById('observaciones').value.trim();
 
         if (isNoOperativo && !motivoNoOperativo.trim()) {
             alert('Debe indicar el motivo por el cual el proceso no es operativo.');
+            return;
+        }
+
+        // Validaciones de Coherencia Física
+        const prodRows = Array.from(document.getElementById('tbody-produccion').querySelectorAll('tr'));
+        const totalProduccion = prodRows.reduce((acc, tr) => {
+            const val = parseFloat(tr.querySelectorAll('input')[1]?.value) || 0;
+            return acc + val;
+        }, 0);
+
+        if (isNoOperativo && totalProduccion > 0) {
+            alert('Coherencia física: No puede haber producción si el proceso no es operativo.');
+            return;
+        }
+
+        const tbodyCalidad = isExtrusorPP ? document.getElementById('tbody-calidad-extrusor') : document.getElementById('tbody-calidad');
+        const numMuestras = tbodyCalidad.querySelectorAll('tr').length;
+
+        if (volver && !isNoOperativo && numMuestras === 0) {
+            alert('Cierre bloqueado: Se requiere al menos un registro de calidad.');
+            return;
+        }
+
+        if (volver && checkObservacionesObligatorias() && !observaciones) {
+            alert('Cierre bloqueado: Debe proporcionar observaciones explicativas para el rechazo/desviación.');
             return;
         }
 
@@ -349,35 +480,44 @@ document.addEventListener('DOMContentLoaded', async () => {
             isExtrusorPP // Flag para que el backend sepa cómo procesar
         };
 
-        if (!isNoOperativo) {
+        if (true) { // Siempre enviamos datos, incluso si no operativo, para incidentes/observaciones
             // Recolectar datos según tipo de proceso
             if (isExtrusorPP) {
-                const muestras = Array.from(document.getElementById('tbody-calidad-extrusor').querySelectorAll('tr')).map(tr => {
-                    const inputs = tr.querySelectorAll('input, select');
-                    return {
-                        denier: inputs[0].value,
-                        resistencia: inputs[1].value,
-                        elongacion: inputs[2].value,
-                        tenacidad: inputs[3].value,
-                        ancho: inputs[4].value,
-                        color: inputs[5].value
-                    };
-                });
+                const rowsCalidad = Array.from(document.getElementById('tbody-calidad-extrusor').children);
+                const muestras = [];
 
-                const temperaturas = Array.from(document.querySelectorAll('.input-temp')).map(input => input.value);
+                for (let i = 0; i < rowsCalidad.length; i += 2) {
+                    const tr = rowsCalidad[i];
+                    const trParams = rowsCalidad[i+1];
+                    if (!tr || !trParams || trParams.className !== 'row-parametros') continue;
 
-                const parametros_operativos = {
-                    temperaturas,
-                    temp_pila: document.getElementById('temp-pila').value,
-                    temp_horno: document.getElementById('temp-horno').value,
-                    rpm_tornillo: document.getElementById('rpm-tornillo').value,
-                    presion_bar: document.getElementById('presion-bar').value,
-                    ratio_top_roller: document.getElementById('ratio-top-roller').value,
-                    ratio_holding: document.getElementById('ratio-holding').value,
-                    ratio_annealing: document.getElementById('ratio-annealing').value,
-                    ratio_stretching: document.getElementById('ratio-stretching').value,
-                    velocidad_embobinadores: document.getElementById('velocidad-embobinadores').value
-                };
+                    const qInputs = tr.querySelectorAll('input, select');
+                    const pInputs = trParams.querySelectorAll('input');
+                    const tInputs = trParams.querySelectorAll('.input-temp-zona');
+
+                    muestras.push({
+                        tipo_ronda: qInputs[0].value,
+                        denier: qInputs[1].value,
+                        resistencia: qInputs[2].value,
+                        elongacion: qInputs[3].value,
+                        tenacidad: qInputs[4].value,
+                        ancho: qInputs[5].value,
+                        color: qInputs[6].value,
+                        estado: qInputs[7].value,
+                        parametros: {
+                            temperaturas: Array.from(tInputs).map(ti => ti.value),
+                            temp_pila: trParams.querySelector('.input-temp-pila').value,
+                            temp_horno: trParams.querySelector('.input-temp-horno').value,
+                            rpm_tornillo: trParams.querySelector('.input-rpm-tornillo').value,
+                            presion_bar: trParams.querySelector('.input-presion-bar').value,
+                            ratio_top_roller: trParams.querySelector('.input-ratio-top').value,
+                            ratio_holding: trParams.querySelector('.input-ratio-hold').value,
+                            ratio_annealing: trParams.querySelector('.input-ratio-ann').value,
+                            ratio_stretching: trParams.querySelector('.input-ratio-stretch').value,
+                            velocidad_embobinadores: trParams.querySelector('.input-vel-embob').value
+                        }
+                    });
+                }
 
                 const mezcla = Array.from(document.querySelectorAll('#tbody-mezcla tr')).map(tr => {
                     const inputs = tr.querySelectorAll('input');
@@ -402,7 +542,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     };
                 });
 
-                data = { ...data, muestras_estructuradas: muestras, parametros_operativos, mezcla, incidentes };
+                data = { ...data, muestras_estructuradas: muestras, mezcla, incidentes };
             } else {
                 const muestras = Array.from(document.getElementById('tbody-calidad').querySelectorAll('tr')).map(tr => {
                     const inputs = tr.querySelectorAll('input, select');
@@ -472,6 +612,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('select-operatividad').addEventListener('change', (e) => {
         const isNoOperativo = e.target.value === 'no_operativo';
         document.getElementById('group-motivo').style.display = isNoOperativo ? 'block' : 'none';
-        document.getElementById('secciones-operativas').style.display = isNoOperativo ? 'none' : 'block';
+
+        // Bloquear producción y desperdicio si no operativo
+        const prodControls = document.querySelectorAll('#tbody-produccion input, #tbody-produccion select, #btn-agregar-produccion');
+        const despControls = document.querySelectorAll('#tbody-desperdicio input, #tbody-desperdicio select, #btn-agregar-desperdicio');
+
+        if (isNoOperativo) {
+            prodControls.forEach(c => {
+                c.disabled = true;
+                if (c.type === 'number') c.value = 0;
+            });
+            despControls.forEach(c => {
+                c.disabled = true;
+                if (c.type === 'number') c.value = 0;
+            });
+        } else {
+            prodControls.forEach(c => c.disabled = false);
+            despControls.forEach(c => c.disabled = false);
+        }
     });
 });

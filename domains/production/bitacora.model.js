@@ -85,7 +85,6 @@ const Bitacora = {
             motivo_no_operativo = '',
             isExtrusorPP = false,
             muestras_estructuradas = [],
-            parametros_operativos = {},
             mezcla = [],
             incidentes = []
         } = data;
@@ -130,7 +129,6 @@ const Bitacora = {
 
                         if (isExtrusorPP && !extraDataSaved) {
                             paramsObj.muestras_estructuradas = muestras_estructuradas;
-                            paramsObj.parametros_operativos = parametros_operativos;
                             paramsObj.mezcla = mezcla;
                             paramsObj.incidentes = incidentes;
                             extraDataSaved = true;
@@ -162,22 +160,21 @@ const Bitacora = {
                     if (isExtrusorPP && muestras_estructuradas) {
                         for (const m of muestras_estructuradas) {
                             const res = m.color === 'Aceptable' ? 'Aceptable' : (m.color === 'Rechazo' ? 'Rechazo' : 'En espera');
+                            // Guardamos la tenacidad como parámetro principal de calidad para que aparezca en reportes generales
                             await dbRun(`
-                                INSERT INTO muestras (parametro, valor, resultado, bitacora_id, proceso_tipo_id, lote_id, fecha_analisis)
-                                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                            `, ['Tenacidad (Extrusor)', m.tenacidad, res, bitacora_id, proceso_id, mainLoteId]);
+                                INSERT INTO muestras (parametro, valor, resultado, bitacora_id, proceso_tipo_id, lote_id, fecha_analisis, codigo_muestra)
+                                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+                            `, ['Tenacidad', m.tenacidad, res, bitacora_id, proceso_id, mainLoteId, m.tipo_ronda]);
                         }
                     }
 
                     // Si es Extrusor PP y no hubo producción, igual guardamos un registro técnico para no perder los parámetros
                     if (isExtrusorPP && !extraDataSaved) {
-                        // Buscar una línea de ejecución genérica o crear una
                         await dbRun(`
                             INSERT INTO registros_trabajo (cantidad_producida, merma_kg, observaciones, parametros, bitacora_id, fecha_hora)
                             VALUES (0, 0, ?, ?, ?, CURRENT_TIMESTAMP)
                         `, [observaciones, JSON.stringify({
                             muestras_estructuradas,
-                            parametros_operativos,
                             mezcla,
                             incidentes
                         }), bitacora_id]);

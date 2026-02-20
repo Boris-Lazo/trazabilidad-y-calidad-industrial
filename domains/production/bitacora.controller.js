@@ -53,8 +53,28 @@ const BitacoraController = {
 
                 const hasRegistros = registros.length > 0;
                 const hasMuestras = muestras.length > 0;
-                const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
-                const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
+                const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera') ||
+                                   registros.some(r => {
+                                       try {
+                                           const p = JSON.parse(r.parametros);
+                                           return p.muestras_estructuradas?.some(me => me.estado === 'Rechazado' || me.estado === 'En espera');
+                                       } catch(e) { return false; }
+                                   });
+
+                // Verificar incidentes tanto en texto como en JSON estructurado (Extrusor)
+                const hasIncidente = registros.some(r => {
+                    if (r.observaciones && r.observaciones.toLowerCase().includes('incidente')) return true;
+                    try {
+                        const p = JSON.parse(r.parametros);
+                        if (p && p.incidentes && p.incidentes.length > 0) return true;
+                        // También chequear parámetros fuera de rango como incidente
+                        if (p.muestras_estructuradas?.some(me => {
+                            const params = me.parametros || {};
+                            return (params.rpm_tornillo > 100) || (params.presion_bar > 500);
+                        })) return true;
+                    } catch(e) {}
+                    return false;
+                });
 
                 if (status && status.no_operativo) {
                     estado = '🟢 Completo'; // Mapeado a Completo para permitir el cierre del turno
@@ -237,8 +257,25 @@ const BitacoraController = {
                 const registros = await Bitacora.getRegistrosByProceso(id, proceso.id);
                 const muestras = await Bitacora.getMuestrasByProceso(id, proceso.id);
 
-                const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
-                const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
+                const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera') ||
+                                   registros.some(r => {
+                                       try {
+                                           const p = JSON.parse(r.parametros);
+                                           return p.muestras_estructuradas?.some(me => me.estado === 'Rechazado' || me.estado === 'En espera');
+                                       } catch(e) { return false; }
+                                   });
+                const hasIncidente = registros.some(r => {
+                    if (r.observaciones && r.observaciones.toLowerCase().includes('incidente')) return true;
+                    try {
+                        const p = JSON.parse(r.parametros);
+                        if (p && p.incidentes && p.incidentes.length > 0) return true;
+                        if (p.muestras_estructuradas?.some(me => {
+                            const params = me.parametros || {};
+                            return (params.rpm_tornillo > 100) || (params.presion_bar > 500);
+                        })) return true;
+                    } catch(e) {}
+                    return false;
+                });
 
                 if (hasRechazo || hasIncidente) {
                     // Buscar si hay observaciones sustanciales
@@ -285,8 +322,26 @@ const BitacoraController = {
             let estado = '⚪ Sin datos';
             const hasRegistros = registros.length > 0;
             const hasMuestras = muestras.length > 0;
-            const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
-            const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
+            const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera') ||
+                               registros.some(r => {
+                                   try {
+                                       const p = JSON.parse(r.parametros);
+                                       return p.muestras_estructuradas?.some(me => me.estado === 'Rechazado' || me.estado === 'En espera');
+                                   } catch(e) { return false; }
+                               });
+
+            const hasIncidente = registros.some(r => {
+                if (r.observaciones && r.observaciones.toLowerCase().includes('incidente')) return true;
+                try {
+                    const p = JSON.parse(r.parametros);
+                    if (p && p.incidentes && p.incidentes.length > 0) return true;
+                    if (p.muestras_estructuradas?.some(me => {
+                        const params = me.parametros || {};
+                        return (params.rpm_tornillo > 100) || (params.presion_bar > 500);
+                    })) return true;
+                } catch(e) {}
+                return false;
+            });
 
             if (status && status.no_operativo) {
                 estado = '🟢 Completo';

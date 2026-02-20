@@ -49,6 +49,7 @@
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <a href="/bitacora.html" class="button button-outline" style="padding: 0.25rem 0.75rem;">← Volver</a>
                     <h1 id="proceso-titulo" style="margin-bottom: 0;">Proceso: -</h1>
+                    <span id="badge-estado-proceso" class="badge badge-outline">Sin datos</span>
                 </div>
                 <div id="breadcrumb" style="font-size: 0.875rem; color: var(--text-muted);">
                     Bitácora Turno <span id="bread-turno">-</span> – <span id="bread-fecha">-</span>  >  <span id="bread-proceso">-</span>
@@ -87,14 +88,17 @@
                                 <table id="tabla-calidad-extrusor">
                                     <thead>
                                         <tr>
-                                            <th>#</th>
+                                            <th>Ronda</th>
+                                            <th>Tipo</th>
                                             <th>Denier</th>
                                             <th>Resistencia (gf)</th>
                                             <th>% Elong.</th>
                                             <th>Tenacidad (gf/den)</th>
                                             <th>Ancho (mm)</th>
                                             <th>Color</th>
-                                            <th>Acción</th>
+                                            <th>Estado</th>
+                                            <th>⚙️</th>
+                                            <th></th>
                                         </tr>
                                     </thead>
                                     <tbody id="tbody-calidad-extrusor"></tbody>
@@ -122,62 +126,9 @@
                         </div>
                     </div>
 
-                    <!-- 2. PARÁMETROS OPERATIVOS (Extrusor PP Only) -->
-                    <div id="seccion-parametros-operativos" class="card section-extrusor">
-                        <div class="card-title">2. PARÁMETROS OPERATIVOS</div>
-
-                        <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Temperaturas Extrusor (°C)</h4>
-                        <div class="grid-temps mb-4" id="grid-temperaturas">
-                            <!-- JS will generate 12 inputs -->
-                        </div>
-
-                        <div class="dashboard-grid">
-                            <div class="form-group">
-                                <label>Temperatura Pila (°C)</label>
-                                <input type="number" id="temp-pila" class="form__input">
-                            </div>
-                            <div class="form-group">
-                                <label>Temperatura Horno (°C)</label>
-                                <input type="number" id="temp-horno" class="form__input">
-                            </div>
-                            <div class="form-group">
-                                <label>RPM Tornillo</label>
-                                <input type="number" id="rpm-tornillo" class="form__input">
-                            </div>
-                            <div class="form-group">
-                                <label>Presión (bar)</label>
-                                <input type="number" id="presion-bar" class="form__input">
-                            </div>
-                        </div>
-
-                        <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; margin-top: 1rem;">Ratios y Velocidad</h4>
-                        <div class="dashboard-grid">
-                            <div class="form-group">
-                                <label>Top Roller</label>
-                                <input type="number" step="0.01" id="ratio-top-roller" class="form__input">
-                            </div>
-                            <div class="form-group">
-                                <label>Holding</label>
-                                <input type="number" step="0.01" id="ratio-holding" class="form__input">
-                            </div>
-                            <div class="form-group">
-                                <label>Annealing</label>
-                                <input type="number" step="0.01" id="ratio-annealing" class="form__input">
-                            </div>
-                            <div class="form-group">
-                                <label>Stretching</label>
-                                <input type="number" step="0.01" id="ratio-stretching" class="form__input">
-                            </div>
-                            <div class="form-group">
-                                <label>Velocidad Embobinadores (m/min)</label>
-                                <input type="number" id="velocidad-embobinadores" class="form__input" readonly style="background: rgba(255,255,255,0.05);">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 3. MATERIAS PRIMAS / MEZCLA (Extrusor PP Only) -->
+                    <!-- 2. MATERIAS PRIMAS / MEZCLA (Extrusor PP Only) -->
                     <div id="seccion-materias-primas" class="card section-extrusor">
-                        <div class="card-title">3. MATERIAS PRIMAS / MEZCLA</div>
+                        <div class="card-title">2. MATERIAS PRIMAS / MEZCLA</div>
                         <div class="table-container mb-4">
                             <table>
                                 <thead>
@@ -202,9 +153,9 @@
                         <div id="warning-mezcla" class="text-error" style="display: none;">⚠ La suma debe ser exactamente 100%</div>
                     </div>
 
-                    <!-- 4. PRODUCCIÓN -->
+                    <!-- 3. PRODUCCIÓN -->
                     <div class="card">
-                        <div class="card-title"><span class="label-orden-seccion">4</span>. PRODUCCIÓN DEL TURNO</div>
+                        <div class="card-title"><span class="label-orden-seccion">3</span>. PRODUCCIÓN DEL TURNO</div>
                         <div class="table-container mb-4">
                             <table id="tabla-produccion">
                                 <thead>
@@ -221,9 +172,9 @@
                         <button id="btn-agregar-produccion" class="button button-outline">+ Agregar Registro</button>
                     </div>
 
-                    <!-- 5. DESPERDICIO -->
+                    <!-- 4. DESPERDICIO -->
                     <div class="card">
-                        <div class="card-title"><span class="label-orden-seccion">5</span>. DESPERDICIO</div>
+                        <div class="card-title"><span class="label-orden-seccion">4</span>. DESPERDICIO</div>
                         <div class="table-container mb-4">
                             <table id="tabla-desperdicio">
                                 <thead>
@@ -241,9 +192,9 @@
                         <button id="btn-agregar-desperdicio" class="button button-outline">+ Agregar Desperdicio</button>
                     </div>
 
-                    <!-- 6. INCIDENTES Y PAROS (Extrusor PP Only o General) -->
+                    <!-- 5. INCIDENTES Y PAROS (Extrusor PP Only o General) -->
                     <div id="seccion-incidentes" class="card">
-                        <div class="card-title"><span class="label-orden-seccion">6</span>. INCIDENTES Y PAROS</div>
+                        <div class="card-title"><span class="label-orden-seccion">5</span>. INCIDENTES Y PAROS</div>
                         <div class="table-container mb-4">
                             <table>
                                 <thead>
@@ -262,9 +213,9 @@
 
                 </div>
 
-                <!-- 7. OBSERVACIONES -->
+                <!-- 6. OBSERVACIONES -->
                 <div class="card">
-                    <div class="card-title"><span class="label-orden-seccion">7</span>. OBSERVACIONES</div>
+                    <div class="card-title"><span class="label-orden-seccion">6</span>. OBSERVACIONES</div>
                     <div class="form-group">
                         <label for="observaciones">Notas del Inspector</label>
                         <textarea id="observaciones" rows="4" placeholder="Escriba aquí cualquier desviación, rechazo o incidente..."></textarea>
