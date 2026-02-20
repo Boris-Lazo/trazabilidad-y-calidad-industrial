@@ -12,6 +12,26 @@ const BitacoraController = {
         }
     },
 
+    async getTiempoActual(req, res) {
+        try {
+            const now = new Date();
+            const { turno, fechaOperativa } = getTurnoActual(now);
+
+            // Obtener zona horaria local de planta
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+            res.json({
+                hora: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                fecha: now.toLocaleDateString(),
+                turno,
+                fechaOperativa,
+                timezone
+            });
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    },
+
     async getEstadoActual(req, res) {
         try {
             let bitacora = await Bitacora.findAbierta();
@@ -135,29 +155,50 @@ const BitacoraController = {
             const desperdicio = [];
             let observaciones = '';
 
+            // Campos extra para Extrusor PP
+            let muestras_estructuradas = [];
+            let parametros_operativos = null;
+            let mezcla = [];
+            let incidentes = [];
+
             registros.forEach(r => {
-                let maquina = '';
+                let params = {};
                 try {
-                    const params = JSON.parse(r.parametros);
-                    maquina = params.maquina || '';
+                    params = JSON.parse(r.parametros) || {};
                 } catch(e) {}
 
-                produccion.push({
-                    maquina,
-                    orden_id: r.linea_ejecucion_id, // Simplificación: usamos linea_ejecucion_id pero en el front se mapea a orden
-                    cantidad: r.cantidad_producida,
-                    unidad: r.unidad || 'm' // Debería venir del registro si lo añadimos
-                });
+                const maquina = params.maquina || '';
 
-                if (r.merma_kg > 0) {
-                    desperdicio.push({
+                // Extraer datos estructurados si existen (normalmente en el primer registro)
+                if (params.muestras_estructuradas) muestras_estructuradas = params.muestras_estructuradas;
+                if (params.parametros_operativos) parametros_operativos = params.parametros_operativos;
+                if (params.mezcla) mezcla = params.mezcla;
+                if (params.incidentes) incidentes = params.incidentes;
+
+                if (r.linea_ejecucion_id) {
+                    produccion.push({
                         maquina,
-                        orden_id: r.linea_ejecucion_id,
-                        kg: r.merma_kg
+                        orden_id: r.orden_id,
+                        cantidad: r.cantidad_producida,
+                        unidad: r.unidad || 'kg'
                     });
+
+                    if (r.merma_kg > 0) {
+                        desperdicio.push({
+                            maquina,
+                            orden_id: r.orden_id,
+                            kg: r.merma_kg
+                        });
+                    }
                 }
+
                 if (r.observaciones) observaciones = r.observaciones;
             });
+
+            // Si no hay produccion pero hay registros (técnicos), igual sacamos las observaciones
+            if (produccion.length === 0 && registros.length > 0) {
+                observaciones = registros[0].observaciones;
+            }
 
             res.json({
                 no_operativo: !!(status && status.no_operativo),
@@ -166,6 +207,11 @@ const BitacoraController = {
                 produccion,
                 desperdicio,
                 observaciones,
+                // Campos extra
+                muestras_estructuradas,
+                parametros_operativos,
+                mezcla,
+                incidentes,
                 solo_lectura: bitacora.estado === 'CERRADA'
             });
         } catch (error) {
@@ -185,17 +231,24 @@ const BitacoraController = {
                 return res.status(403).json({ message: 'Solo el inspector que abrió la bitácora puede cerrarla.' });
             }
 
-            // Validar que todos los procesos tengan registro (según requerimiento)
-            // "Botón visible solo si: todos los procesos operativos tienen registro"
-            // Esta validación la haremos también en el backend por seguridad.
+            // Requirement 15: Bloquear cierre si hay procesos en Revisión sin observaciones (explicación)
+            const procesos = await Bitacora.getResumenProcesos(id);
+            for (const proceso of procesos) {
+                const registros = await Bitacora.getRegistrosByProceso(id, proceso.id);
+                const muestras = await Bitacora.getMuestrasByProceso(id, proceso.id);
 
-            const resumen = await this._getResumenInterno(id);
-            const incompleto = resumen.some(p => p.estado === '⚪ Sin datos');
+                const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
+                const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
 
-            if (incompleto) {
-                // El usuario dice "¿Cerrar bitácora de todas formas?" en el frontend,
-                // pero también dice "Botón visible solo si: todos los procesos operativos tienen registro".
-                // Dejaremos que se cierre si el usuario confirma.
+                if (hasRechazo || hasIncidente) {
+                    // Buscar si hay observaciones sustanciales
+                    const hasObservaciones = registros.some(r => r.observaciones && r.observaciones.length > 10);
+                    if (!hasObservaciones) {
+                        return res.status(400).json({
+                            message: `El proceso '${proceso.nombre}' tiene desviaciones o rechazos pero no se ha proporcionado una explicación en las observaciones.`
+                        });
+                    }
+                }
             }
 
             const updated = await Bitacora.close(id);

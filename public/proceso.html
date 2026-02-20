@@ -6,6 +6,14 @@
     <title>Registro por Proceso | PROD-SYS</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="js/auth.js"></script>
+    <style>
+        .grid-temps {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 1rem;
+        }
+        .section-extrusor { display: none; }
+    </style>
 </head>
 <body>
 
@@ -68,75 +76,195 @@
                 </div>
 
                 <div id="secciones-operativas">
-                    <!-- SECCIÓN 1: CALIDAD -->
-                <div class="card">
-                    <div class="card-title">1. CALIDAD (Muestras)</div>
-                    <div class="table-container mb-4">
-                        <table id="tabla-calidad">
-                            <thead>
-                                <tr>
-                                    <th>Parámetro</th>
-                                    <th>Valor</th>
-                                    <th>Resultado</th>
-                                    <th>Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-calidad">
-                                <!-- Filas de muestras -->
-                            </tbody>
-                        </table>
+
+                    <!-- 1. CALIDAD -->
+                    <div class="card">
+                        <div class="card-title">1. CALIDAD (Muestras)</div>
+
+                        <!-- Contenedor para muestras de Extrusor PP -->
+                        <div id="calidad-extrusor" class="section-extrusor">
+                            <div class="table-container mb-4">
+                                <table id="tabla-calidad-extrusor">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Denier</th>
+                                            <th>Resistencia (gf)</th>
+                                            <th>% Elong.</th>
+                                            <th>Tenacidad (gf/den)</th>
+                                            <th>Ancho (mm)</th>
+                                            <th>Color</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-calidad-extrusor"></tbody>
+                                </table>
+                            </div>
+                            <button id="btn-agregar-muestra-extrusor" class="button button-outline">+ Agregar Muestra</button>
+                        </div>
+
+                        <!-- Contenedor para muestras Genérico -->
+                        <div id="calidad-generico">
+                            <div class="table-container mb-4">
+                                <table id="tabla-calidad">
+                                    <thead>
+                                        <tr>
+                                            <th>Parámetro</th>
+                                            <th>Valor</th>
+                                            <th>Resultado</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-calidad"></tbody>
+                                </table>
+                            </div>
+                            <button id="btn-agregar-muestra" class="button button-outline">+ Agregar Muestra</button>
+                        </div>
                     </div>
-                    <button id="btn-agregar-muestra" class="button button-outline">+ Agregar Muestra</button>
-                </div>
 
-                <!-- SECCIÓN 2: PRODUCCIÓN -->
-                <div class="card">
-                    <div class="card-title">2. PRODUCCIÓN DEL TURNO</div>
-                    <div class="table-container mb-4">
-                        <table id="tabla-produccion">
-                            <thead>
-                                <tr>
-                                    <th>Máquina</th>
-                                    <th>Orden</th>
-                                    <th>Producción</th>
-                                    <th>Unidad</th>
-                                    <th>Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-produccion">
-                                <!-- Filas de producción -->
-                            </tbody>
-                        </table>
+                    <!-- 2. PARÁMETROS OPERATIVOS (Extrusor PP Only) -->
+                    <div id="seccion-parametros-operativos" class="card section-extrusor">
+                        <div class="card-title">2. PARÁMETROS OPERATIVOS</div>
+
+                        <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Temperaturas Extrusor (°C)</h4>
+                        <div class="grid-temps mb-4" id="grid-temperaturas">
+                            <!-- JS will generate 12 inputs -->
+                        </div>
+
+                        <div class="dashboard-grid">
+                            <div class="form-group">
+                                <label>Temperatura Pila (°C)</label>
+                                <input type="number" id="temp-pila" class="form__input">
+                            </div>
+                            <div class="form-group">
+                                <label>Temperatura Horno (°C)</label>
+                                <input type="number" id="temp-horno" class="form__input">
+                            </div>
+                            <div class="form-group">
+                                <label>RPM Tornillo</label>
+                                <input type="number" id="rpm-tornillo" class="form__input">
+                            </div>
+                            <div class="form-group">
+                                <label>Presión (bar)</label>
+                                <input type="number" id="presion-bar" class="form__input">
+                            </div>
+                        </div>
+
+                        <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; margin-top: 1rem;">Ratios y Velocidad</h4>
+                        <div class="dashboard-grid">
+                            <div class="form-group">
+                                <label>Top Roller</label>
+                                <input type="number" step="0.01" id="ratio-top-roller" class="form__input">
+                            </div>
+                            <div class="form-group">
+                                <label>Holding</label>
+                                <input type="number" step="0.01" id="ratio-holding" class="form__input">
+                            </div>
+                            <div class="form-group">
+                                <label>Annealing</label>
+                                <input type="number" step="0.01" id="ratio-annealing" class="form__input">
+                            </div>
+                            <div class="form-group">
+                                <label>Stretching</label>
+                                <input type="number" step="0.01" id="ratio-stretching" class="form__input">
+                            </div>
+                            <div class="form-group">
+                                <label>Velocidad Embobinadores (m/min)</label>
+                                <input type="number" id="velocidad-embobinadores" class="form__input" readonly style="background: rgba(255,255,255,0.05);">
+                            </div>
+                        </div>
                     </div>
-                    <button id="btn-agregar-produccion" class="button button-outline">+ Agregar Registro</button>
-                </div>
 
-                <!-- SECCIÓN 3: DESPERDICIO -->
-                <div class="card">
-                    <div class="card-title">3. DESPERDICIO</div>
-                    <div class="table-container mb-4">
-                        <table id="tabla-desperdicio">
-                            <thead>
-                                <tr>
-                                    <th>Máquina</th>
-                                    <th>Orden</th>
-                                    <th>Desperdicio (kg)</th>
-                                    <th>Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-desperdicio">
-                                <!-- Filas de desperdicio -->
-                            </tbody>
-                        </table>
+                    <!-- 3. MATERIAS PRIMAS / MEZCLA (Extrusor PP Only) -->
+                    <div id="seccion-materias-primas" class="card section-extrusor">
+                        <div class="card-title">3. MATERIAS PRIMAS / MEZCLA</div>
+                        <div class="table-container mb-4">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Marca</th>
+                                        <th>Lote</th>
+                                        <th>Porcentaje (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-mezcla">
+                                    <!-- 6 filas fijas o dinámicas -->
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3" style="text-align: right; font-weight: bold;">TOTAL:</td>
+                                        <td id="total-mezcla" style="font-weight: bold;">0%</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <div id="warning-mezcla" class="text-error" style="display: none;">⚠ La suma debe ser exactamente 100%</div>
                     </div>
-                    <button id="btn-agregar-desperdicio" class="button button-outline">+ Agregar Desperdicio</button>
-                </div>
+
+                    <!-- 4. PRODUCCIÓN -->
+                    <div class="card">
+                        <div class="card-title"><span class="label-orden-seccion">4</span>. PRODUCCIÓN DEL TURNO</div>
+                        <div class="table-container mb-4">
+                            <table id="tabla-produccion">
+                                <thead>
+                                    <tr>
+                                        <th>Máquina</th>
+                                        <th>Orden</th>
+                                        <th>Producción (kg)</th>
+                                        <th style="width: 50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-produccion"></tbody>
+                            </table>
+                        </div>
+                        <button id="btn-agregar-produccion" class="button button-outline">+ Agregar Registro</button>
+                    </div>
+
+                    <!-- 5. DESPERDICIO -->
+                    <div class="card">
+                        <div class="card-title"><span class="label-orden-seccion">5</span>. DESPERDICIO</div>
+                        <div class="table-container mb-4">
+                            <table id="tabla-desperdicio">
+                                <thead>
+                                    <tr>
+                                        <th>Máquina</th>
+                                        <th>Orden</th>
+                                        <th>Desperdicio (kg)</th>
+                                        <th>Tipo/Motivo</th>
+                                        <th style="width: 50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-desperdicio"></tbody>
+                            </table>
+                        </div>
+                        <button id="btn-agregar-desperdicio" class="button button-outline">+ Agregar Desperdicio</button>
+                    </div>
+
+                    <!-- 6. INCIDENTES Y PAROS (Extrusor PP Only o General) -->
+                    <div id="seccion-incidentes" class="card">
+                        <div class="card-title"><span class="label-orden-seccion">6</span>. INCIDENTES Y PAROS</div>
+                        <div class="table-container mb-4">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Tiempo Paro (min)</th>
+                                        <th>Motivo</th>
+                                        <th>Clasificación</th>
+                                        <th style="width: 50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-incidentes"></tbody>
+                            </table>
+                        </div>
+                        <button id="btn-agregar-incidente" class="button button-outline">+ Registrar Paro/Incidente</button>
+                    </div>
 
                 </div>
 
-                <!-- SECCIÓN 4: OBSERVACIONES -->
+                <!-- 7. OBSERVACIONES -->
                 <div class="card">
-                    <div class="card-title">4. OBSERVACIONES / DECISIÓN</div>
+                    <div class="card-title"><span class="label-orden-seccion">7</span>. OBSERVACIONES</div>
                     <div class="form-group">
                         <label for="observaciones">Notas del Inspector</label>
                         <textarea id="observaciones" rows="4" placeholder="Escriba aquí cualquier desviación, rechazo o incidente..."></textarea>

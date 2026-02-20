@@ -40,8 +40,13 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <header class="top-bar">
+            <header class="top-bar" style="display: flex; justify-content: space-between; align-items: center;">
                 <h1>Bitácora de Turno</h1>
+                <div id="reloj-operativo" style="text-align: right; line-height: 1.2;">
+                    <div id="reloj-fecha" style="font-size: 0.8rem; color: var(--text-muted);">---</div>
+                    <div id="reloj-hora" style="font-size: 1.2rem; font-weight: bold; color: var(--primary-color);">00:00</div>
+                    <div id="reloj-timezone" style="font-size: 0.7rem; color: var(--text-muted); opacity: 0.7;">---</div>
+                </div>
             </header>
 
             <div class="page-content">
@@ -68,7 +73,8 @@
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
                                 <h2 style="margin-bottom: 0.25rem;">Turno <span id="info-turno">-</span> – <span id="info-fecha">-</span></h2>
-                                <p style="color: var(--text-muted);">Inspector: <strong id="info-inspector" style="color: var(--text-main);">-</strong></p>
+                                <p style="color: var(--text-muted); margin-bottom: 0.25rem;">Inspector: <strong id="info-inspector" style="color: var(--text-main);">-</strong></p>
+                                <p style="font-size: 0.9rem;">Hora operativa: <span id="info-hora-operativa" style="font-weight: bold;">--:--</span></p>
                             </div>
                             <div style="text-align: right;">
                                 <div class="badge badge-info" id="info-estado">EN CURSO</div>

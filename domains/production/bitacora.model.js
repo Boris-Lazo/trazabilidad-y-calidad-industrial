@@ -51,7 +51,7 @@ const Bitacora = {
 
     async getRegistrosByProceso(bitacoraId, procesoTipoId) {
         return dbAll(`
-            SELECT rt.*, le.proceso_tipo_id, op.codigo_orden, op.producto
+            SELECT rt.*, le.proceso_tipo_id, op.codigo_orden, op.producto, op.id as orden_id
             FROM registros_trabajo rt
             JOIN lineas_ejecucion le ON rt.linea_ejecucion_id = le.id
             JOIN orden_produccion op ON le.orden_produccion_id = op.id
@@ -74,25 +74,35 @@ const Bitacora = {
         `, [bitacoraId, procesoTipoId]);
     },
 
-    async saveProcesoData({ bitacora_id, proceso_id, muestras, produccion, desperdicio, observaciones, no_operativo, motivo_no_operativo }) {
+    async saveProcesoData(data) {
+        const {
+            bitacora_id, proceso_id,
+            muestras = [],
+            produccion = [],
+            desperdicio = [],
+            observaciones = '',
+            no_operativo = false,
+            motivo_no_operativo = '',
+            isExtrusorPP = false,
+            muestras_estructuradas = [],
+            parametros_operativos = {},
+            mezcla = [],
+            incidentes = []
+        } = data;
+
         return new Promise((resolve, reject) => {
             db.serialize(async () => {
                 try {
                     // 1. Limpiar registros anteriores
-                    // Eliminar registros de trabajo vinculados a líneas de ejecución de este proceso en esta bitácora
                     await dbRun(`
                         DELETE FROM registros_trabajo
                         WHERE bitacora_id = ?
                         AND linea_ejecucion_id IN (SELECT id FROM lineas_ejecucion WHERE proceso_tipo_id = ?)
                     `, [bitacora_id, proceso_id]);
 
-                    // Eliminar muestras vinculadas a este proceso en esta bitácora
                     await dbRun(`DELETE FROM muestras WHERE bitacora_id = ? AND proceso_tipo_id = ?`, [bitacora_id, proceso_id]);
-
-                    // Limpiar estado de operatividad previo
                     await dbRun(`DELETE FROM bitacora_proceso_status WHERE bitacora_id = ? AND proceso_tipo_id = ?`, [bitacora_id, proceso_id]);
 
-                    // Si es NO OPERATIVO, guardamos solo eso y salimos
                     if (no_operativo) {
                         await dbRun(`
                             INSERT INTO bitacora_proceso_status (bitacora_id, proceso_tipo_id, no_operativo, motivo_no_operativo)
@@ -101,7 +111,10 @@ const Bitacora = {
                         return resolve();
                     }
 
-                    // 2. Insertar nuevos registros de producción y desperdicio
+                    // 2. Insertar registros de producción y desperdicio
+                    // Si es Extrusor PP, guardaremos el "bloque" de datos extra en el primer registro de trabajo
+                    let extraDataSaved = false;
+
                     for (const p of produccion) {
                         let linea = await dbGet('SELECT id FROM lineas_ejecucion WHERE orden_produccion_id = ? AND proceso_tipo_id = ?', [p.orden_id, proceso_id]);
                         if (!linea) {
@@ -111,34 +124,65 @@ const Bitacora = {
 
                         const d = desperdicio.find(d_item => d_item.orden_id == p.orden_id && d_item.maquina == p.maquina);
                         const merma = d ? d.kg : 0;
+                        const motivoMerma = d ? d.motivo : '';
 
-                        // Almacenamos la máquina en el campo 'parametros' como JSON, o en observaciones.
-                        // Usaremos 'parametros' para la máquina.
-                        await dbRun(`
-                            INSERT INTO registros_trabajo (cantidad_producida, merma_kg, observaciones, parametros, linea_ejecucion_id, bitacora_id, fecha_hora)
-                            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                        `, [p.cantidad, merma, observaciones, JSON.stringify({ maquina: p.maquina }), linea.id, bitacora_id]);
-                    }
+                        const paramsObj = { maquina: p.maquina };
 
-                    // 3. Insertar nuevas muestras
-                    for (const m of muestras) {
-                        let loteId = null;
-                        // Intentar buscar un lote para la primera orden de producción
-                        const firstProd = produccion.find(p => p.orden_id);
-                        if (firstProd) {
-                           const lote = await dbGet('SELECT id FROM lotes WHERE orden_produccion_id = ?', [firstProd.orden_id]);
-                           if (lote) loteId = lote.id;
-                           else {
-                               const result = await dbRun('INSERT INTO lotes (codigo_lote, orden_produccion_id, fecha_produccion) VALUES (?, ?, CURRENT_DATE)', [`LOTE-${Date.now()}-${Math.floor(Math.random()*1000)}`, firstProd.orden_id]);
-                               loteId = result.lastID;
-                           }
+                        if (isExtrusorPP && !extraDataSaved) {
+                            paramsObj.muestras_estructuradas = muestras_estructuradas;
+                            paramsObj.parametros_operativos = parametros_operativos;
+                            paramsObj.mezcla = mezcla;
+                            paramsObj.incidentes = incidentes;
+                            extraDataSaved = true;
                         }
 
                         await dbRun(`
-                            INSERT INTO muestras (parametro, valor, resultado, bitacora_id, proceso_tipo_id, lote_id, fecha_analisis)
+                            INSERT INTO registros_trabajo (cantidad_producida, merma_kg, observaciones, parametros, linea_ejecucion_id, bitacora_id, fecha_hora)
                             VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                        `, [m.parametro, m.valor, m.resultado, bitacora_id, proceso_id, loteId]);
+                        `, [p.cantidad, merma, (observaciones || '') + (motivoMerma ? ' | Motivo merma: ' + motivoMerma : ''), JSON.stringify(paramsObj), linea.id, bitacora_id]);
                     }
+
+                    // 3. Insertar muestras (genérico y estructurado)
+                    const firstProd = produccion.find(p => p.orden_id);
+                    let mainLoteId = null;
+                    if (firstProd) {
+                        const lote = await dbGet('SELECT id FROM lotes WHERE orden_produccion_id = ?', [firstProd.orden_id]);
+                        if (lote) mainLoteId = lote.id;
+                    }
+
+                    if (muestras) {
+                        for (const m of muestras) {
+                            await dbRun(`
+                                INSERT INTO muestras (parametro, valor, resultado, bitacora_id, proceso_tipo_id, lote_id, fecha_analisis)
+                                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                            `, [m.parametro, m.valor, m.resultado, bitacora_id, proceso_id, mainLoteId]);
+                        }
+                    }
+
+                    if (isExtrusorPP && muestras_estructuradas) {
+                        for (const m of muestras_estructuradas) {
+                            const res = m.color === 'Aceptable' ? 'Aceptable' : (m.color === 'Rechazo' ? 'Rechazo' : 'En espera');
+                            await dbRun(`
+                                INSERT INTO muestras (parametro, valor, resultado, bitacora_id, proceso_tipo_id, lote_id, fecha_analisis)
+                                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                            `, ['Tenacidad (Extrusor)', m.tenacidad, res, bitacora_id, proceso_id, mainLoteId]);
+                        }
+                    }
+
+                    // Si es Extrusor PP y no hubo producción, igual guardamos un registro técnico para no perder los parámetros
+                    if (isExtrusorPP && !extraDataSaved) {
+                        // Buscar una línea de ejecución genérica o crear una
+                        await dbRun(`
+                            INSERT INTO registros_trabajo (cantidad_producida, merma_kg, observaciones, parametros, bitacora_id, fecha_hora)
+                            VALUES (0, 0, ?, ?, ?, CURRENT_TIMESTAMP)
+                        `, [observaciones, JSON.stringify({
+                            muestras_estructuradas,
+                            parametros_operativos,
+                            mezcla,
+                            incidentes
+                        }), bitacora_id]);
+                    }
+
                     resolve();
                 } catch (err) {
                     reject(err);

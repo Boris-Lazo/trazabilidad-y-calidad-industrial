@@ -11,6 +11,31 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentBitacora = null;
     let procesosTurno = [];
 
+    async function updateClock() {
+        try {
+            const response = await fetch('/api/bitacora/tiempo-actual');
+            const data = await response.json();
+
+            document.getElementById('reloj-fecha').textContent = data.fecha;
+            document.getElementById('reloj-hora').textContent = data.hora;
+            document.getElementById('reloj-timezone').textContent = data.timezone;
+
+            const infoHoraOperativa = document.getElementById('info-hora-operativa');
+            if (infoHoraOperativa) {
+                infoHoraOperativa.textContent = data.hora;
+            }
+
+            // Si no hay bitácora abierta, podríamos mostrar el turno teórico en alguna parte si quisiéramos,
+            // pero el requerimiento se enfoca en la vista abierta.
+        } catch (error) {
+            console.error('Error al actualizar el reloj:', error);
+        }
+    }
+
+    // Actualizar reloj cada minuto
+    setInterval(updateClock, 60000);
+    updateClock();
+
     async function checkEstado() {
         try {
             const response = await fetch('/api/bitacora/estado');
