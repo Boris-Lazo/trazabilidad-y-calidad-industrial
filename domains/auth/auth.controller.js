@@ -1,6 +1,6 @@
 
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const Auth = require('./auth.model');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-prod-sys';

@@ -22,10 +22,6 @@ else
     echo "✅ Archivo .env detectado."
 fi
 
-# 3. Sembrar base de datos (usuario admin inicial)
-echo "🗄️  Verificando base de datos y usuario admin..."
-node seed.js
-
-# 4. Iniciar el servidor
+# 3. Iniciar el servidor
 echo "🌐 Iniciando servidor en puerto 3000..."
 npm start

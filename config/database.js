@@ -69,7 +69,7 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
                 // Asegurar existencia de usuario admin inicial
                 db.get("SELECT COUNT(*) as count FROM usuarios WHERE username = 'admin'", (err, row) => {
                     if (!err && row && row.count === 0) {
-                        const bcrypt = require('bcryptjs');
+                        const bcrypt = require('bcrypt');
                         const hashedPassword = bcrypt.hashSync('admin_password', 10);
                         db.run("INSERT INTO usuarios (username, password, rol, nombre) VALUES ('admin', ?, 'ADMIN', 'Administrador Sistema')", [hashedPassword]);
                     }

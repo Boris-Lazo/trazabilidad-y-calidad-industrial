@@ -28,7 +28,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'"], // Deshabilitar inline scripts estrictamente
+      "script-src": ["'self'"],
     },
   },
 }));
@@ -39,12 +39,15 @@ app.use(express.json());
 // --- RUTAS PÚBLICAS ---
 app.use('/api/auth', authRoutes);
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+
+// Servir CSS de forma pública
 app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
-app.use('/js/auth.js', (req, res) => res.sendFile(path.join(__dirname, 'public', 'js', 'auth.js')));
-app.use('/js/login.js', (req, res) => res.sendFile(path.join(__dirname, 'public', 'js', 'login.js')));
+
+// Servir solo los JS necesarios de forma pública
+app.get('/js/auth.js', (req, res) => res.sendFile(path.join(__dirname, 'public', 'js', 'auth.js')));
+app.get('/js/login.js', (req, res) => res.sendFile(path.join(__dirname, 'public', 'js', 'login.js')));
 
 // --- PROTECCIÓN GLOBAL ---
-// Aplicar middleware a todas las rutas que siguen (API y archivos estáticos)
 app.use(authMiddleware);
 
 // --- RUTAS PROTEGIDAS (API) ---
@@ -60,14 +63,10 @@ app.use('/api/lotes', loteProduccionRoutes);
 app.use('/api/muestras', muestraCalidadRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// --- RUTAS PROTEGIDAS (Frontend - Archivos Estáticos) ---
-// Solo se sirven si pasaron por authMiddleware
+// --- RUTAS PROTEGIDAS (Frontend) ---
 app.use(express.static('public'));
 
-// Fallback para las páginas principales (opcional si express.static ya las sirve, pero útil para control)
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/ordenes.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ordenes.html')));
-app.get('/bitacora.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'bitacora.html')));
 
 // Middleware de manejo de errores centralizado
 app.use((err, req, res, next) => {
