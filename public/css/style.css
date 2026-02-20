@@ -290,6 +290,7 @@ input:focus, select:focus, textarea:focus {
 .badge-error { background: rgba(239, 68, 68, 0.2); color: #f87171; }
 .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
 .badge-info { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.badge-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
 
 /* DASHBOARD SPECIFIC */
 .dashboard-grid {
@@ -337,6 +338,12 @@ input:focus, select:focus, textarea:focus {
 }
 .button:hover {
     background-color: var(--primary-hover);
+}
+.button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--secondary-color) !important;
+    border-color: var(--secondary-color) !important;
 }
 .form__input {
     width: 100%;

@@ -31,35 +31,33 @@ const BitacoraController = {
                 let estado = '⚪ Sin datos';
                 let ultimaActualizacion = '—';
 
+                const hasRegistros = registros.length > 0;
+                const hasMuestras = muestras.length > 0;
+                const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
+                const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
+
                 if (status && status.no_operativo) {
-                    estado = '🚫 No operativo';
-                } else if (registros.length > 0 || muestras.length > 0) {
-                    const hasRegistros = registros.length > 0;
-                    const hasMuestras = muestras.length > 0;
+                    estado = '🟢 Completo'; // Mapeado a Completo para permitir el cierre del turno
+                } else if (hasRechazo || hasIncidente) {
+                    estado = '🔴 Revisión';
+                } else if (hasRegistros && hasMuestras) {
+                    // Completo: producción + calidad + desperdicio (el desperdicio se incluye en los registros)
+                    estado = '🟢 Completo';
+                } else if (hasRegistros || hasMuestras) {
                     estado = '🟡 Parcial';
+                } else {
+                    estado = '⚪ Sin datos';
+                }
 
-                    // Calcular última actualización
-                    const allDates = [
-                        ...registros.map(r => new Date(r.fecha_hora)),
-                        ...muestras.map(m => new Date(m.fecha_analisis))
-                    ].filter(d => !isNaN(d.getTime()));
+                // Calcular última actualización
+                const allDates = [
+                    ...registros.map(r => new Date(r.fecha_hora)),
+                    ...muestras.map(m => new Date(m.fecha_analisis))
+                ].filter(d => !isNaN(d.getTime()));
 
-                    if (allDates.length > 0) {
-                        const latest = new Date(Math.max(...allDates));
-                        ultimaActualizacion = latest.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    }
-
-                    // Verificar Revisión
-                    const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
-                    const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
-
-                    if (hasRechazo || hasIncidente) {
-                        estado = '🔴 Revisión';
-                    } else if (hasRegistros && hasMuestras) {
-                        // Aquí se podría añadir lógica de "mínimos" si se define.
-                        // Por ahora, si tiene ambos y no hay rechazo, está completo.
-                        estado = '🟢 Completo';
-                    }
+                if (allDates.length > 0) {
+                    const latest = new Date(Math.max(...allDates));
+                    ultimaActualizacion = latest.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 }
 
                 resumenProcesos.push({
@@ -67,9 +65,7 @@ const BitacoraController = {
                     nombre: proceso.nombre,
                     estado,
                     ultimaActualizacion,
-                    accion: estado === '⚪ Sin datos' ? 'Registrar' :
-                            estado === '🟡 Parcial' ? 'Continuar' :
-                            estado === '🔴 Revisión' ? 'Revisar' : 'Ver'
+                    accion: estado.includes('Sin datos') ? 'Registrar' : 'Continuar'
                 });
             }
 
@@ -234,13 +230,21 @@ const BitacoraController = {
             const status = await Bitacora.getProcesoStatus(bitacoraId, proceso.id);
 
             let estado = '⚪ Sin datos';
+            const hasRegistros = registros.length > 0;
+            const hasMuestras = muestras.length > 0;
+            const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
+            const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
+
             if (status && status.no_operativo) {
-                estado = '🚫 No operativo';
-            } else if (registros.length > 0 || muestras.length > 0) {
+                estado = '🟢 Completo';
+            } else if (hasRechazo || hasIncidente) {
+                estado = '🔴 Revisión';
+            } else if (hasRegistros && hasMuestras) {
+                estado = '🟢 Completo';
+            } else if (hasRegistros || hasMuestras) {
                 estado = '🟡 Parcial';
-                const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
-                if (hasRechazo) estado = '🔴 Revisión';
-                else if (registros.length > 0 && muestras.length > 0) estado = '🟢 Completo';
+            } else {
+                estado = '⚪ Sin datos';
             }
             resumenProcesos.push({ id: proceso.id, estado });
         }

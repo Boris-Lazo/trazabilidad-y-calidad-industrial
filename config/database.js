@@ -82,7 +82,26 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
                 unidad_produccion TEXT,
                 reporta_merma_kg BOOLEAN,
                 activo BOOLEAN DEFAULT TRUE
-            );`);
+            );`, () => {
+                db.get("SELECT COUNT(*) as count FROM PROCESO_TIPO", (err, row) => {
+                    if (!err && row && row.count === 0) {
+                        const defaultProcesses = [
+                            ['Extrusor PP', 'kg', 1],
+                            ['Telares', 'm', 1],
+                            ['Laminado', 'm', 1],
+                            ['Imprenta', 'm', 1],
+                            ['Conversión de sacos', 'unid', 1],
+                            ['Extrusión PE', 'kg', 1],
+                            ['Conversión de liner', 'unid', 1],
+                            ['Peletizado', 'kg', 1],
+                            ['Conversión de sacos vestidos', 'unid', 1]
+                        ];
+                        const stmt = db.prepare("INSERT INTO PROCESO_TIPO (nombre, unidad_produccion, reporta_merma_kg) VALUES (?, ?, ?)");
+                        defaultProcesses.forEach(p => stmt.run(p));
+                        stmt.finalize();
+                    }
+                });
+            });
 
             db.run(`CREATE TABLE IF NOT EXISTS lineas_ejecucion (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

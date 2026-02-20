@@ -78,9 +78,13 @@ document.addEventListener('DOMContentLoaded', () => {
             tbodyProcesos.appendChild(tr);
         });
 
-        // Visibility of closing button: only if all processes have some data or are non-operational
-        const hasSinDatos = data.procesos.some(p => p.estado.includes('Sin datos'));
-        btnCerrar.style.display = hasSinDatos ? 'none' : 'block';
+        // Solo habilitar si todos están en Completo o Revisión
+        const todosListos = data.procesos.every(p =>
+            p.estado.includes('Completo') || p.estado.includes('Revisión')
+        );
+        btnCerrar.disabled = !todosListos;
+        btnCerrar.style.opacity = todosListos ? '1' : '0.5';
+        btnCerrar.title = todosListos ? 'Cerrar Bitácora' : 'Todos los procesos deben estar en estado Completo o Revisión';
 
         // Add event listeners to buttons
         document.querySelectorAll('.btn-registrar').forEach(btn => {
@@ -117,24 +121,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     btnCerrar.addEventListener('click', () => {
+        if (btnCerrar.disabled) return;
+
         // Generar resumen para el modal
         const resumen = {
             completo: procesosTurno.filter(p => p.estado.includes('Completo')).length,
             parcial: procesosTurno.filter(p => p.estado.includes('Parcial')).length,
             revision: procesosTurno.filter(p => p.estado.includes('Revisión')).length,
-            noOperativo: procesosTurno.filter(p => p.estado.includes('No operativo')).length,
             sinDatos: procesosTurno.filter(p => p.estado.includes('Sin datos')).length
         };
 
         const resumenDiv = document.getElementById('resumen-cierre');
+        let warningHtml = '';
+        if (resumen.revision > 0) {
+            warningHtml = `<p class="text-error" style="font-weight: bold; margin-top: 1rem;">⚠ ATENCIÓN: Hay ${resumen.revision} procesos con desviaciones o rechazos.</p>`;
+        }
+
         resumenDiv.innerHTML = `
             <ul style="list-style: none; padding: 0;">
-                <li class="text-success">✔ ${resumen.completo} procesos completos</li>
-                <li class="text-warning">🟡 ${resumen.parcial} procesos parciales</li>
+                <li class="text-success">🟢 ${resumen.completo} procesos completos</li>
                 <li class="text-error">🔴 ${resumen.revision} procesos en revisión</li>
-                <li class="text-error">🚫 ${resumen.noOperativo} procesos no operativos</li>
+                ${resumen.parcial > 0 ? `<li class="text-warning">🟡 ${resumen.parcial} procesos parciales</li>` : ''}
                 ${resumen.sinDatos > 0 ? `<li style="color: var(--text-muted);">⚪ ${resumen.sinDatos} procesos sin datos</li>` : ''}
             </ul>
+            ${warningHtml}
         `;
 
         modalCierre.style.display = 'flex';
