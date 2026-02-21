@@ -1,11 +1,4 @@
-
 document.addEventListener('DOMContentLoaded', () => {
-    // Si ya está autenticado, ir al dashboard
-    if (window.Auth && Auth.isAuthenticated()) {
-        window.location.href = '/';
-        return;
-    }
-
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -29,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (response.ok) {
+                    // Guardar la sesión y redirigir al dashboard
                     Auth.saveSession(data.token, data.user);
                     window.location.href = '/';
                 } else {
