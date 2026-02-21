@@ -1,4 +1,3 @@
-
 const path = require('path');
 require('dotenv').config();
 const express = require('express');
@@ -36,21 +35,24 @@ app.use(compression());
 app.use(cookieParser());
 app.use(express.json());
 
-// --- RUTAS PÚBLICAS ---
+// --- RUTAS PÚBLICAS Y ACTIVOS ESTÁTICOS ---
+// Servir todos los archivos estáticos de CSS y JS de forma pública y antes de cualquier otra ruta.
+// Esto asegura que los assets como hojas de estilo y scripts se carguen sin autenticación.
+app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
+app.use('/js', express.static(path.join(__dirname, 'public', 'js')));
+
+// Rutas de API y páginas que explícitamente no requieren autenticación
 app.use('/api/auth', authRoutes);
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 
-// Servir CSS de forma pública
-app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
-
-// Servir solo los JS necesarios de forma pública
-app.get('/js/auth.js', (req, res) => res.sendFile(path.join(__dirname, 'public', 'js', 'auth.js')));
-app.get('/js/login.js', (req, res) => res.sendFile(path.join(__dirname, 'public', 'js', 'login.js')));
 
 // --- PROTECCIÓN GLOBAL ---
+// Todas las rutas definidas después de este middleware requerirán autenticación.
+// Si la autenticación falla, redirigirá a /login.html.
 app.use(authMiddleware);
 
 // --- RUTAS PROTEGIDAS (API) ---
+// Todas las llamadas a la API (excepto /api/auth) están protegidas.
 app.use('/api/procesos-tipo', procesoTipoRoutes);
 app.use('/api/bitacora', bitacoraRoutes);
 app.use('/api/ordenes-produccion', ordenProduccionRoutes);
@@ -63,10 +65,25 @@ app.use('/api/lotes', loteProduccionRoutes);
 app.use('/api/muestras', muestraCalidadRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// --- RUTAS PROTEGIDAS (Frontend) ---
-app.use(express.static('public'));
-
+// --- RUTAS PROTEGIDAS (Frontend - HTML) ---
+// Se sirven explícitamente los archivos HTML que requieren que el usuario esté logueado.
+// La ruta raíz '/' sirve 'index.html'.
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+
+const protectedPages = [
+    'auditoria.html', 'bitacora.html', 'calidad.html', 'configuracion.html', 
+    'detalles_orden.html', 'ejecucion.html', 'incidentes.html', 'lotes.html', 
+    'muestras.html', 'ordenes.html', 'proceso.html', 'trazabilidad.html'
+];
+
+protectedPages.forEach(page => {
+    app.get(`/${page}`, (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', page));
+    });
+});
+
+// Se elimina el app.use(express.static('public')) de esta sección para evitar conflictos
+// y asegurar que solo los archivos HTML especificados sean servidos por estas rutas protegidas.
 
 // Middleware de manejo de errores centralizado
 app.use((err, req, res, next) => {
