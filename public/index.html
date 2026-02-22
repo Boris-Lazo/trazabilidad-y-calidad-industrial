@@ -86,55 +86,84 @@
             </header>
 
             <div class="page-content">
+                <!-- Nivel 0: Contexto Global -->
+                <div class="context-bar" id="context-bar">
+                    <div class="context-item">
+                        <i data-lucide="calendar"></i>
+                        <span id="op-date">-- --- ----</span>
+                    </div>
+                    <div class="context-item">
+                        <i data-lucide="clock-3"></i>
+                        <span id="op-shift">Turno --</span>
+                    </div>
+                    <div class="context-item clock-highlight">
+                        <i data-lucide="timer"></i>
+                        <span id="op-clock">00:00:00</span>
+                    </div>
+                </div>
+
                 <!-- KPI Row -->
                 <div class="kpi-row">
                     <div class="kpi-card" id="kpi-ordenes">
-                        <div class="kpi-icon-wrapper"><i data-lucide="hash"></i></div>
+                        <div class="kpi-icon-wrapper"><i data-lucide="clipboard-list"></i></div>
                         <div class="kpi-data">
                             <span class="kpi-value" id="count-ordenes-activas">-</span>
                             <span class="kpi-label">Órdenes Activas</span>
                         </div>
                     </div>
                     <div class="kpi-card" id="kpi-lineas">
-                        <div class="kpi-icon-wrapper"><i data-lucide="cpu"></i></div>
+                        <div class="kpi-icon-wrapper"><i data-lucide="settings"></i></div>
                         <div class="kpi-data">
                             <span class="kpi-value" id="count-lineas-ejecucion">-</span>
-                            <span class="kpi-label">Líneas en Ejecución</span>
+                            <span class="kpi-label">Procesos en curso</span>
                         </div>
                     </div>
                     <div class="kpi-card" id="kpi-incidentes">
-                        <div class="kpi-icon-wrapper"><i data-lucide="alert-circle"></i></div>
+                        <div class="kpi-icon-wrapper"><i data-lucide="alert-triangle"></i></div>
                         <div class="kpi-data">
                             <span class="kpi-value" id="count-incidentes-activos">-</span>
-                            <span class="kpi-label">Incidentes Activos</span>
+                            <span class="kpi-label">Alertas Críticas</span>
                         </div>
                     </div>
                     <div class="kpi-card" id="kpi-registros">
                         <div class="kpi-icon-wrapper"><i data-lucide="book-open"></i></div>
                         <div class="kpi-data">
                             <span class="kpi-value" id="count-registros-abiertos">-</span>
-                            <span class="kpi-label">Bitácoras Abiertas</span>
+                            <span class="kpi-label">Estado Bitácora</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="dashboard-main-grid">
-                    <!-- Alertas Críticas (Prioridad 1) -->
-                    <section class="card alerts-section">
+                    <div class="dashboard-side-col">
+                        <!-- Alertas Críticas (Prioridad 1) -->
+                        <section class="card alerts-section">
                         <div class="card-header">
                             <h2 class="card-title">Alertas Críticas</h2>
                             <span class="badge badge-error" id="alert-count" style="display: none;">0</span>
                         </div>
-                        <div id="lista-incidentes-criticos" class="alerts-list">
-                            <div class="empty-state">
-                                <i data-lucide="check-circle" class="text-success large-icon"></i>
-                                <p>Sistema sin alertas críticas</p>
+                            <div id="lista-incidentes-criticos" class="alerts-list">
+                                <div class="empty-state">
+                                    <i data-lucide="check-circle" class="text-success large-icon"></i>
+                                    <p>Sistema sin alertas críticas</p>
+                                </div>
                             </div>
-                        </div>
-                    </section>
+                        </section>
+
+                        <!-- Nivel 4: Registros Abiertos -->
+                        <section class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Registros del Turno</h2>
+                                <span class="badge badge-info" id="bitacora-status">Abierta</span>
+                            </div>
+                            <div id="lista-procesos-bitacora" class="compact-list">
+                                <div class="text-center py-4 text-muted">Cargando procesos...</div>
+                            </div>
+                        </section>
+                    </div>
 
                     <!-- Órdenes en Proceso -->
-                    <section class="card">
+                    <section class="card main-section">
                         <div class="card-header">
                             <h2 class="card-title">Órdenes en Proceso</h2>
                             <a href="/ordenes.html" class="small-link">Ver todas</a>
@@ -145,9 +174,10 @@
                                     <tr>
                                         <th>Orden</th>
                                         <th>Proceso</th>
-                                        <th>Avance</th>
                                         <th>Turno</th>
                                         <th>Estado</th>
+                                        <th>Avance</th>
+                                        <th>Producción</th>
                                     </tr>
                                 </thead>
                                 <tbody>
