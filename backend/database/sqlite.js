@@ -2,15 +2,18 @@
 const sqlite3 = require('sqlite3').verbose();
 const { dbPath, adminPassword } = require('../config/database');
 const { logger } = require('../shared/logger/logger');
+const { NODE_ENV } = require('../config/env');
 const bcrypt = require('bcrypt');
 const DatabaseError = require('../shared/errors/DatabaseError');
 
-const db = new sqlite3.Database(dbPath, (err) => {
+const actualDbPath = NODE_ENV === 'test' ? ':memory:' : dbPath;
+
+const db = new sqlite3.Database(actualDbPath, (err) => {
   if (err) {
     logger.error('Error al conectar con SQLite:', err.message);
     throw err;
   }
-  logger.info('Conectado a la base de datos SQLite.');
+  logger.info(`Conectado a la base de datos SQLite [${actualDbPath}].`);
 
   // Optimización para concurrencia y seguridad
   db.serialize(() => {
@@ -265,5 +268,17 @@ module.exports = {
         else resolve();
       });
     });
+  },
+  withTransaction: async (fn) => {
+    const sqlite = module.exports; // Referencia a los métodos expuestos
+    await sqlite.beginTransaction();
+    try {
+      const result = await fn();
+      await sqlite.commit();
+      return result;
+    } catch (err) {
+      await sqlite.rollback();
+      throw err;
+    }
   }
 };

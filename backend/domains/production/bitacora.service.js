@@ -173,16 +173,12 @@ class BitacoraService {
 
   async saveProcesoData(data) {
       const { bitacora_id, proceso_id, no_operativo, motivo_no_operativo, produccion, desperdicio, observaciones, muestras, isExtrusorPP, muestras_estructuradas, parametros_operativos, mezcla, incidentes } = data;
-      const db = this.bitacoraRepository.db;
 
-      try {
-          await db.beginTransaction();
-
+      return await this.bitacoraRepository.withTransaction(async () => {
           await this.bitacoraRepository.deleteProcesoData(bitacora_id, proceso_id);
 
           if (no_operativo) {
               await this.bitacoraRepository.saveProcesoStatus(bitacora_id, proceso_id, true, motivo_no_operativo);
-              await db.commit();
               return;
           }
 
@@ -233,12 +229,7 @@ class BitacoraService {
                   bitacora_id
               });
           }
-
-          await db.commit();
-      } catch (error) {
-          await db.rollback();
-          throw error;
-      }
+      });
   }
 
   async getInspectores() {

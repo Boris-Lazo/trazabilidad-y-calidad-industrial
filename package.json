@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon backend/server.js",
     "start": "node backend/server.js",
-    "test": "jest"
+    "test": "NODE_ENV=test JWT_SECRET=testsecret ADMIN_PASSWORD=admin123 jest --testPathIgnorePatterns=integration",
+    "test:integration": "NODE_ENV=test JWT_SECRET=testsecret ADMIN_PASSWORD=admin123 jest integration"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
