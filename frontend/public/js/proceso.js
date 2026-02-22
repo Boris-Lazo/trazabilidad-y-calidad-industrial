@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const [bitacoraRes, ordersRes] = await Promise.all([
             fetch('/api/bitacora/estado'),
-            fetch('/api/ordenes-produccion')
+            fetch(`/api/ordenes-produccion?estado=Liberada&proceso_id=${procesoId}`)
         ]);
 
         const bitacoraResult = await bitacoraRes.json();

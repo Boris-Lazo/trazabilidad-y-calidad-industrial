@@ -11,11 +11,15 @@ const bitacoraSchema = {
 
 const ordenSchema = {
   body: z.object({
-    codigo_orden: z.string().min(1),
+    codigo_orden: z.string().length(7).regex(/^\d+$/, "El código debe ser numérico de 7 dígitos"),
     producto: z.string().min(1),
     cantidad_objetivo: z.number().positive(),
     unidad: z.string().min(1),
-    prioridad: z.enum(['Alta', 'Media', 'Baja']).optional()
+    prioridad: z.enum(['Alta', 'Media', 'Baja', 'Critica', 'media', 'alta', 'critica', 'baja']).optional(),
+    observaciones: z.string().optional(),
+    especificaciones: z.string().optional(),
+    estado: z.enum(['Creada', 'Liberada', 'En producción', 'Pausada', 'Cerrada', 'Cancelada']).optional(),
+    motivo_cierre: z.string().optional()
   })
 };
 
