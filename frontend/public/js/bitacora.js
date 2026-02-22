@@ -118,7 +118,11 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', (e) => {
                 const id = e.target.getAttribute('data-id');
                 const nombre = e.target.getAttribute('data-nombre');
-                window.location.href = `/proceso.html?id=${id}&nombre=${encodeURIComponent(nombre)}`;
+                if (nombre === 'Telares') {
+                    window.location.href = `/telares_resumen.html?id=${currentBitacora.id}`;
+                } else {
+                    window.location.href = `/proceso.html?id=${id}&nombre=${encodeURIComponent(nombre)}`;
+                }
             });
         });
     }

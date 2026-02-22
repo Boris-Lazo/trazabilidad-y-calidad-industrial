@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Telar - Sistema de Control Industrial</title>
+    <link rel="stylesheet" href="design-system/index.css">
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        .form-section { margin-bottom: 24px; }
+        .table input { width: 100%; background: transparent; border: 1px solid transparent; color: inherit; padding: 4px; }
+        .table input:focus { border-color: var(--primary-base); outline: none; }
+        .text-error { color: var(--danger); font-size: 0.875rem; }
+    </style>
+</head>
+<body class="industrial-theme">
+    <div class="layout">
+        <div class="main-content">
+            <header class="topbar">
+                <div class="breadcrumb">
+                    <a href="bitacora.html">Bitácora</a> / <a id="link-resumen" href="#">Telares</a> / <span id="label-maquina">T-XX</span>
+                </div>
+                <div class="topbar-actions">
+                    <button class="button button-outline" id="btn-volver">Cancelar</button>
+                    <button class="button button-primary" id="btn-guardar">Guardar Cambios</button>
+                </div>
+            </header>
+
+            <div class="content-padding">
+                <div class="section-header">
+                    <div>
+                        <h1 id="title-maquina">Registro de Telar T-XX</h1>
+                        <p class="text-muted">Ingrese los datos de producción, calidad e incidentes.</p>
+                    </div>
+                    <div>
+                        <select id="select-estado" class="form-control" style="width: auto;">
+                            <option value="Sin datos">⚪ Sin datos</option>
+                            <option value="Parcial">🟡 Parcial</option>
+                            <option value="Completo">🟢 Completo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- 1. PRODUCCIÓN -->
+                    <div class="card form-section" style="grid-column: span 2;">
+                        <div class="card-header">1. PRODUCCIÓN POR ORDEN (Metros)</div>
+                        <div class="table-container">
+                            <table class="table" id="tabla-produccion">
+                                <thead>
+                                    <tr>
+                                        <th>Orden</th>
+                                        <th>Producción (m)</th>
+                                        <th>Desperdicio (kg)</th>
+                                        <th>Observación / Motivo</th>
+                                        <th style="width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-produccion"></tbody>
+                            </table>
+                        </div>
+                        <button class="button button-outline" id="btn-agregar-produccion" style="margin-top: 12px;">+ Agregar Orden</button>
+                    </div>
+
+                    <!-- 2. CALIDAD -->
+                    <div class="card form-section">
+                        <div class="card-header">2. CALIDAD - ANCHO TELA (Pulgadas)</div>
+                        <p class="text-muted mb-2">Tolerancia: <span id="ancho-nominal">--</span>" ± 1/4"</p>
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Valor</th>
+                                        <th>Resultado</th>
+                                        <th style="width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-ancho"></tbody>
+                            </table>
+                        </div>
+                        <button class="button button-outline" id="btn-agregar-ancho" style="margin-top: 12px;">+ Medición Ancho</button>
+                    </div>
+
+                    <div class="card form-section">
+                        <div class="card-header">3. DEFECTOS VISUALES</div>
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Rollo</th>
+                                        <th>Defecto</th>
+                                        <th>Observación</th>
+                                        <th style="width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-visual"></tbody>
+                            </table>
+                        </div>
+                        <button class="button button-outline" id="btn-agregar-visual" style="margin-top: 12px;">+ Registrar Defecto</button>
+                    </div>
+
+                    <!-- 4. INCIDENTES -->
+                    <div class="card form-section" style="grid-column: span 2;">
+                        <div class="card-header">4. INCIDENTES Y PAROS</div>
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Tiempo (min)</th>
+                                        <th>Clasificación</th>
+                                        <th>Motivo / Acción</th>
+                                        <th style="width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-incidentes"></tbody>
+                            </table>
+                        </div>
+                        <button class="button button-outline" id="btn-agregar-incidente" style="margin-top: 12px;">+ Registrar Paro</button>
+                    </div>
+                </div>
+
+                <div id="aviso-calidad" class="card" style="border-left: 4px solid var(--warning); display: none;">
+                    <div style="padding: 16px;">
+                        <strong>⚠ Advertencia de Calidad</strong>
+                        <p class="text-muted">Se requiere una explicación para cerrar sin datos de calidad o con desviaciones.</p>
+                        <input type="text" id="obs-advertencia" class="form-control mt-2" placeholder="Explicación obligatoria...">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="design-system/index.js"></script>
+    <script src="js/telares_detalle.js"></script>
+</body>
+</html>

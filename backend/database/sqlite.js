@@ -51,7 +51,8 @@ const initDB = () => {
         prioridad TEXT,
         observaciones TEXT,
         estado TEXT DEFAULT 'abierta',
-        fecha_creacion DATE
+        fecha_creacion DATE,
+        especificaciones TEXT
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS PROCESO_TIPO (
@@ -62,13 +63,29 @@ const initDB = () => {
         activo BOOLEAN DEFAULT TRUE
     );`);
 
+    db.run(`CREATE TABLE IF NOT EXISTS MAQUINAS (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        codigo TEXT UNIQUE,
+        proceso_tipo_id INTEGER,
+        activo BOOLEAN DEFAULT 1,
+        FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS PARO_TIPO (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT UNIQUE,
+        activo BOOLEAN DEFAULT 1
+    );`);
+
     db.run(`CREATE TABLE IF NOT EXISTS lineas_ejecucion (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         estado TEXT,
         orden_produccion_id INTEGER,
         proceso_tipo_id INTEGER,
+        maquina_id INTEGER,
         FOREIGN KEY (orden_produccion_id) REFERENCES orden_produccion(id),
-        FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id)
+        FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS incidentes (
@@ -78,10 +95,14 @@ const initDB = () => {
         severidad TEXT,
         estado TEXT DEFAULT 'abierto',
         linea_ejecucion_id INTEGER,
+        maquina_id INTEGER,
+        bitacora_id INTEGER,
         fecha_creacion DATETIME,
         fecha_cierre DATETIME,
         accion_correctiva TEXT,
-        FOREIGN KEY (linea_ejecucion_id) REFERENCES lineas_ejecucion(id)
+        FOREIGN KEY (linea_ejecucion_id) REFERENCES lineas_ejecucion(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id)
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS registros_trabajo (
@@ -93,9 +114,13 @@ const initDB = () => {
         fecha_hora DATETIME,
         linea_ejecucion_id INTEGER,
         bitacora_id INTEGER,
+        maquina_id INTEGER,
         estado TEXT DEFAULT 'completado',
+        usuario_modificacion TEXT,
+        fecha_modificacion DATETIME,
         FOREIGN KEY (linea_ejecucion_id) REFERENCES lineas_ejecucion(id),
-        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id)
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS lotes (
@@ -113,12 +138,42 @@ const initDB = () => {
         lote_id INTEGER,
         bitacora_id INTEGER,
         proceso_tipo_id INTEGER,
+        maquina_id INTEGER,
         resultado TEXT,
         valor REAL,
         parametro TEXT,
+        valor_nominal REAL,
+        usuario_modificacion TEXT,
+        fecha_modificacion DATETIME,
         FOREIGN KEY (lote_id) REFERENCES lotes(id),
         FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
-        FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id)
+        FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS bitacora_maquina_status (
+        bitacora_id INTEGER,
+        maquina_id INTEGER,
+        estado TEXT DEFAULT 'Sin datos',
+        observacion_advertencia TEXT,
+        PRIMARY KEY (bitacora_id, maquina_id),
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS calidad_telares_visual (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id INTEGER,
+        maquina_id INTEGER,
+        orden_id INTEGER,
+        rollo_numero INTEGER,
+        tipo_defecto TEXT,
+        observacion TEXT,
+        usuario_modificacion TEXT,
+        fecha_modificacion DATETIME,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id)
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS RECURSO (
@@ -219,7 +274,50 @@ const initDB = () => {
         });
         stmt.finalize();
         logger.info('Procesos por defecto inicializados.');
+
+        // Semilla de Máquinas (Telares)
+        db.get("SELECT id FROM PROCESO_TIPO WHERE nombre = 'Telares'", (err, row) => {
+          if (row) {
+            const telaresId = row.id;
+            const stmtM = db.prepare("INSERT INTO MAQUINAS (codigo, proceso_tipo_id) VALUES (?, ?)");
+            for (let i = 1; i <= 13; i++) {
+              stmtM.run([`T-${i.toString().padStart(2, '0')}`, telaresId]);
+            }
+            stmtM.finalize();
+            logger.info('Máquinas de Telares inicializadas.');
+          }
+        });
+
+        // Semilla de Tipos de Paro
+        const paros = ['Mecánico', 'Eléctrico', 'Operativo', 'Calidad', 'Falta de material', 'Cambio de orden', 'Limpieza', 'Mantenimiento'];
+        const stmtP = db.prepare("INSERT INTO PARO_TIPO (nombre) VALUES (?)");
+        paros.forEach(p => stmtP.run(p));
+        stmtP.finalize();
+        logger.info('Tipos de paro inicializados.');
       }
+    });
+
+    // Migración manual de columnas si las tablas ya existen
+    const columnsToAdd = [
+      { table: 'lineas_ejecucion', column: 'maquina_id', type: 'INTEGER' },
+      { table: 'incidentes', column: 'maquina_id', type: 'INTEGER' },
+      { table: 'incidentes', column: 'bitacora_id', type: 'INTEGER' },
+      { table: 'registros_trabajo', column: 'maquina_id', type: 'INTEGER' },
+      { table: 'registros_trabajo', column: 'usuario_modificacion', type: 'TEXT' },
+      { table: 'registros_trabajo', column: 'fecha_modificacion', type: 'DATETIME' },
+      { table: 'muestras', column: 'maquina_id', type: 'INTEGER' },
+      { table: 'muestras', column: 'valor_nominal', type: 'REAL' },
+      { table: 'muestras', column: 'usuario_modificacion', type: 'TEXT' },
+      { table: 'muestras', column: 'fecha_modificacion', type: 'DATETIME' },
+      { table: 'calidad_telares_visual', column: 'usuario_modificacion', type: 'TEXT' },
+      { table: 'calidad_telares_visual', column: 'fecha_modificacion', type: 'DATETIME' },
+      { table: 'orden_produccion', column: 'especificaciones', type: 'TEXT' }
+    ];
+
+    columnsToAdd.forEach(item => {
+      db.run(`ALTER TABLE ${item.table} ADD COLUMN ${item.column} ${item.type}`, (err) => {
+        // Ignoramos error si la columna ya existe
+      });
     });
 
     logger.info("Esquema e índices verificados con éxito.");
