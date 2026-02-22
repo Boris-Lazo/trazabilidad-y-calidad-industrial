@@ -1,8 +1,8 @@
 // Punto de entrada del servidor
 const app = require('./app');
-const { PORT, NODE_ENV } = require('./config/env');
-const { initDB } = require('./database/sqlite');
-const logger = require('./shared/logger/logger');
+const { PORT, NODE_ENV } = require('../config/env');
+const { initDB } = require('../database/sqlite');
+const { logger } = require('../shared/logger/logger');
 
 // Inicializar base de datos
 try {

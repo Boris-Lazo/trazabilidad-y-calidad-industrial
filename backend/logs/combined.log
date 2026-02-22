@@ -1,0 +1,19 @@
+{"level":"info","message":"Verificando/Creando tablas...","timestamp":"2026-02-22T04:05:07.634Z"}
+{"level":"info","message":"Servidor industrial corriendo en el puerto 3000 [Mode: development]","timestamp":"2026-02-22T04:05:07.643Z"}
+{"level":"info","message":"Conectado a la base de datos SQLite.","timestamp":"2026-02-22T04:05:07.645Z"}
+{"level":"info","message":"Esquema de base de datos verificado con éxito.","timestamp":"2026-02-22T04:05:07.710Z"}
+{"level":"info","message":"Cierre SIGTERM recibido. Cerrando servidor...","timestamp":"2026-02-22T04:05:12.319Z"}
+{"env":"development","level":"info","message":"Verificando/Creando esquema de base de datos...","service":"industrial-api","timestamp":"2026-02-22 04:07:06"}
+{"env":"development","level":"info","message":"Asegurando índices de base de datos...","service":"industrial-api","timestamp":"2026-02-22 04:07:06"}
+{"env":"development","level":"info","message":"Esquema e índices verificados con éxito.","service":"industrial-api","timestamp":"2026-02-22 04:07:06"}
+{"env":"development","level":"info","message":"Servidor industrial corriendo en el puerto 3000 [Mode: development]","service":"industrial-api","timestamp":"2026-02-22 04:07:06"}
+{"env":"development","level":"info","message":"Conectado a la base de datos SQLite.","service":"industrial-api","timestamp":"2026-02-22 04:07:06"}
+{"env":"development","level":"info","message":"SQLite optimizado: WAL mode, Synchronous NORMAL, Foreign Keys ON.","service":"industrial-api","timestamp":"2026-02-22 04:07:06"}
+{"env":"development","level":"info","message":"Cierre SIGTERM recibido. Cerrando servidor...","service":"industrial-api","timestamp":"2026-02-22 04:07:11"}
+{"env":"development","level":"info","message":"Verificando/Creando esquema de base de datos...","service":"industrial-api","timestamp":"2026-02-22 04:31:12"}
+{"env":"development","level":"info","message":"Asegurando índices de base de datos...","service":"industrial-api","timestamp":"2026-02-22 04:31:12"}
+{"env":"development","level":"info","message":"Esquema e índices verificados con éxito.","service":"industrial-api","timestamp":"2026-02-22 04:31:12"}
+{"env":"development","level":"info","message":"Servidor industrial corriendo en el puerto 3000 [Mode: development]","service":"industrial-api","timestamp":"2026-02-22 04:31:12"}
+{"env":"development","level":"info","message":"Conectado a la base de datos SQLite.","service":"industrial-api","timestamp":"2026-02-22 04:31:12"}
+{"env":"development","level":"info","message":"SQLite optimizado: WAL mode, Synchronous NORMAL, Foreign Keys ON.","service":"industrial-api","timestamp":"2026-02-22 04:31:12"}
+{"env":"development","level":"info","message":"Cierre SIGTERM recibido. Cerrando servidor...","service":"industrial-api","timestamp":"2026-02-22 04:31:17"}

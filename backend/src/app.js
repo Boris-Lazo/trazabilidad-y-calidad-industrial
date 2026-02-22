@@ -6,21 +6,22 @@ const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 
-const { NODE_ENV } = require('./config/env');
-const errorMiddleware = require('./middlewares/error.middleware');
-const authMiddleware = require('./middlewares/auth.middleware');
+const { NODE_ENV } = require('../config/env');
+const errorMiddleware = require('../middlewares/error.middleware');
+const authMiddleware = require('../middlewares/auth.middleware');
+const { requestLogger } = require('../shared/logger/logger');
 
 // Importar rutas
-const authRoutes = require('./domains/auth/auth.routes');
-const procesoTipoRoutes = require('./domains/production/procesoTipo.routes');
-const bitacoraRoutes = require('./domains/production/bitacora.routes');
-const ordenProduccionRoutes = require('./domains/production/ordenProduccion.routes');
-const incidenteRoutes = require('./domains/production/incidente.routes');
-const loteRoutes = require('./domains/quality/lote.routes');
-const muestraRoutes = require('./domains/quality/muestra.routes');
-const recursoRoutes = require('./domains/resources/recurso.routes');
-const consumoRoutes = require('./domains/resources/consumo.routes');
-const dashboardRoutes = require('./domains/dashboard/dashboard.routes');
+const authRoutes = require('../domains/auth/auth.routes');
+const procesoTipoRoutes = require('../domains/production/procesoTipo.routes');
+const bitacoraRoutes = require('../domains/production/bitacora.routes');
+const ordenProduccionRoutes = require('../domains/production/ordenProduccion.routes');
+const incidenteRoutes = require('../domains/production/incidente.routes');
+const loteRoutes = require('../domains/quality/lote.routes');
+const muestraRoutes = require('../domains/quality/muestra.routes');
+const recursoRoutes = require('../domains/resources/recurso.routes');
+const consumoRoutes = require('../domains/resources/consumo.routes');
+const dashboardRoutes = require('../domains/dashboard/dashboard.routes');
 
 const app = express();
 
@@ -41,10 +42,17 @@ app.use(helmet({
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 100, // Límite de 100 peticiones por ventana
-  message: 'Demasiadas peticiones desde esta IP, por favor intenta de nuevo en 15 minutos.'
+  message: {
+    success: false,
+    data: null,
+    error: 'Demasiadas peticiones desde esta IP, por favor intenta de nuevo en 15 minutos.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api/', limiter);
 
+app.use(requestLogger);
 app.use(compression());
 app.use(cookieParser());
 app.use(express.json());
