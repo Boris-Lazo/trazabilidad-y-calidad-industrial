@@ -18,11 +18,7 @@ describe('BitacoraService', () => {
             getResumenProcesos: jest.fn(),
             getRegistrosByProceso: jest.fn(),
             getMuestrasByProceso: jest.fn(),
-            db: {
-                beginTransaction: jest.fn(),
-                commit: jest.fn(),
-                rollback: jest.fn()
-            }
+            withTransaction: jest.fn(fn => fn())
         };
         lineaEjecucionRepositoryMock = {};
         registroTrabajoRepositoryMock = {};

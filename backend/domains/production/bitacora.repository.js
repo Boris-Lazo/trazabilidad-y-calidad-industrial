@@ -68,6 +68,10 @@ class BitacoraRepository {
   async getInspectores() {
     return await this.db.query("SELECT DISTINCT inspector FROM bitacora_turno UNION SELECT nombre FROM usuarios WHERE rol IN ('ADMIN', 'INSPECTOR')");
   }
+
+  async withTransaction(fn) {
+    return await this.db.withTransaction(fn);
+  }
 }
 
 module.exports = BitacoraRepository;
