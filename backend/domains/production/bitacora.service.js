@@ -173,60 +173,71 @@ class BitacoraService {
 
   async saveProcesoData(data) {
       const { bitacora_id, proceso_id, no_operativo, motivo_no_operativo, produccion, desperdicio, observaciones, muestras, isExtrusorPP, muestras_estructuradas, parametros_operativos, mezcla, incidentes } = data;
+      const db = this.bitacoraRepository.db;
 
-      await this.bitacoraRepository.deleteProcesoData(bitacora_id, proceso_id);
+      try {
+          await db.beginTransaction();
 
-      if (no_operativo) {
-          await this.bitacoraRepository.saveProcesoStatus(bitacora_id, proceso_id, true, motivo_no_operativo);
-          return;
-      }
+          await this.bitacoraRepository.deleteProcesoData(bitacora_id, proceso_id);
 
-      let extraDataSaved = false;
-      for (const p of (produccion || [])) {
-          let linea = await this.lineaEjecucionRepository.findByOrdenAndProceso(p.orden_id, proceso_id);
-          if (!linea) {
-              const resId = await this.lineaEjecucionRepository.create(p.orden_id, proceso_id);
-              linea = { id: resId };
+          if (no_operativo) {
+              await this.bitacoraRepository.saveProcesoStatus(bitacora_id, proceso_id, true, motivo_no_operativo);
+              await db.commit();
+              return;
           }
 
-          const d = (desperdicio || []).find(di => di.orden_id == p.orden_id && di.maquina == p.maquina);
-          const paramsObj = { maquina: p.maquina };
+          let extraDataSaved = false;
+          for (const p of (produccion || [])) {
+              let linea = await this.lineaEjecucionRepository.findByOrdenAndProceso(p.orden_id, proceso_id);
+              if (!linea) {
+                  const resId = await this.lineaEjecucionRepository.create(p.orden_id, proceso_id);
+                  linea = { id: resId };
+              }
 
-          if (isExtrusorPP && !extraDataSaved) {
-              Object.assign(paramsObj, { muestras_estructuradas, parametros_operativos, mezcla, incidentes });
-              extraDataSaved = true;
-          }
+              const d = (desperdicio || []).find(di => di.orden_id == p.orden_id && di.maquina == p.maquina);
+              const paramsObj = { maquina: p.maquina };
 
-          await this.registroTrabajoRepository.create({
-              cantidad_producida: p.cantidad,
-              merma_kg: d ? d.kg : 0,
-              observaciones,
-              parametros: JSON.stringify(paramsObj),
-              linea_ejecucion_id: linea.id,
-              bitacora_id
-          });
-      }
+              if (isExtrusorPP && !extraDataSaved) {
+                  Object.assign(paramsObj, { muestras_estructuradas, parametros_operativos, mezcla, incidentes });
+                  extraDataSaved = true;
+              }
 
-      if (muestras) {
-          for (const m of muestras) {
-              await this.muestraRepository.create({
-                  parametro: m.parametro,
-                  valor: m.valor,
-                  resultado: m.resultado,
-                  bitacora_id,
-                  proceso_tipo_id: proceso_id
+              await this.registroTrabajoRepository.create({
+                  cantidad_producida: p.cantidad,
+                  merma_kg: d ? d.kg : 0,
+                  observaciones,
+                  parametros: JSON.stringify(paramsObj),
+                  linea_ejecucion_id: linea.id,
+                  bitacora_id
               });
           }
-      }
 
-      if (isExtrusorPP && !extraDataSaved) {
-          await this.registroTrabajoRepository.create({
-              cantidad_producida: 0,
-              merma_kg: 0,
-              observaciones,
-              parametros: JSON.stringify({ muestras_estructuradas, parametros_operativos, mezcla, incidentes }),
-              bitacora_id
-          });
+          if (muestras) {
+              for (const m of muestras) {
+                  await this.muestraRepository.create({
+                      parametro: m.parametro,
+                      valor: m.valor,
+                      resultado: m.resultado,
+                      bitacora_id,
+                      proceso_tipo_id: proceso_id
+                  });
+              }
+          }
+
+          if (isExtrusorPP && !extraDataSaved) {
+              await this.registroTrabajoRepository.create({
+                  cantidad_producida: 0,
+                  merma_kg: 0,
+                  observaciones,
+                  parametros: JSON.stringify({ muestras_estructuradas, parametros_operativos, mezcla, incidentes }),
+                  bitacora_id
+              });
+          }
+
+          await db.commit();
+      } catch (error) {
+          await db.rollback();
+          throw error;
       }
   }
 

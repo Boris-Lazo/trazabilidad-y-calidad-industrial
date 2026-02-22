@@ -11,9 +11,13 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}Iniciando configuración de trazabilidad-y-calidad-industrial...${NC}"
 
-# 1. Instalar dependencias
-echo -e "${YELLOW}Instalando dependencias de Node.js...${NC}"
-npm install
+# 1. Instalar dependencias si no existen
+if [ ! -d "node_modules" ]; then
+    echo -e "${YELLOW}Instalando dependencias de Node.js...${NC}"
+    npm install
+else
+    echo -e "${BLUE}Dependencias ya instaladas.${NC}"
+fi
 
 # 2. Verificar archivo .env
 if [ ! -f .env ]; then
@@ -42,12 +46,19 @@ echo -e "${YELLOW}Asegurando estructura de directorios...${NC}"
 mkdir -p backend/database
 mkdir -p backend/logs
 
-# 4. Información final
-echo -e "\n${GREEN}Configuración completada con éxito.${NC}"
+# 4. Información final y ejecución
+echo -e "\n${GREEN}Configuración verificada con éxito.${NC}"
 echo -e "-------------------------------------------------------"
 echo -e "1. El usuario inicial es: ${BLUE}admin${NC}"
 echo -e "2. La contraseña inicial es: ${BLUE}admin123${NC} (definida en .env)"
-echo -e "3. Para iniciar el servidor en modo desarrollo: ${GREEN}npm run dev${NC}"
-echo -e "4. Para iniciar el servidor en modo producción: ${GREEN}npm start${NC}"
 echo -e "-------------------------------------------------------"
-echo -e "La base de datos se inicializará automáticamente al arrancar por primera vez."
+
+# Preguntar si se desea iniciar el servidor
+echo -e "${YELLOW}¿Deseas iniciar el servidor ahora? (s/n)${NC}"
+read -r response
+if [[ "$response" =~ ^([sS][iI]|[sS])$ ]]; then
+    echo -e "${GREEN}Iniciando servidor en modo desarrollo...${NC}"
+    npm run dev
+else
+    echo -e "Puedes iniciar el servidor más tarde con: ${GREEN}npm run dev${NC}"
+fi
