@@ -1,0 +1,30 @@
+{"level":"info","message":"Verificando/Creando tablas...","timestamp":"2026-02-22T01:24:32.345Z"}
+{"level":"info","message":"Servidor industrial corriendo en el puerto 3000 [Mode: development]","timestamp":"2026-02-22T01:24:32.358Z"}
+{"level":"info","message":"Conectado a la base de datos SQLite.","timestamp":"2026-02-22T01:24:32.362Z"}
+{"level":"info","message":"Esquema de base de datos verificado con éxito.","timestamp":"2026-02-22T01:24:32.387Z"}
+{"level":"info","message":"Cierre SIGTERM recibido. Cerrando servidor...","timestamp":"2026-02-22T01:24:36.929Z"}
+{"level":"info","message":"Verificando/Creando tablas...","timestamp":"2026-02-22T03:06:21.623Z"}
+{"level":"info","message":"Servidor industrial corriendo en el puerto 3000 [Mode: development]","timestamp":"2026-02-22T03:06:21.633Z"}
+{"level":"info","message":"Conectado a la base de datos SQLite.","timestamp":"2026-02-22T03:06:21.635Z"}
+{"level":"info","message":"Esquema de base de datos verificado con éxito.","timestamp":"2026-02-22T03:06:21.658Z"}
+{"level":"info","message":"Cierre SIGTERM recibido. Cerrando servidor...","timestamp":"2026-02-22T03:06:26.232Z"}
+{"level":"info","message":"Verificando/Creando tablas...","timestamp":"2026-02-22T03:13:26.094Z"}
+{"level":"info","message":"Servidor industrial corriendo en el puerto 3000 [Mode: development]","timestamp":"2026-02-22T03:13:26.119Z"}
+{"level":"info","message":"Conectado a la base de datos SQLite.","timestamp":"2026-02-22T03:13:26.124Z"}
+{"level":"info","message":"Esquema de base de datos verificado con éxito.","timestamp":"2026-02-22T03:13:26.154Z"}
+{"level":"info","message":"Cierre SIGTERM recibido. Cerrando servidor...","timestamp":"2026-02-22T03:13:30.568Z"}
+{"level":"info","message":"Verificando/Creando tablas...","timestamp":"2026-02-22T03:17:13.356Z"}
+{"level":"info","message":"Servidor industrial corriendo en el puerto 3000 [Mode: development]","timestamp":"2026-02-22T03:17:13.363Z"}
+{"level":"info","message":"Conectado a la base de datos SQLite.","timestamp":"2026-02-22T03:17:13.365Z"}
+{"level":"info","message":"Esquema de base de datos verificado con éxito.","timestamp":"2026-02-22T03:17:13.381Z"}
+{"level":"info","message":"Cierre SIGTERM recibido. Cerrando servidor...","timestamp":"2026-02-22T03:17:44.995Z"}
+{"level":"info","message":"Verificando/Creando tablas...","timestamp":"2026-02-22T03:18:24.611Z"}
+{"level":"info","message":"Servidor industrial corriendo en el puerto 3000 [Mode: development]","timestamp":"2026-02-22T03:18:24.618Z"}
+{"level":"info","message":"Conectado a la base de datos SQLite.","timestamp":"2026-02-22T03:18:24.620Z"}
+{"level":"info","message":"Esquema de base de datos verificado con éxito.","timestamp":"2026-02-22T03:18:24.637Z"}
+{"level":"info","message":"Cierre SIGTERM recibido. Cerrando servidor...","timestamp":"2026-02-22T03:18:30.851Z"}
+{"level":"info","message":"Verificando/Creando tablas...","timestamp":"2026-02-22T03:27:07.495Z"}
+{"level":"info","message":"Servidor industrial corriendo en el puerto 3000 [Mode: development]","timestamp":"2026-02-22T03:27:07.502Z"}
+{"level":"info","message":"Conectado a la base de datos SQLite.","timestamp":"2026-02-22T03:27:07.504Z"}
+{"level":"info","message":"Esquema de base de datos verificado con éxito.","timestamp":"2026-02-22T03:27:07.520Z"}
+{"level":"info","message":"Cierre SIGTERM recibido. Cerrando servidor...","timestamp":"2026-02-22T03:27:12.270Z"}
