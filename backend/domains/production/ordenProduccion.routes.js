@@ -3,6 +3,7 @@ const OrdenProduccionRepository = require('./ordenProduccion.repository');
 const OrdenProduccionService = require('./ordenProduccion.service');
 const OrdenProduccionController = require('./ordenProduccion.controller');
 const sqlite = require('../../database/sqlite');
+const authorize = require('../../middlewares/authorize');
 
 // Instanciación manual
 const ordenProduccionRepository = new OrdenProduccionRepository(sqlite);
@@ -13,8 +14,8 @@ const router = express.Router();
 
 router.get('/', ordenProduccionController.getAll);
 router.get('/:id', ordenProduccionController.getById);
-router.post('/', ordenProduccionController.create);
-router.put('/:id', ordenProduccionController.update);
-router.delete('/:id', ordenProduccionController.remove);
+router.post('/', authorize('ADMIN'), ordenProduccionController.create);
+router.put('/:id', authorize('ADMIN'), ordenProduccionController.update);
+router.delete('/:id', authorize('ADMIN'), ordenProduccionController.remove);
 
 module.exports = router;
