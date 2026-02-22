@@ -241,5 +241,29 @@ module.exports = {
         else resolve({ lastID: this.lastID, changes: this.changes });
       });
     });
+  },
+  beginTransaction: () => {
+    return new Promise((resolve, reject) => {
+      db.run('BEGIN TRANSACTION', (err) => {
+        if (err) reject(handleDBError(err, 'BEGIN TRANSACTION'));
+        else resolve();
+      });
+    });
+  },
+  commit: () => {
+    return new Promise((resolve, reject) => {
+      db.run('COMMIT', (err) => {
+        if (err) reject(handleDBError(err, 'COMMIT'));
+        else resolve();
+      });
+    });
+  },
+  rollback: () => {
+    return new Promise((resolve, reject) => {
+      db.run('ROLLBACK', (err) => {
+        if (err) reject(handleDBError(err, 'ROLLBACK'));
+        else resolve();
+      });
+    });
   }
 };

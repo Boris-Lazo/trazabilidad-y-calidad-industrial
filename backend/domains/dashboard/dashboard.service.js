@@ -1,5 +1,6 @@
 class DashboardService {
   constructor(repositories) {
+    this.dashboardRepository = repositories.dashboardRepository;
     this.ordenProduccionRepository = repositories.ordenProduccionRepository;
     this.lineaEjecucionRepository = repositories.lineaEjecucionRepository;
     this.registroTrabajoRepository = repositories.registroTrabajoRepository;
@@ -9,18 +10,14 @@ class DashboardService {
   }
 
   async getSummary() {
-    const ordenes = await this.ordenProduccionRepository.findAll();
-    const lineas = await this.lineaEjecucionRepository.findAll();
-    const registros = await this.registroTrabajoRepository.findAll();
-    const incidentes = await this.incidenteRepository.findAll();
+    const counts = await this.dashboardRepository.getCounts();
+    const recentOrders = await this.dashboardRepository.getRecentOrders(5);
+    const criticalIncidents = await this.dashboardRepository.getCriticalIncidents(5);
 
     return {
-      ordenesActivas: ordenes.filter(o => o.estado === 'en proceso' || o.estado === 'abierta').length,
-      lineasEjecucion: lineas.filter(l => l.estado === 'activo').length,
-      registrosAbiertos: registros.filter(r => r.estado === 'abierto').length,
-      incidentesActivos: incidentes.filter(i => i.estado === 'abierto').length,
-      recentOrders: ordenes.filter(o => o.estado === 'en proceso' || o.estado === 'abierta').slice(0, 5),
-      criticalIncidents: incidentes.filter(i => i.severidad === 'alta' && i.estado === 'abierto').slice(0, 5)
+      ...counts,
+      recentOrders,
+      criticalIncidents
     };
   }
 

@@ -7,6 +7,7 @@ const MuestraRepository = require('./muestra.repository');
 const BitacoraService = require('./bitacora.service');
 const BitacoraController = require('./bitacora.controller');
 const sqlite = require('../../database/sqlite');
+const authorize = require('../../middlewares/authorize');
 
 // Instanciación manual
 const bitacoraRepository = new BitacoraRepository(sqlite);
@@ -26,11 +27,11 @@ const bitacoraController = new BitacoraController(bitacoraService);
 const router = express.Router();
 
 router.get('/estado-actual', bitacoraController.getEstadoActual);
-router.post('/abrir', bitacoraController.abrirBitacora);
-router.post('/:id/cerrar', bitacoraController.cerrarBitacora);
+router.post('/abrir', authorize('ADMIN', 'INSPECTOR'), bitacoraController.abrirBitacora);
+router.post('/:id/cerrar', authorize('ADMIN', 'INSPECTOR'), bitacoraController.cerrarBitacora);
 router.get('/tiempo', bitacoraController.getTiempoActual);
 router.get('/proceso-data', bitacoraController.getProcesoData);
-router.post('/guardar-proceso', bitacoraController.guardarProcesoData);
+router.post('/guardar-proceso', authorize('ADMIN', 'INSPECTOR', 'OPERACIONES'), bitacoraController.guardarProcesoData);
 router.get('/inspectores', bitacoraController.getInspectores);
 
 module.exports = router;
