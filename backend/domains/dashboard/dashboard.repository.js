@@ -9,11 +9,19 @@ class DashboardRepository {
     const registrosAbiertos = await this.db.get("SELECT COUNT(*) as count FROM registros_trabajo WHERE estado = 'abierto'");
     const incidentesActivos = await this.db.get("SELECT COUNT(*) as count FROM incidentes WHERE estado = 'abierto'");
 
+    // Obtener producción total del día (registros de hoy)
+    const today = new Date().toISOString().split('T')[0];
+    const produccionDia = await this.db.get(
+      "SELECT SUM(cantidad_producida) as total FROM registros_trabajo WHERE date(fecha_creacion) = date(?)",
+      [today]
+    );
+
     return {
       ordenesActivas: ordenesActivas.count,
       lineasEjecucion: lineasEjecucion.count,
       registrosAbiertos: registrosAbiertos.count,
-      incidentesActivos: incidentesActivos.count
+      incidentesActivos: incidentesActivos.count,
+      produccionDia: produccionDia.total || 0
     };
   }
 

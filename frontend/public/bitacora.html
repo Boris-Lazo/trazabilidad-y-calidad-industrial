@@ -4,64 +4,93 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bitácora de Turno | PROD-SYS</title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="js/auth.js"></script>
+        <link rel="stylesheet" href="/design-system/index.css">
+    <script src="js/auth.js?v=1.5"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/design-system/index.js" defer></script>
+<script src="js/auth.js"></script>
 </head>
 <body>
 
-    <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
+        <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 PROD-SYS
             </div>
             <nav class="sidebar-nav">
-                <a href="/" class="nav-item">Dashboard</a>
+                <a href="/" class="nav-item nav-item-single ">
+                    <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                    <span>Dashboard</span>
+                </a>
 
-                <div class="nav-group-label">Producción</div>
-                <a href="/bitacora.html" class="nav-item active">Bitácora de Turno</a>
-                <a href="/ordenes.html" class="nav-item">Órdenes</a>
-                <a href="/ejecucion.html" class="nav-item">Ejecución</a>
-                <a href="/incidentes.html" class="nav-item">Incidentes</a>
+                <div class="nav-group open">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="clipboard-list" class="nav-icon"></i>
+                        <span>Producción</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/bitacora.html" class="nav-item active">Bitácora de Turno</a>
+                        <a href="/ordenes.html" class="nav-item ">Órdenes</a>
+                        <a href="/ejecucion.html" class="nav-item ">Ejecución</a>
+                        <a href="/incidentes.html" class="nav-item ">Incidentes</a>
+                    </div>
+                </div>
 
-                <div class="nav-group-label">Control y Seguimiento</div>
-                <a href="/calidad.html" class="nav-item">Calidad</a>
-                <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+                <div class="nav-group ">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="shield-check" class="nav-icon"></i>
+                        <span>Control</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/calidad.html" class="nav-item ">Calidad</a>
+                        <a href="/trazabilidad.html" class="nav-item ">Trazabilidad</a>
+                    </div>
+                </div>
 
-                <div class="nav-group-label">Sistema</div>
-                <a href="/configuracion.html" class="nav-item">Configuración</a>
-                <a href="/auditoria.html" class="nav-item">Auditoría</a>
+                <div class="nav-group ">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="settings" class="nav-icon"></i>
+                        <span>Sistema</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/configuracion.html" class="nav-item ">Configuración</a>
+                        <a href="/auditoria.html" class="nav-item ">Auditoría</a>
+                    </div>
+                </div>
             </nav>
-            <div class="sidebar-footer" style="padding: 1rem; border-top: 1px solid var(--border-color);">
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;" id="user-display">Usuario: -</div>
-                <button onclick="Auth.logout()" class="button button-outline" style="width: 100%; font-size: 0.75rem;">Cerrar Sesión</button>
+            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
+                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+                    <span id="user-name-label">Usuario: -</span>
+                </div>
+                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
+                    <i data-lucide="log-out" class="nav-icon"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <header class="top-bar" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="main-container" id="main-content">
+            <header class="topbar">
                 <h1>Bitácora de Turno</h1>
-                <div id="reloj-operativo" style="text-align: right; line-height: 1.2;">
-                    <div id="reloj-fecha" style="font-size: 0.8rem; color: var(--text-muted);">---</div>
-                    <div id="reloj-hora" style="font-size: 1.2rem; font-weight: bold; color: var(--primary-color);">00:00</div>
-                    <div id="reloj-timezone" style="font-size: 0.7rem; color: var(--text-muted); opacity: 0.7;">---</div>
-                </div>
             </header>
 
             <div class="page-content">
                 <!-- Estado: Bitácora Cerrada (Pantalla de Apertura) -->
                 <div id="view-apertura" style="display: none;">
                     <div class="card" style="max-width: 500px; margin: 2rem auto;">
-                        <div class="card-title">Abrir Nueva Bitácora</div>
+                        <div class="card-header">Abrir Nueva Bitácora</div>
                         <p class="mb-4">No hay una bitácora abierta para el turno actual.</p>
                         <form id="form-abrir-bitacora">
                             <div class="form-group">
                                 <label for="inspector">Nombre del Inspector</label>
-                                <input type="text" id="inspector" list="inspectores-list" placeholder="Ej. Juan Pérez" required>
+                                <input class="form-control" type="text" id="inspector" list="inspectores-list" placeholder="Ej. Juan Pérez" required>
                                 <datalist id="inspectores-list"></datalist>
                             </div>
-                            <button type="submit" class="button button-primary" style="width: 100%;">Abrir Bitácora</button>
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">Abrir Bitácora</button>
                         </form>
                     </div>
                 </div>
@@ -87,9 +116,9 @@
 
                     <!-- Tabla central: Procesos del turno -->
                     <div class="card">
-                        <div class="card-title">Procesos del Turno</div>
+                        <div class="card-header">Procesos del Turno</div>
                         <div class="table-container">
-                            <table id="tabla-procesos">
+                            <table class="table" id="tabla-procesos">
                                 <thead>
                                     <tr>
                                         <th>Proceso</th>
@@ -107,26 +136,26 @@
 
                     <!-- Botón de Cierre -->
                     <div style="text-align: right;">
-                        <button id="btn-cerrar-bitacora" class="button button-outline" style="border-color: var(--danger); color: var(--danger);" disabled>
+                        <button id="btn-cerrar-bitacora" class="btn btn-secondary" style="border-color: var(--danger); color: var(--danger);" disabled>
                             Cerrar Bitácora
                         </button>
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
     </div>
 
     <!-- Modal de Cierre (Simple overlay) -->
     <div id="modal-cierre" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
         <div class="card" style="max-width: 500px; width: 90%;">
-            <div class="card-title">Resumen del Turno</div>
+            <div class="card-header">Resumen del Turno</div>
             <div id="resumen-cierre" class="mb-4">
                 <!-- Se llena dinámicamente -->
             </div>
             <p class="mb-4">¿Cerrar bitácora de todas formas? Una vez cerrada quedará inmutable.</p>
             <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                <button onclick="document.getElementById('modal-cierre').style.display='none'" class="button button-outline">Cancelar</button>
-                <button id="confirmar-cierre" class="button button-primary" style="background-color: var(--danger);">Confirmar y Cerrar</button>
+                <button onclick="document.getElementById('modal-cierre').style.display='none'" class="btn btn-secondary">Cancelar</button>
+                <button id="confirmar-cierre" class="btn btn-primary" style="background-color: var(--danger);">Confirmar y Cerrar</button>
             </div>
         </div>
     </div>
