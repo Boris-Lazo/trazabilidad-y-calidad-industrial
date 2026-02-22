@@ -9,8 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const btnLogin = document.getElementById('btn-login');
 
             errorDiv.style.display = 'none';
-            btnLogin.disabled = true;
-            btnLogin.textContent = 'Iniciando sesión...';
+            if (window.DesignSystem) DesignSystem.setBtnLoading(btnLogin, true);
+            else {
+                btnLogin.disabled = true;
+                btnLogin.textContent = 'Iniciando sesión...';
+            }
 
             try {
                 const response = await fetch('/api/auth/login', {
@@ -34,8 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 errorDiv.textContent = 'Error de conexión con el servidor';
                 errorDiv.style.display = 'block';
             } finally {
-                btnLogin.disabled = false;
-                btnLogin.textContent = 'Iniciar sesión';
+                if (window.DesignSystem) DesignSystem.setBtnLoading(btnLogin, false);
+                else {
+                    btnLogin.disabled = false;
+                    btnLogin.textContent = 'Iniciar sesión';
+                }
             }
         });
     }

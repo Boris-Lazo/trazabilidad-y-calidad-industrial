@@ -1,188 +1,141 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <script src="/design-system/theme/index.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard | PROD-SYS</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/design-system/index.css">
     <script src="js/auth.js?v=1.5"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/design-system/index.js" defer></script>
 </head>
 <body>
 
-    <div class="app-container">
+    <div class="app-layout">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <span class="sidebar-logo-text">PROD-SYS</span>
-                <button class="collapse-btn" id="collapse-btn" title="Colapsar menú">
-                    <i data-lucide="chevrons-left"></i>
-                </button>
+                PROD-SYS
             </div>
             <nav class="sidebar-nav">
-                <a href="/" class="nav-item active" data-tooltip="Dashboard">
+                <a href="/" class="nav-item nav-item-single active">
                     <i data-lucide="layout-dashboard" class="nav-icon"></i>
-                    <span class="nav-label">Dashboard</span>
+                    <span>Dashboard</span>
                 </a>
 
-                <div class="nav-group-label"><span class="nav-label">Producción</span></div>
-                <a href="/bitacora.html" class="nav-item" data-tooltip="Bitácora">
-                    <i data-lucide="clipboard-list" class="nav-icon"></i>
-                    <span class="nav-label">Bitácora de Turno</span>
-                </a>
-                <a href="/ordenes.html" class="nav-item" data-tooltip="Órdenes">
-                    <i data-lucide="hash" class="nav-icon"></i>
-                    <span class="nav-label">Órdenes</span>
-                </a>
-                <a href="/ejecucion.html" class="nav-item" data-tooltip="Ejecución">
-                    <i data-lucide="play-circle" class="nav-icon"></i>
-                    <span class="nav-label">Ejecución</span>
-                </a>
-                <a href="/incidentes.html" class="nav-item" data-tooltip="Incidentes">
-                    <i data-lucide="alert-triangle" class="nav-icon"></i>
-                    <span class="nav-label">Incidentes</span>
-                </a>
-
-                <div class="nav-group-label"><span class="nav-label">Control y Seguimiento</span></div>
-                <a href="/calidad.html" class="nav-item" data-tooltip="Calidad">
-                    <i data-lucide="shield-check" class="nav-icon"></i>
-                    <span class="nav-label">Calidad</span>
-                </a>
-                <a href="/trazabilidad.html" class="nav-item" data-tooltip="Trazabilidad">
-                    <i data-lucide="boxes" class="nav-icon"></i>
-                    <span class="nav-label">Trazabilidad</span>
-                </a>
-
-                <div class="nav-group-label"><span class="nav-label">Sistema</span></div>
-                <a href="/configuracion.html" class="nav-item" data-tooltip="Configuración">
-                    <i data-lucide="settings" class="nav-icon"></i>
-                    <span class="nav-label">Configuración</span>
-                </a>
-                <a href="/auditoria.html" class="nav-item" data-tooltip="Auditoría">
-                    <i data-lucide="activity" class="nav-icon"></i>
-                    <span class="nav-label">Auditoría</span>
-                </a>
-            </nav>
-            <div class="sidebar-footer">
-                <div id="user-display" class="sidebar-user">
-                    <i data-lucide="user" class="nav-icon"></i>
-                    <span class="nav-label">Usuario: -</span>
+                <div class="nav-group">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="clipboard-list" class="nav-icon"></i>
+                        <span>Producción</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/bitacora.html" class="nav-item">Bitácora de Turno</a>
+                        <a href="/ordenes.html" class="nav-item">Órdenes</a>
+                        <a href="/ejecucion.html" class="nav-item">Ejecución</a>
+                        <a href="/incidentes.html" class="nav-item">Incidentes</a>
+                    </div>
                 </div>
-                <a href="/login.html" id="logout-link" class="button button-outline">
+
+                <div class="nav-group">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="shield-check" class="nav-icon"></i>
+                        <span>Control</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/calidad.html" class="nav-item">Calidad</a>
+                        <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="settings" class="nav-icon"></i>
+                        <span>Sistema</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/configuracion.html" class="nav-item">Configuración</a>
+                        <a href="/auditoria.html" class="nav-item">Auditoría</a>
+                    </div>
+                </div>
+            </nav>
+            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
+                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+                    <span id="user-name-label">Usuario: -</span>
+                </div>
+                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
                     <i data-lucide="log-out" class="nav-icon"></i>
-                    <span class="nav-label">Cerrar Sesión</span>
+                    <span>Cerrar Sesión</span>
                 </a>
             </div>
         </aside>
 
-        <main class="main-content" id="main-content">
-            <header class="top-bar">
-                <button class="hamburger-button" id="hamburger-btn">
-                    <i data-lucide="menu"></i>
-                </button>
+        <div class="main-container" id="main-content">
+            <header class="topbar">
                 <h1>Panel de Control Operativo</h1>
-                <div class="top-bar-actions">
-                    <span id="last-updated" class="text-muted small">Actualizado: -</span>
+                <div class="topbar-actions">
+                    <button id="theme-toggle" class="btn btn-secondary" style="padding: 4px 8px; min-height: 32px; border: none; background: transparent;" title="Cambiar tema">
+                        <i data-lucide="sun" class="sun-icon" style="width: 18px; height: 18px;"></i>
+                        <i data-lucide="moon" class="moon-icon" style="width: 18px; height: 18px;"></i>
+                    </button>
+                    <span id="last-updated" style="color: var(--text-secondary); font-size: 12px;">Actualizado: -</span>
                 </div>
             </header>
 
             <div class="page-content">
-                <!-- Nivel 0: Contexto Global -->
-                <div class="context-bar" id="context-bar">
-                    <div class="context-item">
-                        <i data-lucide="calendar"></i>
-                        <span id="op-date">-- --- ----</span>
-                    </div>
-                    <div class="context-item">
-                        <i data-lucide="clock-3"></i>
-                        <span id="op-shift">Turno --</span>
-                    </div>
-                    <div class="context-item clock-highlight">
-                        <i data-lucide="timer"></i>
-                        <span id="op-clock">00:00:00</span>
-                    </div>
-                </div>
-
                 <!-- KPI Row -->
-                <div class="kpi-row">
-                    <div class="kpi-card" id="kpi-ordenes">
-                        <div class="kpi-icon-wrapper"><i data-lucide="clipboard-list"></i></div>
-                        <div class="kpi-data">
-                            <span class="kpi-value" id="count-ordenes-activas">-</span>
-                            <span class="kpi-label">Órdenes Activas</span>
-                        </div>
+                <div class="kpi-grid">
+                    <div class="card kpi-card">
+                        <span class="kpi-label">Órdenes Activas</span>
+                        <span class="kpi-value" id="count-ordenes-activas">-</span>
                     </div>
-                    <div class="kpi-card" id="kpi-lineas">
-                        <div class="kpi-icon-wrapper"><i data-lucide="settings"></i></div>
-                        <div class="kpi-data">
-                            <span class="kpi-value" id="count-lineas-ejecucion">-</span>
-                            <span class="kpi-label">Procesos en curso</span>
-                        </div>
+                    <div class="card kpi-card">
+                        <span class="kpi-label">Incidencias Abiertas</span>
+                        <span class="kpi-value" id="count-incidentes-activos">-</span>
                     </div>
-                    <div class="kpi-card" id="kpi-incidentes">
-                        <div class="kpi-icon-wrapper"><i data-lucide="alert-triangle"></i></div>
-                        <div class="kpi-data">
-                            <span class="kpi-value" id="count-incidentes-activos">-</span>
-                            <span class="kpi-label">Alertas Críticas</span>
-                        </div>
+                    <div class="card kpi-card">
+                        <span class="kpi-label">Producción del Día</span>
+                        <span class="kpi-value" id="count-produccion-dia">0 kg</span>
                     </div>
-                    <div class="kpi-card" id="kpi-registros">
-                        <div class="kpi-icon-wrapper"><i data-lucide="book-open"></i></div>
-                        <div class="kpi-data">
-                            <span class="kpi-value" id="count-registros-abiertos">-</span>
-                            <span class="kpi-label">Estado Bitácora</span>
-                        </div>
+                    <div class="card kpi-card">
+                        <span class="kpi-label">Alertas Críticas</span>
+                        <span class="kpi-value" id="alert-count-total">0</span>
                     </div>
                 </div>
 
-                <div class="dashboard-main-grid">
-                    <div class="dashboard-side-col">
-                        <!-- Alertas Críticas (Prioridad 1) -->
-                        <section class="card alerts-section">
+                <div class="dashboard-grid">
+                    <!-- Alertas -->
+                    <section class="card">
                         <div class="card-header">
                             <h2 class="card-title">Alertas Críticas</h2>
-                            <span class="badge badge-error" id="alert-count" style="display: none;">0</span>
                         </div>
-                            <div id="lista-incidentes-criticos" class="alerts-list">
-                                <div class="empty-state">
-                                    <i data-lucide="check-circle" class="text-success large-icon"></i>
-                                    <p>Sistema sin alertas críticas</p>
-                                </div>
-                            </div>
-                        </section>
+                        <div id="lista-incidentes-criticos">
+                            <div class="text-center py-4 text-secondary">No hay alertas críticas</div>
+                        </div>
+                    </section>
 
-                        <!-- Nivel 4: Registros Abiertos -->
-                        <section class="card">
-                            <div class="card-header">
-                                <h2 class="card-title">Registros del Turno</h2>
-                                <span class="badge badge-info" id="bitacora-status">Abierta</span>
-                            </div>
-                            <div id="lista-procesos-bitacora" class="compact-list">
-                                <div class="text-center py-4 text-muted">Cargando procesos...</div>
-                            </div>
-                        </section>
-                    </div>
-
-                    <!-- Órdenes en Proceso -->
-                    <section class="card main-section">
+                    <!-- Órdenes -->
+                    <section class="card">
                         <div class="card-header">
-                            <h2 class="card-title">Órdenes en Proceso</h2>
-                            <a href="/ordenes.html" class="small-link">Ver todas</a>
+                            <h2 class="card-title">Órdenes en Ejecución</h2>
+                            <a href="/ordenes.html" class="btn btn-secondary" style="padding: 4px 12px; font-size: 12px;">Ver todas</a>
                         </div>
                         <div class="table-container">
-                            <table class="table-viva" id="tabla-ordenes-activas">
+                            <table class="table" id="tabla-ordenes-activas">
                                 <thead>
                                     <tr>
                                         <th>Orden</th>
-                                        <th>Proceso</th>
-                                        <th>Turno</th>
+                                        <th>Producto</th>
                                         <th>Estado</th>
                                         <th>Avance</th>
-                                        <th>Producción</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td colspan="5" class="text-center py-4">Cargando...</td>
+                                        <td colspan="4" class="text-center py-4">Cargando...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -190,8 +143,7 @@
                     </section>
                 </div>
             </div>
-        </main>
-        <div class="overlay" id="overlay"></div>
+        </div>
     </div>
 
     <script src="js/dashboard.js?v=1.4"></script>

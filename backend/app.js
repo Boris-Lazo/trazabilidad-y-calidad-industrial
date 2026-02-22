@@ -60,6 +60,7 @@ app.use(express.json());
 // --- ACTIVOS ESTÁTICOS PÚBLICOS ---
 app.use('/css', express.static(path.join(__dirname, '../frontend/public/css')));
 app.use('/js', express.static(path.join(__dirname, '../frontend/public/js')));
+app.use('/design-system', express.static(path.join(__dirname, '../frontend/src/design-system')));
 
 // --- RUTAS DE API ---
 app.use('/api/auth', authRoutes);
