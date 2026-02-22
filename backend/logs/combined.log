@@ -1,0 +1,5 @@
+{"level":"info","message":"Verificando/Creando tablas...","timestamp":"2026-02-22T01:24:32.345Z"}
+{"level":"info","message":"Servidor industrial corriendo en el puerto 3000 [Mode: development]","timestamp":"2026-02-22T01:24:32.358Z"}
+{"level":"info","message":"Conectado a la base de datos SQLite.","timestamp":"2026-02-22T01:24:32.362Z"}
+{"level":"info","message":"Esquema de base de datos verificado con éxito.","timestamp":"2026-02-22T01:24:32.387Z"}
+{"level":"info","message":"Cierre SIGTERM recibido. Cerrando servidor...","timestamp":"2026-02-22T01:24:36.929Z"}

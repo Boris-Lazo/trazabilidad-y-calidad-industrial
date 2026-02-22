@@ -1,34 +1,25 @@
+// Controlador para manejo de peticiones de autenticación
+const authService = require('./auth.service');
+const { NODE_ENV } = require('../../config/env');
 
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const authModel = require("./auth.model");
-
-const login = async (req, res) => {
-  const { username, password } = req.body;
-
+const login = async (req, res, next) => {
   try {
-    const user = await authModel.findUserByUsername(username);
+    const { username, password } = req.body;
+    const result = await authService.login(username, password);
 
-    if (!user) {
-      return res.status(401).json({ message: "Authentication failed. User not found." });
-    }
+    // Configurar cookie para protección de navegación en el navegador
+    res.cookie('token', result.token, {
+      httpOnly: true,
+      secure: NODE_ENV === 'production',
+      maxAge: 8 * 60 * 60 * 1000 // 8 horas
+    });
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-      return res.status(412).json({ message: "Authentication failed. Wrong password." });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, username: user.username },
-      process.env.JWT_SECRET || "your_secret_key",
-      { expiresIn: "1h" }
-    );
-
-    res.status(200).json({ token });
+    res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-module.exports = { login };
+module.exports = {
+  login
+};

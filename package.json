@@ -1,26 +1,26 @@
 {
-  "name": "node-express-api",
-  "description": "Simple api sample in Node",
+  "name": "trazabilidad-y-calidad-industrial",
   "version": "1.0.0",
   "private": true,
-  "main": "index.js",
+  "main": "backend/src/server.js",
   "scripts": {
-    "dev": "nodemon index.js",
-    "start": "node index.js"
+    "dev": "nodemon backend/src/server.js",
+    "start": "node backend/src/server.js"
   },
-  "author": "Google LLC",
-  "license": "Apache-2.0",
   "dependencies": {
-    "bcrypt": "^6.0.0",
-    "compression": "^1.8.1",
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^17.3.1",
-    "express": "^4.22.1",
-    "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.3",
-    "sqlite3": "^5.1.7"
+    "bcrypt": "^5.1.1",
+    "compression": "^1.7.4",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "sqlite3": "^5.1.7",
+    "winston": "^3.11.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.2"
   }
 }

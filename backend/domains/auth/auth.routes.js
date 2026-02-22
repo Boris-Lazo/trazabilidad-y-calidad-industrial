@@ -1,8 +1,11 @@
+// Definición de rutas para el dominio Auth
+const express = require('express');
+const authController = require('./auth.controller');
+const validate = require('../../middlewares/validation.middleware');
+const { loginSchema } = require('./auth.validation');
 
-const express = require("express");
 const router = express.Router();
-const authController = require("./auth.controller");
 
-router.post("/login", authController.login);
+router.post('/login', validate(loginSchema), authController.login);
 
 module.exports = router;
