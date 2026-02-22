@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Producción Industrial</title>
+    <title>Dashboard | PROD-SYS</title>
     <link rel="stylesheet" href="css/style.css">
-    <!-- v1.5 para asegurar que el navegador obtiene la nueva lógica -->
     <script src="js/auth.js?v=1.5"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
 
@@ -15,35 +15,156 @@
             <div class="sidebar-header">
                 <span class="sidebar-logo-text">PROD-SYS</span>
                 <button class="collapse-btn" id="collapse-btn" title="Colapsar menú">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>
+                    <i data-lucide="chevrons-left"></i>
                 </button>
             </div>
             <nav class="sidebar-nav">
-                <a href="/" class="nav-item active" data-tooltip="Dashboard"><span class="nav-label">Dashboard</span></a>
+                <a href="/" class="nav-item active" data-tooltip="Dashboard">
+                    <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+
                 <div class="nav-group-label"><span class="nav-label">Producción</span></div>
-                <a href="/bitacora.html" class="nav-item" data-tooltip="Bitácora"><span class="nav-label">Bitácora de Turno</span></a>
-                <a href="/ordenes.html" class="nav-item" data-tooltip="Órdenes"><span class="nav-label">Órdenes</span></a>
+                <a href="/bitacora.html" class="nav-item" data-tooltip="Bitácora">
+                    <i data-lucide="clipboard-list" class="nav-icon"></i>
+                    <span class="nav-label">Bitácora de Turno</span>
+                </a>
+                <a href="/ordenes.html" class="nav-item" data-tooltip="Órdenes">
+                    <i data-lucide="hash" class="nav-icon"></i>
+                    <span class="nav-label">Órdenes</span>
+                </a>
+                <a href="/ejecucion.html" class="nav-item" data-tooltip="Ejecución">
+                    <i data-lucide="play-circle" class="nav-icon"></i>
+                    <span class="nav-label">Ejecución</span>
+                </a>
+                <a href="/incidentes.html" class="nav-item" data-tooltip="Incidentes">
+                    <i data-lucide="alert-triangle" class="nav-icon"></i>
+                    <span class="nav-label">Incidentes</span>
+                </a>
+
+                <div class="nav-group-label"><span class="nav-label">Control y Seguimiento</span></div>
+                <a href="/calidad.html" class="nav-item" data-tooltip="Calidad">
+                    <i data-lucide="shield-check" class="nav-icon"></i>
+                    <span class="nav-label">Calidad</span>
+                </a>
+                <a href="/trazabilidad.html" class="nav-item" data-tooltip="Trazabilidad">
+                    <i data-lucide="boxes" class="nav-icon"></i>
+                    <span class="nav-label">Trazabilidad</span>
+                </a>
+
+                <div class="nav-group-label"><span class="nav-label">Sistema</span></div>
+                <a href="/configuracion.html" class="nav-item" data-tooltip="Configuración">
+                    <i data-lucide="settings" class="nav-icon"></i>
+                    <span class="nav-label">Configuración</span>
+                </a>
+                <a href="/auditoria.html" class="nav-item" data-tooltip="Auditoría">
+                    <i data-lucide="activity" class="nav-icon"></i>
+                    <span class="nav-label">Auditoría</span>
+                </a>
             </nav>
             <div class="sidebar-footer">
-                <div id="user-display">Usuario: -</div>
-                <!-- CAMBIO RADICAL: Usar un enlace <a> en lugar de un botón -->
-                <a href="/login.html" id="logout-link" class="button button-outline">Cerrar Sesión</a>
+                <div id="user-display" class="sidebar-user">
+                    <i data-lucide="user" class="nav-icon"></i>
+                    <span class="nav-label">Usuario: -</span>
+                </div>
+                <a href="/login.html" id="logout-link" class="button button-outline">
+                    <i data-lucide="log-out" class="nav-icon"></i>
+                    <span class="nav-label">Cerrar Sesión</span>
+                </a>
             </div>
         </aside>
 
         <main class="main-content" id="main-content">
             <header class="top-bar">
                 <button class="hamburger-button" id="hamburger-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    <i data-lucide="menu"></i>
                 </button>
                 <h1>Panel de Control Operativo</h1>
+                <div class="top-bar-actions">
+                    <span id="last-updated" class="text-muted small">Actualizado: -</span>
+                </div>
             </header>
-            <div class="page-content"></div>
+
+            <div class="page-content">
+                <!-- KPI Row -->
+                <div class="kpi-row">
+                    <div class="kpi-card" id="kpi-ordenes">
+                        <div class="kpi-icon-wrapper"><i data-lucide="hash"></i></div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="count-ordenes-activas">-</span>
+                            <span class="kpi-label">Órdenes Activas</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card" id="kpi-lineas">
+                        <div class="kpi-icon-wrapper"><i data-lucide="cpu"></i></div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="count-lineas-ejecucion">-</span>
+                            <span class="kpi-label">Líneas en Ejecución</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card" id="kpi-incidentes">
+                        <div class="kpi-icon-wrapper"><i data-lucide="alert-circle"></i></div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="count-incidentes-activos">-</span>
+                            <span class="kpi-label">Incidentes Activos</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card" id="kpi-registros">
+                        <div class="kpi-icon-wrapper"><i data-lucide="book-open"></i></div>
+                        <div class="kpi-data">
+                            <span class="kpi-value" id="count-registros-abiertos">-</span>
+                            <span class="kpi-label">Bitácoras Abiertas</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-main-grid">
+                    <!-- Alertas Críticas (Prioridad 1) -->
+                    <section class="card alerts-section">
+                        <div class="card-header">
+                            <h2 class="card-title">Alertas Críticas</h2>
+                            <span class="badge badge-error" id="alert-count" style="display: none;">0</span>
+                        </div>
+                        <div id="lista-incidentes-criticos" class="alerts-list">
+                            <div class="empty-state">
+                                <i data-lucide="check-circle" class="text-success large-icon"></i>
+                                <p>Sistema sin alertas críticas</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Órdenes en Proceso -->
+                    <section class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Órdenes en Proceso</h2>
+                            <a href="/ordenes.html" class="small-link">Ver todas</a>
+                        </div>
+                        <div class="table-container">
+                            <table class="table-viva" id="tabla-ordenes-activas">
+                                <thead>
+                                    <tr>
+                                        <th>Orden</th>
+                                        <th>Proceso</th>
+                                        <th>Avance</th>
+                                        <th>Turno</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4">Cargando...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
         </main>
         <div class="overlay" id="overlay"></div>
     </div>
 
-    <script src="js/dashboard.js?v=1.3"></script>
+    <script src="js/dashboard.js?v=1.4"></script>
     <script src="js/main.js?v=1.1"></script>
 </body>
 </html>

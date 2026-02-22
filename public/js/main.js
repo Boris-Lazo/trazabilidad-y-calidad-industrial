@@ -21,10 +21,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- GESTIÓN DEL COLAPSO EN ESCRITORIO ---
     if (collapseButton && sidebar && mainContent) {
+        // Cargar estado inicial
+        const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+        if (isCollapsed) {
+            sidebar.classList.add('is-collapsed');
+            mainContent.classList.add('sidebar-collapsed');
+        }
+
         collapseButton.addEventListener('click', () => {
-            // Alternar el estado de colapso en el sidebar y el contenido principal
-            sidebar.classList.toggle('is-collapsed');
+            const nowCollapsed = sidebar.classList.toggle('is-collapsed');
             mainContent.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('sidebar_collapsed', nowCollapsed);
         });
+    }
+
+    // --- INICIALIZACIÓN DE ICONOS ---
+    if (window.lucide) {
+        window.lucide.createIcons();
     }
 });
