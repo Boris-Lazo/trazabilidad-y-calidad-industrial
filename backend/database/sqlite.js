@@ -50,9 +50,10 @@ const initDB = () => {
         fecha_planificada DATE,
         prioridad TEXT,
         observaciones TEXT,
-        estado TEXT DEFAULT 'abierta',
+        estado TEXT DEFAULT 'Creada',
         fecha_creacion DATE,
-        especificaciones TEXT
+        especificaciones TEXT,
+        motivo_cierre TEXT
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS PROCESO_TIPO (
@@ -311,7 +312,8 @@ const initDB = () => {
       { table: 'muestras', column: 'fecha_modificacion', type: 'DATETIME' },
       { table: 'calidad_telares_visual', column: 'usuario_modificacion', type: 'TEXT' },
       { table: 'calidad_telares_visual', column: 'fecha_modificacion', type: 'DATETIME' },
-      { table: 'orden_produccion', column: 'especificaciones', type: 'TEXT' }
+      { table: 'orden_produccion', column: 'especificaciones', type: 'TEXT' },
+      { table: 'orden_produccion', column: 'motivo_cierre', type: 'TEXT' }
     ];
 
     columnsToAdd.forEach(item => {

@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function fetchOrders() {
-        const res = await fetch('/api/ordenes-produccion');
+        const res = await fetch('/api/ordenes-produccion?estado=Liberada&proceso_id=2');
         const result = await res.json();
         orders = result.data || [];
     }

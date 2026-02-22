@@ -91,28 +91,38 @@
                     <form id="form-crear-orden">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                             <div class="form-group">
-                                <label for="codigo_orden">Código / Número de Orden</label>
-                                <input class="form-control" type="text" id="codigo_orden" name="codigo_orden" required placeholder="Ej: OP-2024-001">
+                                <label for="proceso_select">Proceso</label>
+                                <select class="form-control" id="proceso_select" required>
+                                    <option value="" disabled selected>Seleccione proceso</option>
+                                    <option value="1">1 - Extrusor PP</option>
+                                    <option value="2">2 - Telares</option>
+                                    <option value="3">3 - Laminado</option>
+                                    <option value="4">4 - Imprenta</option>
+                                    <option value="5">5 - Conversión sacos sin vestir</option>
+                                    <option value="6">6 - Extrusión PE</option>
+                                    <option value="7">7 - Conversión liner PE</option>
+                                    <option value="8">8 - Peletizado</option>
+                                    <option value="9">9 - Sacos vestidos</option>
+                                </select>
                             </div>
                             <div class="form-group">
-                                <label for="producto">Producto</label>
-                                <input class="form-control" type="text" id="producto" name="producto" required placeholder="Ej: Válvula de Presión X1">
+                                <label for="codigo_orden">Código SAP (7 dígitos)</label>
+                                <input class="form-control" type="text" id="codigo_orden" name="codigo_orden" required placeholder="Ej: 1000001" maxlength="7" pattern="\d{7}">
                             </div>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem;">
+                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1.5rem;">
+                            <div class="form-group">
+                                <label for="producto">Producto</label>
+                                <input class="form-control" type="text" id="producto" name="producto" required placeholder="Descripción del producto SAP">
+                            </div>
                             <div class="form-group">
                                 <label for="cantidad_objetivo">Cantidad Objetivo</label>
-                                <input class="form-control" type="number" id="cantidad_objetivo" name="cantidad_objetivo" required placeholder="Ej: 500">
+                                <input class="form-control" type="number" id="cantidad_objetivo" name="cantidad_objetivo" required placeholder="0.00">
                             </div>
                             <div class="form-group">
                                 <label for="unidad">Unidad</label>
-                                <select class="form-control" id="unidad" name="unidad">
-                                    <option value="unidades">Unidades</option>
-                                    <option value="kg">Kilogramos (kg)</option>
-                                    <option value="litros">Litros (L)</option>
-                                    <option value="metros">Metros (m)</option>
-                                </select>
+                                <input class="form-control" id="unidad" name="unidad" readonly placeholder="Auto">
                             </div>
                             <div class="form-group">
                                 <label for="fecha_planificada">Fecha Planificada</label>
@@ -141,7 +151,18 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-header">Listado de Órdenes de Producción</div>
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Listado de Órdenes de Producción</span>
+                        <div style="display: flex; gap: 8px;">
+                            <select id="filtro-estado" class="form-control" style="width: auto; padding: 4px 8px; height: 32px;">
+                                <option value="">Todos los estados</option>
+                                <option value="Creada">Creadas</option>
+                                <option value="Liberada">Liberadas</option>
+                                <option value="En producción">En producción</option>
+                                <option value="Cerrada">Cerradas</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="table-container">
                         <table class="table" id="tabla-ordenes">
                             <thead>
@@ -161,6 +182,24 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Cierre de Orden -->
+    <div id="modal-cierre-orden" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div class="card" style="width: 400px; max-width: 90%;">
+            <div class="card-header">Cerrar Orden de Producción</div>
+            <div style="padding: 1.5rem;">
+                <p id="cierre-orden-info" style="margin-bottom: 1rem; font-weight: 500;"></p>
+                <div class="form-group">
+                    <label for="motivo-cierre">Motivo de Cierre (Obligatorio)</label>
+                    <textarea id="motivo-cierre" class="form-control" rows="3" placeholder="Indique el motivo del cierre..."></textarea>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button id="cancelar-cierre" class="button button-outline" style="flex: 1;">Cancelar</button>
+                    <button id="confirmar-cierre-btn" class="button button-primary" style="flex: 1;">Confirmar Cierre</button>
                 </div>
             </div>
         </div>

@@ -12,7 +12,11 @@ class OrdenProduccionController {
 
   getAll = async (req, res, next) => {
     try {
-      const ordenes = await this.ordenProduccionService.getAll();
+      const filters = {
+          estado: req.query.estado,
+          proceso_prefix: req.query.proceso_id || req.query.proceso_prefix
+      };
+      const ordenes = await this.ordenProduccionService.getAll(filters);
       return sendSuccess(res, ordenes);
     } catch (error) {
       next(error);
