@@ -11,7 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 throw new Error('Error al cargar las órdenes.');
             }
-            const ordenes = await response.json();
+            const result = await response.json();
+            const ordenes = result.data || [];
 
             tablaOrdenesBody.innerHTML = ''; // Limpiar la tabla antes de llenarla
 
@@ -72,12 +73,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(data),
             });
 
-            const resultado = await response.json();
+            const result = await response.json();
 
-            if (!response.ok) {
-                throw new Error(resultado.error || 'No se pudo crear la orden.');
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || 'No se pudo crear la orden.');
             }
 
+            const resultado = result.data;
             mensajeCreacion.innerHTML = `<span style="color: var(--success); font-weight: 500;">¡Orden #${resultado.codigo_orden || resultado.id} creada con éxito!</span>`;
             formCrearOrden.reset(); // Limpiar el formulario
             cargarOrdenes(); // Recargar la lista de órdenes

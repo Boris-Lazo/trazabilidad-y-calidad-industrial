@@ -17,7 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/bitacora/tiempo-actual');
             if (response.ok) {
-                const data = await response.json();
+                const result = await response.json();
+                const data = result.data || {};
                 if (elements.opDate) elements.opDate.textContent = data.fechaOperativa || data.fecha;
                 if (elements.opShift) elements.opShift.textContent = `Turno ${data.turno}`;
             }
@@ -30,7 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const response = await fetch('/api/dashboard/summary');
             if (!response.ok) throw new Error('Error al cargar el resumen');
-            const data = await response.json();
+            const result = await response.json();
+            const data = result.data || {};
 
             // Actualizar contadores KPI
             if (elements.countOrdenes) elements.countOrdenes.textContent = data.ordenesActivas;

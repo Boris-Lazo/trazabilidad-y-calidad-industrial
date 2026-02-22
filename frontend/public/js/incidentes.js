@@ -7,7 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function cargarLineas() {
         try {
             const res = await fetch('/api/lineas-ejecucion');
-            const data = await res.json();
+            const result = await res.json();
+            const data = result.data || [];
             data.forEach(l => {
                 lineaSelect.innerHTML += `<option value="${l.id}">Línea #${l.id} (OP #${l.orden_produccion_id})</option>`;
             });
@@ -17,7 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function cargarIncidentes() {
         try {
             const res = await fetch('/api/incidentes');
-            const data = await res.json();
+            const result = await res.json();
+            const data = result.data || [];
             tabla.innerHTML = '';
             if (data.length === 0) {
                 tabla.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay incidentes registrados</td></tr>';

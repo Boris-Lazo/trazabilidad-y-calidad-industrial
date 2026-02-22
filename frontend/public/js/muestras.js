@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/lotes');
             if (!response.ok) throw new Error('No se pudieron cargar los lotes.');
             
-            const lotes = await response.json();
+            const result = await response.json();
+            const lotes = result.data || [];
 
             selectLotes.innerHTML = '<option value="">Seleccione un lote</option>'; // Opción por defecto
 
@@ -38,7 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/muestras');
             if (!response.ok) throw new Error('Error al cargar las muestras.');
 
-            const muestras = await response.json();
+            const result = await response.json();
+            const muestras = result.data || [];
             tablaMuestrasBody.innerHTML = ''; // Limpiar la tabla
 
             if (muestras.length === 0) {
@@ -90,12 +92,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(datosMuestra)
             });
 
-            const resultado = await response.json();
+            const result = await response.json();
 
-            if (!response.ok) {
-                throw new Error(resultado.error || 'No se pudo registrar la muestra.');
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || 'No se pudo registrar la muestra.');
             }
 
+            const resultado = result.data;
             mensajeCreacion.innerHTML = `<span style="color: var(--success); font-weight: 500;">¡Muestra #${resultado.id} registrada con éxito!</span>`;
             formCrearMuestra.reset();
             cargarMuestras(); // Recargar la lista de muestras

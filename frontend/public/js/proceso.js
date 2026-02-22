@@ -72,13 +72,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             fetch('/api/ordenes-produccion')
         ]);
 
-        const bitacoraData = await bitacoraRes.json();
+        const bitacoraResult = await bitacoraRes.json();
+        const bitacoraData = bitacoraResult.data || {};
         currentBitacora = bitacoraData.bitacora;
 
         document.getElementById('bread-turno').textContent = currentBitacora.turno;
         document.getElementById('bread-fecha').textContent = currentBitacora.fecha_operativa;
 
-        orders = await ordersRes.json();
+        const ordersResult = await ordersRes.json();
+        orders = ordersResult.data || [];
 
         // Cargar datos específicos del proceso
         await cargarDatosExistentes();
@@ -90,7 +92,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function cargarDatosExistentes() {
         try {
             const res = await fetch(`/api/bitacora/proceso-data?bitacora_id=${currentBitacora.id}&proceso_id=${procesoId}`);
-            const data = await res.json();
+            const result = await res.json();
+            const data = result.data || {};
 
             if (data.no_operativo) {
                 document.getElementById('select-operatividad').value = 'no_operativo';

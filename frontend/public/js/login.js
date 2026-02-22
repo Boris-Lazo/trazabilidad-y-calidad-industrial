@@ -22,14 +22,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ username, password })
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (response.ok) {
+                if (response.ok && result.success) {
                     // Guardar la sesión y redirigir al dashboard
-                    Auth.saveSession(data.token, data.user);
+                    Auth.saveSession(result.data.token, result.data.user);
                     window.location.href = '/';
                 } else {
-                    errorDiv.textContent = data.message || 'Error al iniciar sesión';
+                    errorDiv.textContent = result.error || 'Error al iniciar sesión';
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {

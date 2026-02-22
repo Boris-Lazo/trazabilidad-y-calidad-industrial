@@ -12,7 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`/api/dashboard/orden-produccion/${ordenId}`);
             if (!response.ok) throw new Error('No se pudo cargar la orden');
-            const data = await response.json();
+            const result = await response.json();
+            const data = result.data || {};
 
             const orden = data.orden_produccion;
 

@@ -12,7 +12,7 @@ class DashboardRepository {
     // Obtener producción total del día (registros de hoy)
     const today = new Date().toISOString().split('T')[0];
     const produccionDia = await this.db.get(
-      "SELECT SUM(cantidad_producida) as total FROM registros_trabajo WHERE date(fecha_creacion) = date(?)",
+      "SELECT SUM(cantidad_producida) as total FROM registros_trabajo WHERE date(fecha_hora) = date(?)",
       [today]
     );
 

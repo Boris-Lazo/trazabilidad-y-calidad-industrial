@@ -14,7 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function updateClock() {
         try {
             const response = await fetch('/api/bitacora/tiempo-actual');
-            const data = await response.json();
+            const result = await response.json();
+            const data = result.data || {};
 
             document.getElementById('reloj-fecha').textContent = data.fecha;
             document.getElementById('reloj-hora').textContent = data.hora;
@@ -39,7 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function checkEstado() {
         try {
             const response = await fetch('/api/bitacora/estado');
-            const data = await response.json();
+            const result = await response.json();
+            const data = result.data || {};
 
             if (data.abierta) {
                 currentBitacora = data.bitacora;
@@ -137,8 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 checkEstado();
             } else {
-                const err = await response.json();
-                alert(err.message);
+                const result = await response.json();
+                alert(result.error || 'Error al abrir bitácora');
             }
         } catch (error) {
             console.error('Error al abrir bitácora:', error);

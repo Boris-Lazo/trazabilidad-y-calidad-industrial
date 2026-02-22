@@ -20,7 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function cargarLineas() {
         try {
             const response = await fetch('/api/lineas-ejecucion');
-            const lineas = await response.json();
+            const result = await response.json();
+            const lineas = result.data || [];
             lineaSelect.innerHTML = '<option value="">Seleccione una línea...</option>';
             lineas.forEach(l => {
                 lineaSelect.innerHTML += `<option value="${l.id}">Línea #${l.id} - Orden #${l.orden_produccion_id}</option>`;

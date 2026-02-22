@@ -180,15 +180,26 @@ const initDB = () => {
 
     // Semilla de administrador inicial
     db.get("SELECT COUNT(*) as count FROM usuarios WHERE username = 'admin'", (err, row) => {
-      if (!err && row && row.count === 0) {
-        const hashedPassword = bcrypt.hashSync(adminPassword, 10);
-        db.run("INSERT INTO usuarios (username, password, rol, nombre) VALUES ('admin', ?, 'ADMIN', 'Administrador Sistema')", [hashedPassword]);
+      if (err) {
+        logger.error('Error al verificar usuario admin:', err.message);
+      } else if (row && row.count === 0) {
+        try {
+          const hashedPassword = bcrypt.hashSync(adminPassword, 10);
+          db.run("INSERT INTO usuarios (username, password, rol, nombre) VALUES ('admin', ?, 'ADMIN', 'Administrador Sistema')", [hashedPassword], (err) => {
+            if (err) logger.error('Error al insertar usuario admin semilla:', err.message);
+            else logger.info('Usuario administrador inicial creado con éxito.');
+          });
+        } catch (hashError) {
+          logger.error('Error al hashear contraseña de administrador:', hashError.message);
+        }
       }
     });
 
     // Semilla de procesos por defecto
     db.get("SELECT COUNT(*) as count FROM PROCESO_TIPO", (err, row) => {
-      if (!err && row && row.count === 0) {
+      if (err) {
+        logger.error('Error al verificar tipos de proceso:', err.message);
+      } else if (row && row.count === 0) {
         const defaultProcesses = [
           ['Extrusor PP', 'kg', 1],
           ['Telares', 'm', 1],
@@ -201,8 +212,13 @@ const initDB = () => {
           ['Conversión de sacos vestidos', 'unid', 1]
         ];
         const stmt = db.prepare("INSERT INTO PROCESO_TIPO (nombre, unidad_produccion, reporta_merma_kg) VALUES (?, ?, ?)");
-        defaultProcesses.forEach(p => stmt.run(p));
+        defaultProcesses.forEach(p => {
+          stmt.run(p, (err) => {
+            if (err) logger.error(`Error al insertar proceso ${p[0]}:`, err.message);
+          });
+        });
         stmt.finalize();
+        logger.info('Procesos por defecto inicializados.');
       }
     });
 

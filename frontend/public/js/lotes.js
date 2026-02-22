@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/ordenes-produccion');
             if (!response.ok) throw new Error('No se pudieron cargar las órdenes.');
             
-            const ordenes = await response.json();
+            const result = await response.json();
+            const ordenes = result.data || [];
 
             selectOrdenes.innerHTML = '<option value="">Seleccione una orden</option>'; // Opción por defecto
 
@@ -38,7 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/lotes');
             if (!response.ok) throw new Error('Error al cargar los lotes.');
 
-            const lotes = await response.json();
+            const result = await response.json();
+            const lotes = result.data || [];
             tablaLotesBody.innerHTML = ''; // Limpiar la tabla
 
             if (lotes.length === 0) {
@@ -82,12 +84,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ orden_produccion_id: parseInt(orden_produccion_id) })
             });
 
-            const resultado = await response.json();
+            const result = await response.json();
 
-            if (!response.ok) {
-                throw new Error(resultado.error || 'No se pudo crear el lote.');
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || 'No se pudo crear el lote.');
             }
 
+            const resultado = result.data;
             mensajeCreacion.innerHTML = `<span style="color: var(--success); font-weight: 500;">¡Lote #${resultado.id} creado con éxito para la orden #${resultado.orden_produccion_id}!</span>`;
             formCrearLote.reset();
             cargarLotes(); // Recargar la lista de lotes
