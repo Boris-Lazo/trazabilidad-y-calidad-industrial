@@ -2,9 +2,11 @@
 class OrdenProduccionService {
   /**
    * @param {OrdenProduccionRepository} ordenProduccionRepository
+   * @param {AuditService} auditService
    */
-  constructor(ordenProduccionRepository) {
+  constructor(ordenProduccionRepository, auditService) {
     this.ordenProduccionRepository = ordenProduccionRepository;
+    this.auditService = auditService;
   }
 
   async getAll(filters = {}) {
@@ -29,7 +31,7 @@ class OrdenProduccionService {
     return await this.ordenProduccionRepository.findById(id);
   }
 
-  async update(id, data) {
+  async update(id, data, usuario = 'SISTEMA') {
     const existing = await this.ordenProduccionRepository.findById(id);
     if (!existing) throw new Error('Orden no encontrada');
 
@@ -51,6 +53,14 @@ class OrdenProduccionService {
     }
 
     await this.ordenProduccionRepository.update(id, data);
+
+    // Auditoría de cambio
+    if (data.estado && data.estado !== existing.estado) {
+        await this.auditService.logStatusChange(usuario, 'OrdenProduccion', id, existing.estado, data.estado, data.motivo_cierre || 'Cambio de estado');
+    } else {
+        await this.auditService.logUpdate(usuario, 'OrdenProduccion', id, existing, data, 'Actualización de orden');
+    }
+
     return await this.ordenProduccionRepository.findById(id);
   }
 

@@ -44,7 +44,8 @@ class OrdenProduccionController {
 
   update = async (req, res, next) => {
       try {
-          const orden = await this.ordenProduccionService.update(req.params.id, req.body);
+          const usuario = req.user ? req.user.username : 'SISTEMA';
+          const orden = await this.ordenProduccionService.update(req.params.id, req.body, usuario);
           return sendSuccess(res, orden);
       } catch (error) {
           next(error);

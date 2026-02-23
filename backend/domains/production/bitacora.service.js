@@ -9,12 +9,14 @@ class BitacoraService {
    * @param {LineaEjecucionRepository} lineaEjecucionRepository
    * @param {RegistroTrabajoRepository} registroTrabajoRepository
    * @param {MuestraRepository} muestraRepository
+   * @param {AuditService} auditService
    */
-  constructor(bitacoraRepository, lineaEjecucionRepository, registroTrabajoRepository, muestraRepository) {
+  constructor(bitacoraRepository, lineaEjecucionRepository, registroTrabajoRepository, muestraRepository, auditService) {
     this.bitacoraRepository = bitacoraRepository;
     this.lineaEjecucionRepository = lineaEjecucionRepository;
     this.registroTrabajoRepository = registroTrabajoRepository;
     this.muestraRepository = muestraRepository;
+    this.auditService = auditService;
   }
 
   async getActiveBitacora() {
@@ -36,9 +38,15 @@ class BitacoraService {
       throw new NotFoundError('Bitácora no encontrada.');
     }
 
-    if (bitacora.inspector !== currentUser && userRol !== 'ADMIN') {
-      throw new AppError('Solo el inspector que abrió la bitácora puede cerrarla.', 403);
+    if (bitacora.estado === 'CERRADA') {
+        throw new ValidationError('La bitácora ya se encuentra cerrada.');
     }
+
+    if (bitacora.inspector !== currentUser && userRol !== 'ADMIN' && userRol !== 'SUPERVISOR') {
+      throw new AppError('Solo el inspector que abrió la bitácora o un administrador pueden cerrarla.', 403);
+    }
+
+    let needsRevision = false;
 
     // Validaciones de cierre
     const procesos = await this.bitacoraRepository.getResumenProcesos();
@@ -62,6 +70,7 @@ class BitacoraService {
         const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
 
         if (hasRechazo || hasIncidente) {
+            needsRevision = true;
             const hasObservaciones = registros.some(r => r.observaciones && r.observaciones.length > 10);
             if (!hasObservaciones) {
                 throw new ValidationError(`El proceso '${proceso.nombre}' tiene desviaciones o rechazos pero no se ha proporcionado una explicación en las observaciones.`);
@@ -69,8 +78,17 @@ class BitacoraService {
         }
     }
 
-    await this.bitacoraRepository.close(id);
-    return { message: 'Bitácora cerrada con éxito.' };
+    const nuevoEstado = needsRevision ? 'REVISION' : 'CERRADA';
+
+    await this.bitacoraRepository.updateEstado(id, nuevoEstado);
+    await this.auditService.logStatusChange(currentUser, 'Bitacora', id, bitacora.estado, nuevoEstado, 'Cierre de bitácora');
+
+    return {
+        message: nuevoEstado === 'REVISION'
+            ? 'Bitácora enviada a REVISIÓN debido a desviaciones detectadas.'
+            : 'Bitácora cerrada con éxito.',
+        estado: nuevoEstado
+    };
   }
 
   async getResumenProcesos(bitacoraId) {
@@ -186,19 +204,35 @@ class BitacoraService {
   async saveProcesoData(data) {
       const { bitacora_id, proceso_id, no_operativo, motivo_no_operativo, produccion, desperdicio, observaciones, muestras, isExtrusorPP, muestras_estructuradas, parametros_operativos, mezcla, incidentes, usuario } = data;
 
+      const bitacora = await this.bitacoraRepository.findById(bitacora_id);
+      if (!bitacora) throw new NotFoundError('Bitácora no encontrada.');
+      if (bitacora.estado === 'CERRADA') {
+          throw new ValidationError('No se pueden modificar datos de una bitácora cerrada.');
+      }
+
+      const oldData = await this.getProcesoData(bitacora_id, proceso_id);
+
       return await this.bitacoraRepository.withTransaction(async () => {
-          await this.bitacoraRepository.deleteProcesoData(bitacora_id, proceso_id);
+          // Ya no usamos deleteProcesoData de forma destructiva.
+          // En su lugar, actualizamos o insertamos.
+          // Para simplificar la arquitectura sin cambiar el frontend,
+          // realizamos un "soft-sync":
 
           if (no_operativo) {
-              await this.bitacoraRepository.saveProcesoStatus(bitacora_id, proceso_id, true, motivo_no_operativo);
+              await this.bitacoraRepository.updateProcesoStatus(bitacora_id, proceso_id, true, motivo_no_operativo);
+              await this.auditService.logUpdate(usuario, 'BitacoraProcesoStatus', bitacora_id, oldData, { no_operativo: true, motivo_no_operativo }, 'Marcado como no operativo');
               return;
+          } else {
+              await this.bitacoraRepository.updateProcesoStatus(bitacora_id, proceso_id, false, null);
           }
 
           let extraDataSaved = false;
+
+          // Procesar producción
           for (const p of (produccion || [])) {
-              let linea = await this.lineaEjecucionRepository.findByOrdenAndProceso(p.orden_id, proceso_id);
+              let linea = await this.lineaEjecucionRepository.findByOrdenAndProceso(p.orden_id, proceso_id, p.maquina_id);
               if (!linea) {
-                  const resId = await this.lineaEjecucionRepository.create(p.orden_id, proceso_id);
+                  const resId = await this.lineaEjecucionRepository.create(p.orden_id, proceso_id, p.maquina_id);
                   linea = { id: resId };
               }
 
@@ -210,18 +244,31 @@ class BitacoraService {
                   extraDataSaved = true;
               }
 
-              await this.registroTrabajoRepository.create({
+              const existingRegistro = await this.bitacoraRepository.getRegistroByLineaYBitacora(linea.id, bitacora_id, p.maquina_id);
+
+              const registroData = {
                   cantidad_producida: p.cantidad,
                   merma_kg: d ? d.kg : 0,
                   observaciones,
                   parametros: JSON.stringify(paramsObj),
                   linea_ejecucion_id: linea.id,
                   bitacora_id,
+                  maquina_id: p.maquina_id,
                   usuario_modificacion: usuario
-              });
+              };
+
+              if (existingRegistro) {
+                  await this.registroTrabajoRepository.update(existingRegistro.id, registroData);
+              } else {
+                  await this.registroTrabajoRepository.create(registroData);
+              }
           }
 
-          if (muestras) {
+          // Para Muestras, dado que no tienen un identificador único claro desde el frontend,
+          // mantenemos el reemplazo en la tabla pero LO REGISTRAMOS en la auditoría.
+          // Una arquitectura superior requeriría IDs para cada muestra.
+          if (muestras && muestras.length > 0) {
+              await this.bitacoraRepository.db.run(`DELETE FROM muestras WHERE bitacora_id = ? AND proceso_tipo_id = ?`, [bitacora_id, proceso_id]);
               for (const m of muestras) {
                   await this.muestraRepository.create({
                       parametro: m.parametro,
@@ -244,6 +291,8 @@ class BitacoraService {
                   usuario_modificacion: usuario
               });
           }
+
+          await this.auditService.logUpdate(usuario, 'BitacoraProceso', bitacora_id, oldData, data, 'Actualización de registros de producción y calidad');
       });
   }
 
