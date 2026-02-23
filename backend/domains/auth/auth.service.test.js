@@ -8,7 +8,9 @@ describe('AuthService', () => {
 
     beforeEach(() => {
         authRepositoryMock = {
-            findByUsername: jest.fn()
+            findByUsername: jest.fn(),
+            updateLoginAttempts: jest.fn(),
+            resetLoginAttempts: jest.fn()
         };
         tokenServiceMock = {
             generateAccessToken: jest.fn()
@@ -17,7 +19,16 @@ describe('AuthService', () => {
     });
 
     test('login exitoso retorna token y datos de usuario', async () => {
-        const user = { id: 1, username: 'testuser', password: 'hashedpassword', rol: 'ADMIN', nombre: 'Test User' };
+        const user = {
+            id: 1,
+            persona_id: 10,
+            username: 'testuser',
+            password_hash: 'hashedpassword',
+            rol: 'Administrador',
+            nombre: 'Test',
+            apellido: 'User',
+            estado_usuario: 'activo'
+        };
         authRepositoryMock.findByUsername.mockResolvedValue(user);
 
         // Mock de bcrypt.compare se maneja implícitamente si usamos contraseñas reales,
@@ -45,7 +56,12 @@ describe('AuthService', () => {
     });
 
     test('login con contraseña incorrecta lanza UnauthorizedError', async () => {
-        const user = { id: 1, username: 'testuser', password: 'hashedpassword' };
+        const user = {
+            id: 1,
+            username: 'testuser',
+            password_hash: 'hashedpassword',
+            estado_usuario: 'activo'
+        };
         authRepositoryMock.findByUsername.mockResolvedValue(user);
         const bcrypt = require('bcrypt');
         jest.spyOn(bcrypt, 'compare').mockResolvedValue(false);

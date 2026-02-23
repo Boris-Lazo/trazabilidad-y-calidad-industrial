@@ -45,6 +45,18 @@ class BitacoraService {
     for (const proceso of procesos) {
         const registros = await this.bitacoraRepository.getRegistrosByProceso(id, proceso.id);
         const muestras = await this.bitacoraRepository.getMuestrasByProceso(id, proceso.id);
+        const status = await this.bitacoraRepository.getProcesoStatus(id, proceso.id);
+
+        const isOperativo = !(status && status.no_operativo);
+        const hasData = registros.length > 0 || muestras.length > 0;
+
+        if (isOperativo && hasData) {
+            // Verificar personal asignado
+            const hasPersonnel = await this.bitacoraRepository.checkAssignmentsForProcess(proceso.id, bitacora.turno);
+            if (!hasPersonnel) {
+                throw new ValidationError(`No se puede cerrar el turno: El proceso '${proceso.nombre}' tiene actividad pero no cuenta con personal asignado para el turno ${bitacora.turno}.`);
+            }
+        }
 
         const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
         const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
@@ -172,7 +184,7 @@ class BitacoraService {
   }
 
   async saveProcesoData(data) {
-      const { bitacora_id, proceso_id, no_operativo, motivo_no_operativo, produccion, desperdicio, observaciones, muestras, isExtrusorPP, muestras_estructuradas, parametros_operativos, mezcla, incidentes } = data;
+      const { bitacora_id, proceso_id, no_operativo, motivo_no_operativo, produccion, desperdicio, observaciones, muestras, isExtrusorPP, muestras_estructuradas, parametros_operativos, mezcla, incidentes, usuario } = data;
 
       return await this.bitacoraRepository.withTransaction(async () => {
           await this.bitacoraRepository.deleteProcesoData(bitacora_id, proceso_id);
@@ -204,7 +216,8 @@ class BitacoraService {
                   observaciones,
                   parametros: JSON.stringify(paramsObj),
                   linea_ejecucion_id: linea.id,
-                  bitacora_id
+                  bitacora_id,
+                  usuario_modificacion: usuario
               });
           }
 
@@ -215,7 +228,8 @@ class BitacoraService {
                       valor: m.valor,
                       resultado: m.resultado,
                       bitacora_id,
-                      proceso_tipo_id: proceso_id
+                      proceso_tipo_id: proceso_id,
+                      usuario_modificacion: usuario
                   });
               }
           }
@@ -226,7 +240,8 @@ class BitacoraService {
                   merma_kg: 0,
                   observaciones,
                   parametros: JSON.stringify({ muestras_estructuradas, parametros_operativos, mezcla, incidentes }),
-                  bitacora_id
+                  bitacora_id,
+                  usuario_modificacion: usuario
               });
           }
       });

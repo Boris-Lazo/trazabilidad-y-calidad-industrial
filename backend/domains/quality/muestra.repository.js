@@ -12,11 +12,25 @@ class QualityMuestraRepository {
   }
 
   async create(data) {
-    const { codigo_muestra, fecha_analisis, lote_id } = data;
-    const result = await this.db.run(
-      'INSERT INTO muestras (codigo_muestra, fecha_analisis, lote_id) VALUES (?, ?, ?)',
-      [codigo_muestra, fecha_analisis, lote_id]
-    );
+    const {
+      codigo_muestra, fecha_analisis, lote_id, bitacora_id,
+      proceso_tipo_id, maquina_id, resultado, valor,
+      parametro, valor_nominal, usuario_modificacion
+    } = data;
+
+    const sql = `
+      INSERT INTO muestras (
+        codigo_muestra, fecha_analisis, lote_id, bitacora_id,
+        proceso_tipo_id, maquina_id, resultado, valor,
+        parametro, valor_nominal, usuario_modificacion, fecha_modificacion
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `;
+
+    const result = await this.db.run(sql, [
+      codigo_muestra, fecha_analisis || new Date().toISOString().split('T')[0],
+      lote_id, bitacora_id, proceso_tipo_id, maquina_id,
+      resultado, valor, parametro, valor_nominal, usuario_modificacion
+    ]);
     return result.lastID;
   }
 }

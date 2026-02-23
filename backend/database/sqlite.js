@@ -206,12 +206,108 @@ const initDB = () => {
         FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id)
     );`);
 
+    // --- MÓDULO DE PERSONAL Y USUARIOS ---
+    db.run(`CREATE TABLE IF NOT EXISTS areas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT UNIQUE NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_by TEXT,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_by TEXT
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS personas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        apellido TEXT NOT NULL,
+        codigo_interno TEXT UNIQUE NOT NULL,
+        area_id INTEGER NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        telefono TEXT,
+        fecha_ingreso DATE,
+        estado_laboral TEXT CHECK(estado_laboral IN ('activo', 'inactivo', 'baja_definitiva')) DEFAULT 'activo',
+        tipo_personal TEXT CHECK(tipo_personal IN ('operativo', 'administrativo')) NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_by TEXT,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_by TEXT,
+        motivo_cambio TEXT,
+        FOREIGN KEY (area_id) REFERENCES areas(id)
+    );`);
+
     db.run(`CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT,
-        rol TEXT,
-        nombre TEXT
+        persona_id INTEGER UNIQUE NOT NULL,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        password_last_changed_at DATETIME,
+        intentos_fallidos INTEGER DEFAULT 0,
+        bloqueado_at DATETIME,
+        bloqueado_por INTEGER,
+        estado_usuario TEXT CHECK(estado_usuario IN ('activo', 'suspendido', 'bloqueado', 'baja_logica')) DEFAULT 'activo',
+        must_change_password BOOLEAN DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_by TEXT,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_by TEXT,
+        FOREIGN KEY (persona_id) REFERENCES personas(id),
+        FOREIGN KEY (bloqueado_por) REFERENCES personas(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS roles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT UNIQUE NOT NULL
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS persona_roles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        persona_id INTEGER NOT NULL,
+        rol_id INTEGER NOT NULL,
+        fecha_asignacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+        asignado_por INTEGER,
+        activo BOOLEAN DEFAULT 1,
+        FOREIGN KEY (persona_id) REFERENCES personas(id),
+        FOREIGN KEY (rol_id) REFERENCES roles(id),
+        FOREIGN KEY (asignado_por) REFERENCES personas(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS asignaciones_operativas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        persona_id INTEGER NOT NULL,
+        proceso_tipo_id INTEGER NOT NULL,
+        maquina_id INTEGER,
+        fecha_inicio DATETIME DEFAULT CURRENT_TIMESTAMP,
+        fecha_fin DATETIME,
+        turno TEXT,
+        permanente BOOLEAN DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_by TEXT,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_by TEXT,
+        FOREIGN KEY (persona_id) REFERENCES personas(id),
+        FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS ausencias (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        persona_id INTEGER NOT NULL,
+        tipo TEXT NOT NULL,
+        fecha DATE NOT NULL,
+        turno TEXT,
+        proceso_tipo_id INTEGER,
+        maquina_id INTEGER,
+        motivo TEXT,
+        comentario TEXT,
+        registrado_por INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_by TEXT,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_by TEXT,
+        FOREIGN KEY (persona_id) REFERENCES personas(id),
+        FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (registrado_por) REFERENCES personas(id)
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS auditoria (
@@ -234,20 +330,66 @@ const initDB = () => {
     db.run(`CREATE INDEX IF NOT EXISTS idx_muestras_lote ON muestras(lote_id);`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_muestras_bitacora ON muestras(bitacora_id);`);
 
-    // Semilla de administrador inicial
-    db.get("SELECT COUNT(*) as count FROM usuarios WHERE username = 'admin'", (err, row) => {
+    // Semillas de Personal y Roles
+    db.get("SELECT COUNT(*) as count FROM roles", (err, row) => {
       if (err) {
-        logger.error('Error al verificar usuario admin:', err.message);
+        logger.error('Error al verificar roles:', err.message);
       } else if (row && row.count === 0) {
-        try {
+        const defaultRoles = ['Inspector', 'Supervisor', 'Jefe de Operaciones', 'Gerencia', 'Operario', 'Administrador'];
+        const stmt = db.prepare("INSERT INTO roles (nombre) VALUES (?)");
+        defaultRoles.forEach(r => stmt.run(r));
+        stmt.finalize();
+        logger.info('Roles inicializados.');
+      }
+    });
+
+    db.get("SELECT COUNT(*) as count FROM areas", (err, row) => {
+      if (err) {
+        logger.error('Error al verificar áreas:', err.message);
+      } else if (row && row.count === 0) {
+        const defaultAreas = ['Producción', 'Calidad', 'Mantenimiento', 'Sistemas', 'Administración'];
+        const stmt = db.prepare("INSERT INTO areas (nombre) VALUES (?)");
+        defaultAreas.forEach(a => stmt.run(a));
+        stmt.finalize();
+        logger.info('Áreas inicializadas.');
+      }
+    });
+
+    // Semilla de administrador inicial (Nuevo Modelo)
+    db.get("SELECT COUNT(*) as count FROM personas WHERE codigo_interno = 'admin'", (err, row) => {
+      if (err) {
+        logger.error('Error al verificar persona admin:', err.message);
+      } else if (row && row.count === 0) {
+        db.serialize(() => {
           const hashedPassword = bcrypt.hashSync(adminPassword, 10);
-          db.run("INSERT INTO usuarios (username, password, rol, nombre) VALUES ('admin', ?, 'ADMIN', 'Administrador Sistema')", [hashedPassword], (err) => {
-            if (err) logger.error('Error al insertar usuario admin semilla:', err.message);
-            else logger.info('Usuario administrador inicial creado con éxito.');
+
+          // 1. Obtener ID de área 'Sistemas'
+          db.get("SELECT id FROM areas WHERE nombre = 'Sistemas'", (err, area) => {
+            const areaId = area ? area.id : 1;
+
+            // 2. Insertar Persona
+            db.run("INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email, tipo_personal, created_by) VALUES ('Admin', 'Sistema', 'admin', ?, 'admin@prodsys.com', 'administrativo', 'SYSTEM')", [areaId], function(err) {
+              if (err) {
+                logger.error('Error al insertar persona admin:', err.message);
+                return;
+              }
+              const personaId = this.lastID;
+
+              // 3. Insertar Usuario
+              db.run("INSERT INTO usuarios (persona_id, username, password_hash, must_change_password, created_by) VALUES (?, 'admin', ?, 0, 'SYSTEM')", [personaId, hashedPassword], (err) => {
+                if (err) logger.error('Error al insertar usuario admin:', err.message);
+                else logger.info('Usuario administrador inicial creado con éxito.');
+              });
+
+              // 4. Asignar Rol Administrador
+              db.get("SELECT id FROM roles WHERE nombre = 'Administrador'", (err, rol) => {
+                if (rol) {
+                  db.run("INSERT INTO persona_roles (persona_id, rol_id, asignado_por) VALUES (?, ?, ?)", [personaId, rol.id, personaId]);
+                }
+              });
+            });
           });
-        } catch (hashError) {
-          logger.error('Error al hashear contraseña de administrador:', hashError.message);
-        }
+        });
       }
     });
 

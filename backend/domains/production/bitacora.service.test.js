@@ -18,6 +18,8 @@ describe('BitacoraService', () => {
             getResumenProcesos: jest.fn(),
             getRegistrosByProceso: jest.fn(),
             getMuestrasByProceso: jest.fn(),
+            getProcesoStatus: jest.fn(),
+            checkAssignmentsForProcess: jest.fn(),
             withTransaction: jest.fn(fn => fn())
         };
         lineaEjecucionRepositoryMock = {};
@@ -47,12 +49,26 @@ describe('BitacoraService', () => {
     });
 
     test('closeBitacora lanza ValidationError si hay rechazos sin observaciones', async () => {
-        bitacoraRepositoryMock.findById.mockResolvedValue({ id: 1, inspector: 'yo' });
+        bitacoraRepositoryMock.findById.mockResolvedValue({ id: 1, inspector: 'yo', turno: 'T1' });
         bitacoraRepositoryMock.getResumenProcesos.mockResolvedValue([{ id: 1, nombre: 'Proceso 1' }]);
-        bitacoraRepositoryMock.getRegistrosByProceso.mockResolvedValue([{ observations: '' }]);
+        bitacoraRepositoryMock.getRegistrosByProceso.mockResolvedValue([{ observaciones: '' }]);
         bitacoraRepositoryMock.getMuestrasByProceso.mockResolvedValue([{ resultado: 'Rechazo' }]);
+        bitacoraRepositoryMock.getProcesoStatus.mockResolvedValue({ no_operativo: 0 });
+        bitacoraRepositoryMock.checkAssignmentsForProcess.mockResolvedValue(true);
 
         await expect(bitacoraService.closeBitacora(1, 'yo', 'INSPECTOR'))
             .rejects.toThrow(ValidationError);
+    });
+
+    test('closeBitacora lanza ValidationError si no hay personal asignado', async () => {
+        bitacoraRepositoryMock.findById.mockResolvedValue({ id: 1, inspector: 'yo', turno: 'T1' });
+        bitacoraRepositoryMock.getResumenProcesos.mockResolvedValue([{ id: 1, nombre: 'Proceso 1' }]);
+        bitacoraRepositoryMock.getRegistrosByProceso.mockResolvedValue([{ id: 1, cantidad_producida: 10 }]);
+        bitacoraRepositoryMock.getMuestrasByProceso.mockResolvedValue([]);
+        bitacoraRepositoryMock.getProcesoStatus.mockResolvedValue({ no_operativo: 0 });
+        bitacoraRepositoryMock.checkAssignmentsForProcess.mockResolvedValue(false);
+
+        await expect(bitacoraService.closeBitacora(1, 'yo', 'INSPECTOR'))
+            .rejects.toThrow(/personal asignado/);
     });
 });
