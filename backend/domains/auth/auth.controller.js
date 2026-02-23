@@ -28,6 +28,17 @@ class AuthController {
       next(error);
     }
   };
+
+  changePassword = async (req, res, next) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      // req.user.usuario_id contiene el ID de la tabla usuarios
+      await this.authService.changePassword(req.user.usuario_id, currentPassword, newPassword);
+      return sendSuccess(res, null, 'Contraseña actualizada correctamente');
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = AuthController;
