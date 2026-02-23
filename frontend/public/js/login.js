@@ -25,9 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    // Guardar la sesión y redirigir al dashboard
-                    Auth.saveSession(result.data.token, result.data.user);
-                    window.location.href = '/';
+                    if (result.data.user.must_change_password) {
+                        Auth.saveSession(result.data.token, result.data.user);
+                        document.getElementById('current-password').value = password;
+                        document.getElementById('modal-change-password').style.display = 'flex';
+                    } else {
+                        // Guardar la sesión y redirigir al dashboard
+                        Auth.saveSession(result.data.token, result.data.user);
+                        window.location.href = '/';
+                    }
                 } else {
                     errorDiv.textContent = result.error || 'Error al iniciar sesión';
                     errorDiv.style.display = 'block';
@@ -42,6 +48,51 @@ document.addEventListener('DOMContentLoaded', () => {
                     btnLogin.disabled = false;
                     btnLogin.textContent = 'Iniciar sesión';
                 }
+            }
+        });
+    }
+
+    const btnSavePassword = document.getElementById('btn-save-password');
+    if (btnSavePassword) {
+        btnSavePassword.addEventListener('click', async () => {
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const errorDiv = document.getElementById('cp-error');
+
+            if (newPassword !== confirmPassword) {
+                errorDiv.textContent = 'Las contraseñas no coinciden';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (newPassword.length < 8) {
+                errorDiv.textContent = 'La contraseña debe tener al menos 8 caracteres';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${Auth.getToken()}`
+                    },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    window.location.href = '/';
+                } else {
+                    errorDiv.textContent = result.error || 'Error al cambiar contraseña';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Error de conexión';
+                errorDiv.style.display = 'block';
             }
         });
     }

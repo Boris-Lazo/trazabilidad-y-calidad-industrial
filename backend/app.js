@@ -23,6 +23,7 @@ const recursoRoutes = require('./domains/resources/recurso.routes');
 const consumoRoutes = require('./domains/resources/consumo.routes');
 const dashboardRoutes = require('./domains/dashboard/dashboard.routes');
 const telaresRoutes = require('./domains/production/telares.routes');
+const personalRoutes = require('./domains/personal/personal.routes');
 
 const app = express();
 
@@ -77,6 +78,7 @@ app.use('/api/recursos', authMiddleware, recursoRoutes);
 app.use('/api/consumos', authMiddleware, consumoRoutes);
 app.use('/api/dashboard', authMiddleware, dashboardRoutes);
 app.use('/api/telares', authMiddleware, telaresRoutes);
+app.use('/api/personal', authMiddleware, personalRoutes);
 
 // --- FRONTEND (PÁGINAS HTML) ---
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, '../frontend/public/login.html')));
@@ -87,7 +89,7 @@ const protectedPages = [
     'auditoria.html', 'bitacora.html', 'calidad.html', 'configuracion.html',
     'detalles_orden.html', 'ejecucion.html', 'incidentes.html', 'lotes.html',
     'muestras.html', 'ordenes.html', 'proceso.html', 'trazabilidad.html',
-    'telares_resumen.html', 'telares_detalle.html'
+    'telares_resumen.html', 'telares_detalle.html', 'personal.html'
 ];
 
 protectedPages.forEach(page => {

@@ -14,8 +14,11 @@ const authRepository = new AuthRepository(sqlite);
 const authService = new AuthService(authRepository, tokenService);
 const authController = new AuthController(authService);
 
+const authMiddleware = require('../../middlewares/auth.middleware');
+
 const router = express.Router();
 
 router.post('/login', loginLimiter, validate(loginSchema), authController.login);
+router.post('/change-password', authMiddleware, authController.changePassword);
 
 module.exports = router;

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="/design-system/theme/index.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Personal | PROD-SYS</title>
+    <link rel="stylesheet" href="/design-system/index.css">
+    <script src="js/auth.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/design-system/index.js" defer></script>
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">PROD-SYS</div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item nav-item-single">
+                    <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-group">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="clipboard-list" class="nav-icon"></i>
+                        <span>Producción</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/bitacora.html" class="nav-item">Bitácora de Turno</a>
+                        <a href="/ordenes.html" class="nav-item">Órdenes</a>
+                        <a href="/ejecucion.html" class="nav-item">Ejecución</a>
+                        <a href="/incidentes.html" class="nav-item">Incidentes</a>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="shield-check" class="nav-icon"></i>
+                        <span>Control</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/calidad.html" class="nav-item">Calidad</a>
+                        <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+                    </div>
+                </div>
+
+                <div class="nav-group open">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="settings" class="nav-icon"></i>
+                        <span>Sistema</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/personal.html" class="nav-item active">Personal</a>
+                        <a href="/configuracion.html" class="nav-item">Configuración</a>
+                        <a href="/auditoria.html" class="nav-item">Auditoría</a>
+                    </div>
+                </div>
+            </nav>
+            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
+                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+                    <span id="user-name-label">Usuario: -</span>
+                </div>
+                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
+                    <i data-lucide="log-out" class="nav-icon"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </aside>
+
+        <div class="main-container">
+            <header class="topbar">
+                <h1>Gestión de Personal y Usuarios</h1>
+                <div class="topbar-actions">
+                    <button id="theme-toggle" class="btn btn-secondary">
+                        <i data-lucide="sun" class="sun-icon"></i>
+                        <i data-lucide="moon" class="moon-icon"></i>
+                    </button>
+                    <button id="btn-nuevo-personal" class="btn btn-primary">
+                        <i data-lucide="user-plus"></i> Nuevo Personal
+                    </button>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <!-- Filtros -->
+                <div class="card mb-4">
+                    <div class="card-body" style="display: flex; gap: 16px; align-items: flex-end;">
+                        <div class="form-group mb-0" style="flex: 1;">
+                            <label class="form-label">Buscar por nombre o código</label>
+                            <input type="text" id="search-staff" class="form-control" placeholder="Ej: Juan Perez o 12345">
+                        </div>
+                        <div class="form-group mb-0" style="width: 200px;">
+                            <label class="form-label">Área</label>
+                            <select id="filter-area" class="form-control">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Personal -->
+                <div class="card">
+                    <div class="table-container">
+                        <table class="table" id="tabla-personal">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Nombre Completo</th>
+                                    <th>Área</th>
+                                    <th>Rol</th>
+                                    <th>Estado Laboral</th>
+                                    <th>Estado Usuario</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-personal">
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">Cargando personal...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nuevo Personal -->
+    <div id="modal-personal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 id="modal-title">Registrar Nuevo Personal</h2>
+                <button class="btn-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-personal">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" id="p-nombre" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Apellido</label>
+                            <input type="text" id="p-apellido" class="form-control" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Código Interno (Login)</label>
+                            <input type="text" id="p-codigo" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" id="p-email" class="form-control" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Área</label>
+                            <select id="p-area" class="form-control" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Rol del Sistema</label>
+                            <select id="p-rol" class="form-control" required></select>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Tipo Personal</label>
+                            <select id="p-tipo" class="form-control" required>
+                                <option value="operativo">Operativo</option>
+                                <option value="administrativo">Administrativo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Fecha Ingreso</label>
+                            <input type="date" id="p-fecha-ingreso" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Teléfono (Opcional)</label>
+                        <input type="text" id="p-telefono" class="form-control">
+                    </div>
+                    <div id="edit-audit-fields" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">Estado Laboral</label>
+                            <select id="p-estado" class="form-control">
+                                <option value="activo">Activo</option>
+                                <option value="inactivo">Inactivo</option>
+                                <option value="baja_definitiva">Baja Definitiva</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Motivo del Cambio (Obligatorio)</label>
+                            <textarea id="p-motivo" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                <button type="button" id="btn-save-personal" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalle / Asignación -->
+    <div id="modal-detalle" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 id="detail-title">Detalle de Personal</h2>
+                <button class="btn-close" onclick="closeDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="dashboard-grid" style="grid-template-columns: 1fr 1.5fr;">
+                    <div>
+                        <h3 class="mb-3">Información General</h3>
+                        <div id="staff-info"></div>
+                    </div>
+                    <div>
+                        <h3 class="mb-3">Asignación Operativa Actual</h3>
+                        <div id="active-assignments" class="mb-4"></div>
+
+                        <h3 class="mb-3">Nueva Asignación</h3>
+                        <form id="form-asignacion" class="card p-3">
+                            <div class="form-group">
+                                <label class="form-label">Proceso</label>
+                                <select id="a-proceso" class="form-control" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Máquina (Opcional)</label>
+                                <select id="a-maquina" class="form-control">
+                                    <option value="">Cualquier máquina</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Turno</label>
+                                <select id="a-turno" class="form-control" required>
+                                    <option value="Mañana">Mañana</option>
+                                    <option value="Tarde">Tarde</option>
+                                    <option value="Noche">Noche</option>
+                                </select>
+                            </div>
+                            <label class="form-check-label mb-3">
+                                <input type="checkbox" id="a-permanente"> Es asignación permanente
+                            </label>
+                            <button type="button" id="btn-save-assignment" class="btn btn-primary w-100">Registrar Asignación</button>
+                        </form>
+                    </div>
+                </div>
+                <hr>
+                <h3 class="my-3">Historial de Roles</h3>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Rol</th>
+                                <th>Desde</th>
+                                <th>Asignado Por</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="role-history-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/personal.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
