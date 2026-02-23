@@ -5,7 +5,7 @@ class BitacoraRepository {
   }
 
   async findActive() {
-    return await this.db.get("SELECT * FROM bitacora_turno WHERE estado = 'EN CURSO'");
+    return await this.db.get("SELECT * FROM bitacora_turno WHERE estado IN ('ABIERTA', 'REVISION')");
   }
 
   async findById(id) {
@@ -23,6 +23,13 @@ class BitacoraRepository {
 
   async close(id) {
     await this.db.run("UPDATE bitacora_turno SET estado = 'CERRADA', fecha_cierre = CURRENT_TIMESTAMP WHERE id = ?", [id]);
+  }
+
+  async updateEstado(id, estado) {
+      const sql = estado === 'CERRADA'
+        ? "UPDATE bitacora_turno SET estado = ?, fecha_cierre = CURRENT_TIMESTAMP WHERE id = ?"
+        : "UPDATE bitacora_turno SET estado = ? WHERE id = ?";
+      await this.db.run(sql, [estado, id]);
   }
 
   async getResumenProcesos() {
@@ -49,6 +56,8 @@ class BitacoraRepository {
   }
 
   async deleteProcesoData(bitacoraId, procesoId) {
+    // Deprecated: No usar borrado destructivo. Usar marcado de inactividad o auditoría si es necesario.
+    // Se mantiene por compatibilidad temporal si es estrictamente necesario, pero se debe migrar a upsert.
     await this.db.run(`
         DELETE FROM registros_trabajo
         WHERE bitacora_id = ?
@@ -56,6 +65,23 @@ class BitacoraRepository {
     `, [bitacoraId, procesoId]);
     await this.db.run('DELETE FROM muestras WHERE bitacora_id = ? AND proceso_tipo_id = ?', [bitacoraId, procesoId]);
     await this.db.run('DELETE FROM bitacora_proceso_status WHERE bitacora_id = ? AND proceso_tipo_id = ?', [bitacoraId, procesoId]);
+  }
+
+  async getRegistroByLineaYBitacora(lineaId, bitacoraId, maquinaId) {
+    if (maquinaId) {
+        return await this.db.get('SELECT * FROM registros_trabajo WHERE linea_ejecucion_id = ? AND bitacora_id = ? AND maquina_id = ?', [lineaId, bitacoraId, maquinaId]);
+    }
+    return await this.db.get('SELECT * FROM registros_trabajo WHERE linea_ejecucion_id = ? AND bitacora_id = ?', [lineaId, bitacoraId]);
+  }
+
+  async updateProcesoStatus(bitacoraId, procesoId, no_operativo, motivo) {
+      await this.db.run(`
+          INSERT INTO bitacora_proceso_status (bitacora_id, proceso_tipo_id, no_operativo, motivo_no_operativo)
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(bitacora_id, proceso_tipo_id) DO UPDATE SET
+            no_operativo = excluded.no_operativo,
+            motivo_no_operativo = excluded.motivo_no_operativo
+      `, [bitacoraId, procesoId, no_operativo ? 1 : 0, motivo]);
   }
 
   async saveProcesoStatus(bitacoraId, procesoId, no_operativo, motivo) {

@@ -11,6 +11,14 @@ class MuestraRepository {
         );
         return result.lastID;
     }
+
+    async update(id, data) {
+        const { valor, resultado, usuario_modificacion } = data;
+        return await this.db.run(
+            'UPDATE muestras SET valor = ?, resultado = ?, usuario_modificacion = ?, fecha_modificacion = CURRENT_TIMESTAMP WHERE id = ?',
+            [valor, resultado, usuario_modificacion, id]
+        );
+    }
 }
 
 module.exports = MuestraRepository;

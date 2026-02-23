@@ -19,6 +19,16 @@ class RegistroTrabajoRepository {
         );
         return result.lastID;
     }
+
+    async update(id, data) {
+        const { cantidad_producida, merma_kg, observaciones, parametros, usuario_modificacion } = data;
+        return await this.db.run(
+            `UPDATE registros_trabajo
+             SET cantidad_producida = ?, merma_kg = ?, observaciones = ?, parametros = ?, usuario_modificacion = ?, fecha_modificacion = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [cantidad_producida, merma_kg, observaciones, parametros, usuario_modificacion, id]
+        );
+    }
 }
 
 module.exports = RegistroTrabajoRepository;

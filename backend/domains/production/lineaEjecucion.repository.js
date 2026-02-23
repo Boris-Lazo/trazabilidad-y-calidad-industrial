@@ -19,8 +19,19 @@ class LineaEjecucionRepository {
     }
 
     async create(ordenId, procesoId, maquinaId = null) {
-        const result = await this.db.run('INSERT INTO lineas_ejecucion (orden_produccion_id, proceso_tipo_id, maquina_id, estado) VALUES (?, ?, ?, ?)', [ordenId, procesoId, maquinaId, 'activo']);
+        const result = await this.db.run('INSERT INTO lineas_ejecucion (orden_produccion_id, proceso_tipo_id, maquina_id, estado, fecha_inicio) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)', [ordenId, procesoId, maquinaId, 'ACTIVA']);
         return result.lastID;
+    }
+
+    async updateEstado(id, estado) {
+        const sql = estado === 'COMPLETADA' || estado === 'CANCELADA'
+            ? 'UPDATE lineas_ejecucion SET estado = ?, fecha_fin = CURRENT_TIMESTAMP WHERE id = ?'
+            : 'UPDATE lineas_ejecucion SET estado = ? WHERE id = ?';
+        return await this.db.run(sql, [estado, id]);
+    }
+
+    async findActiveByMaquina(maquinaId) {
+        return await this.db.get('SELECT * FROM lineas_ejecucion WHERE maquina_id = ? AND estado = ?', [maquinaId, 'ACTIVA']);
     }
 }
 
