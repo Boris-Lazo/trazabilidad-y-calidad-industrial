@@ -5,23 +5,39 @@ Sistema profesional de gestión de producción industrial construido con Node.js
 ## Estructura del Proyecto
 
 ```
-.
-├── backend/
-│   └── src/
-│       ├── app.js            # Configuración de Express
-│       ├── server.js         # Entrada del servidor
-│       ├── config/           # Configuraciones (env, db, security)
-│       ├── database/         # SQLite y conexión
-│       ├── domains/          # Lógica de negocio por dominios
-│       ├── logs/             # Archivos de registro
-│       ├── middlewares/      # Middlewares globales
-│       └── shared/           # Código compartido (Errores, Logger)
-├── frontend/
-│   ├── index.html            # Página principal
-│   ├── public/               # Activos estáticos y otras páginas
-│   └── src/                  # Código fuente del frontend
-├── .env                      # Variables de entorno
-└── setup.sh                  # Script de configuración inicial
+backend/
+├── app.js            # Configuración de Express
+├── server.js         # Entrada del servidor
+├── config/           # Configuraciones (env, db, security)
+├── database/         # SQLite y conexión
+├── domains/          # Lógica de negocio por dominios
+│   ├── auth/
+│   ├── bootstrap/
+│   ├── dashboard/
+│   ├── grupos/
+│   ├── personal/
+│   ├── production/
+│   ├── quality/
+│   └── resources/
+├── middlewares/      # Middlewares globales (auth, error, etc.)
+├── shared/           # Código compartido transversal
+│   ├── audit/
+│   ├── auth/
+│   ├── errors/
+│   ├── logger/
+│   ├── response/
+│   └── security/
+└── tests/            # Tests unitarios e integración
+    ├── helpers/
+    └── integration/
+frontend/
+├── index.html        # Dashboard principal
+├── public/           # Activos estáticos y páginas HTML
+│   ├── css/
+│   ├── js/
+│   └── [páginas HTML]
+└── src/
+    └── design-system/ # Sistema de diseño centralizado
 ```
 
 ## Requisitos Previos
