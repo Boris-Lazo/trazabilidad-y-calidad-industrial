@@ -1,16 +1,32 @@
 const UnauthorizedError = require('../shared/errors/UnauthorizedError');
+const { hasPermission } = require('../shared/auth/permissions');
 
 /**
- * Middleware para autorizar el acceso basado en roles
- * @param {...string} allowedRoles - Roles permitidos para acceder a la ruta
+ * Middleware para autorizar el acceso basado en roles o permisos (acciones)
+ * @param {...string} requirements - Roles o Permisos permitidos para acceder a la ruta
  */
-const authorize = (...allowedRoles) => {
+const authorize = (...requirements) => {
   return (req, res, next) => {
     if (!req.user) {
       return next(new UnauthorizedError('Usuario no autenticado'));
     }
 
-    if (allowedRoles.length > 0 && !allowedRoles.includes(req.user.rol)) {
+    if (requirements.length === 0) return next();
+
+    const userRole = req.user.rol;
+
+    // El usuario es válido si su rol está en la lista O si tiene alguno de los permisos requeridos
+    const isAuthorized = requirements.some(reqmt => {
+        // ¿Es un rol directo?
+        if (reqmt === userRole || (reqmt === 'ADMIN' && userRole === 'Administrador')) return true;
+
+        // ¿Es un permiso/acción?
+        if (hasPermission(userRole, reqmt)) return true;
+
+        return false;
+    });
+
+    if (!isAuthorized) {
       return next(new UnauthorizedError('No tiene permisos para realizar esta acción'));
     }
 

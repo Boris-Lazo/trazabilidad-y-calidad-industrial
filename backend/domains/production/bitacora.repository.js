@@ -92,14 +92,23 @@ class BitacoraRepository {
   }
 
   async getInspectores() {
+    const { ROLE_PERMISSIONS, PERMISSIONS } = require('../../shared/auth/permissions');
+
+    // Identificar roles que tienen permiso de inspección/asignación
+    const rolesConPermiso = Object.keys(ROLE_PERMISSIONS).filter(rol =>
+        ROLE_PERMISSIONS[rol].includes(PERMISSIONS.ASSIGN_OPERATIONS)
+    );
+
     const sql = `
       SELECT DISTINCT p.nombre || ' ' || p.apellido as nombre
       FROM personas p
-      JOIN persona_roles pr ON p.id = pr.persona_id
-      JOIN roles r ON pr.rol_id = r.id
-      WHERE r.nombre IN ('Administrador', 'Inspector', 'Supervisor')
-      AND p.estado_laboral = 'activo'
+      JOIN usuarios u ON p.id = u.persona_id
+      JOIN roles r ON u.rol_id = r.id
+      WHERE r.nombre IN (${rolesConPermiso.map(r => `'${r}'`).join(',')})
+      AND p.estado_laboral = 'Activo'
+      AND u.estado_usuario = 'Activo'
     `;
+    // Nota: El admin técnico está excluido al no tener Persona asociada.
     return await this.db.query(sql);
   }
 

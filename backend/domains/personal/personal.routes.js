@@ -13,18 +13,20 @@ const auditRepository = new AuditRepository(sqlite);
 const auditService = new AuditService(auditRepository);
 const personalService = new PersonalService(personalRepository, auditService);
 const personalController = new PersonalController(personalService);
+const { PERMISSIONS } = require('../../shared/auth/permissions');
 
-// Todas las rutas de gestión de personal requieren ser ADMIN
-router.get('/', authorize('Administrador', 'ADMIN'), (req, res, next) => personalController.getAllStaff(req, res, next));
-router.get('/catalogos', authorize('Administrador', 'ADMIN'), (req, res, next) => personalController.getCatalogs(req, res, next));
-router.get('/:id', authorize('Administrador', 'ADMIN'), (req, res, next) => personalController.getStaffDetails(req, res, next));
-router.post('/', authorize('Administrador', 'ADMIN'), (req, res, next) => personalController.registerStaff(req, res, next));
-router.put('/:id', authorize('Administrador', 'ADMIN'), (req, res, next) => personalController.updateStaff(req, res, next));
-router.post('/:id/rol', authorize('Administrador', 'ADMIN'), (req, res, next) => personalController.assignRole(req, res, next));
-router.put('/:id/estado', authorize('Administrador', 'ADMIN'), (req, res, next) => personalController.updateStatus(req, res, next));
-router.put('/:id/reactivar', authorize('Administrador', 'ADMIN'), (req, res, next) => personalController.reactivateUser(req, res, next));
+// Rutas de gestión de personal protegidas por permisos específicos
+router.get('/', authorize(PERMISSIONS.VIEW_STAFF), (req, res, next) => personalController.getAllStaff(req, res, next));
+router.get('/catalogos', authorize(PERMISSIONS.VIEW_STAFF), (req, res, next) => personalController.getCatalogs(req, res, next));
+router.get('/:id', authorize(PERMISSIONS.VIEW_STAFF), (req, res, next) => personalController.getStaffDetails(req, res, next));
 
-// Asignaciones operativas pueden ser hechas por Inspector o Supervisor también
-router.post('/:id/asignacion', authorize('Administrador', 'ADMIN', 'Inspector', 'Supervisor'), (req, res, next) => personalController.assignOperation(req, res, next));
+router.post('/', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => personalController.registerStaff(req, res, next));
+router.put('/:id', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => personalController.updateStaff(req, res, next));
+router.post('/:id/rol', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => personalController.assignRole(req, res, next));
+router.put('/:id/estado', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => personalController.updateStatus(req, res, next));
+router.put('/:id/reactivar', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => personalController.reactivateUser(req, res, next));
+
+// Asignaciones operativas pueden ser hechas por quienes tengan el permiso ASSIGN_OPERATIONS
+router.post('/:id/asignacion', authorize(PERMISSIONS.ASSIGN_OPERATIONS), (req, res, next) => personalController.assignOperation(req, res, next));
 
 module.exports = router;

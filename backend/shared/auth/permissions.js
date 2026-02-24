@@ -1,0 +1,61 @@
+const PERMISSIONS = {
+  // Personal & Usuarios
+  MANAGE_STAFF: 'MANAGE_STAFF',
+  VIEW_STAFF: 'VIEW_STAFF',
+
+  // Producción
+  MANAGE_PRODUCTION: 'MANAGE_PRODUCTION',
+  VIEW_PRODUCTION: 'VIEW_PRODUCTION',
+  ASSIGN_OPERATIONS: 'ASSIGN_OPERATIONS',
+
+  // Calidad
+  MANAGE_QUALITY: 'MANAGE_QUALITY',
+  VIEW_QUALITY: 'VIEW_QUALITY',
+
+  // Sistema
+  VIEW_AUDIT: 'VIEW_AUDIT',
+  MANAGE_CONFIG: 'MANAGE_CONFIG'
+};
+
+const ROLE_PERMISSIONS = {
+  'Administrador': Object.values(PERMISSIONS),
+  'Inspector': [
+    PERMISSIONS.VIEW_STAFF,
+    PERMISSIONS.VIEW_PRODUCTION,
+    PERMISSIONS.ASSIGN_OPERATIONS,
+    PERMISSIONS.MANAGE_QUALITY,
+    PERMISSIONS.VIEW_QUALITY
+  ],
+  'Supervisor': [
+    PERMISSIONS.VIEW_STAFF,
+    PERMISSIONS.VIEW_PRODUCTION,
+    PERMISSIONS.ASSIGN_OPERATIONS,
+    PERMISSIONS.VIEW_QUALITY
+  ],
+  'Jefe de Operaciones': [
+    PERMISSIONS.VIEW_STAFF,
+    PERMISSIONS.VIEW_PRODUCTION,
+    PERMISSIONS.VIEW_QUALITY
+  ],
+  'Gerencia': [
+    PERMISSIONS.VIEW_STAFF,
+    PERMISSIONS.VIEW_PRODUCTION,
+    PERMISSIONS.VIEW_QUALITY,
+    PERMISSIONS.VIEW_AUDIT
+  ],
+  'Operario': [
+    PERMISSIONS.VIEW_PRODUCTION
+  ]
+};
+
+const hasPermission = (role, permission) => {
+  if (!role || !permission) return false;
+  const permissions = ROLE_PERMISSIONS[role] || [];
+  return permissions.includes(permission);
+};
+
+module.exports = {
+  PERMISSIONS,
+  ROLE_PERMISSIONS,
+  hasPermission
+};

@@ -45,17 +45,16 @@ class PersonalService {
         created_by: creatorId
       });
 
-      // 4. Crear Usuario
+      // 4. Crear Usuario (Agregado principal de acceso)
       await this.personalRepository.createUser({
         persona_id: personaId,
         username: data.codigo_interno,
         password_hash: passwordHash,
+        rol_id: data.rol_id,
         must_change_password: true,
-        created_by: creatorId
+        created_by: creatorId,
+        motivo_cambio: 'Registro inicial de personal y usuario'
       });
-
-      // 5. Asignar Rol Inicial
-      await this.personalRepository.assignRole(personaId, data.rol_id, creatorId);
 
       logger.info(`Personal registrado: ${data.codigo_interno}. Contraseña temporal enviada a ${data.email}: ${tempPassword}`);
 
@@ -126,12 +125,23 @@ class PersonalService {
     });
   }
 
-  async updateUserStatus(personaId, newStatus, updaterId, reason) {
-    const user = await this.personalRepository.findUserByPersonaId(personaId);
+  async updateUserStatus(identifier, newStatus, updaterId, reason, useUserId = false) {
+    if (!reason) throw new ValidationError('El motivo del cambio de estado es obligatorio');
+
+    const user = useUserId
+        ? await this.personalRepository.findUserById(identifier)
+        : await this.personalRepository.findUserByPersonaId(identifier);
+
     if (!user) throw new ValidationError('Usuario no encontrado');
 
+    // Regla de Oro: Baja lógica es terminal e irreversible
     if (user.estado_usuario === 'Baja lógica') {
-      throw new ValidationError('Estado terminal: No se pueden realizar cambios en un usuario con Baja lógica');
+      throw new ValidationError('Estado terminal: El usuario se encuentra en Baja lógica (despido/salida definitiva). No se permiten cambios.');
+    }
+
+    const validStatuses = ['Activo', 'Suspendido', 'Bloqueado', 'Baja lógica'];
+    if (!validStatuses.includes(newStatus)) {
+      throw new ValidationError('Estado de usuario no válido');
     }
 
     return await this.personalRepository.withTransaction(async () => {
@@ -176,8 +186,19 @@ class PersonalService {
   async assignOperation(assignmentData, creatorId) {
     const user = await this.personalRepository.findUserByPersonaId(assignmentData.persona_id);
 
-    if (!user || user.estado_usuario !== 'Activo') {
-      throw new ValidationError('Asignación bloqueada: El personal no tiene un usuario en estado Activo');
+    // Un usuario debe estar Activo para ser asignado a operaciones
+    if (!user) {
+      throw new ValidationError('Asignación bloqueada: No se encontró un usuario asociado a esta persona');
+    }
+
+    if (user.estado_usuario !== 'Activo') {
+      throw new ValidationError(`Asignación bloqueada: El usuario se encuentra en estado ${user.estado_usuario}. Solo usuarios en estado Activo pueden participar en la operación.`);
+    }
+
+    // El admin técnico no tiene Persona, por lo que no llegará aquí vía persona_id,
+    // pero reforzamos la validación de seguridad
+    if (user.username === 'admin') {
+      throw new ValidationError('Excepción Técnica: El usuario administrador no puede participar en operaciones.');
     }
 
     return await this.personalRepository.assignOperation({
