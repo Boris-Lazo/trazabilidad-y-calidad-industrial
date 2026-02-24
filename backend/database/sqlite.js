@@ -256,7 +256,7 @@ const runFullSchema = () => {
         email TEXT UNIQUE NOT NULL,
         telefono TEXT,
         fecha_ingreso DATE,
-        estado_laboral TEXT CHECK(estado_laboral IN ('activo', 'inactivo', 'baja')) DEFAULT 'activo',
+        estado_laboral TEXT CHECK(estado_laboral IN ('Activo', 'Inactivo', 'Baja')) DEFAULT 'Activo',
         tipo_personal TEXT CHECK(tipo_personal IN ('operativo', 'administrativo')) NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         created_by TEXT,
@@ -275,12 +275,13 @@ const runFullSchema = () => {
         intentos_fallidos INTEGER DEFAULT 0,
         bloqueado_at DATETIME,
         bloqueado_por INTEGER,
-        estado_usuario TEXT CHECK(estado_usuario IN ('activo', 'suspendido', 'bloqueado')) DEFAULT 'activo',
+        estado_usuario TEXT CHECK(estado_usuario IN ('Activo', 'Suspendido', 'Bloqueado', 'Baja lógica')) DEFAULT 'Activo',
         must_change_password BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         created_by TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_by TEXT,
+        motivo_cambio TEXT,
         FOREIGN KEY (persona_id) REFERENCES personas(id),
         FOREIGN KEY (bloqueado_por) REFERENCES personas(id)
     );`);
@@ -297,6 +298,7 @@ const runFullSchema = () => {
         fecha_asignacion DATETIME DEFAULT CURRENT_TIMESTAMP,
         asignado_por INTEGER,
         activo BOOLEAN DEFAULT 1,
+        motivo_cambio TEXT,
         FOREIGN KEY (persona_id) REFERENCES personas(id),
         FOREIGN KEY (rol_id) REFERENCES roles(id),
         FOREIGN KEY (asignado_por) REFERENCES personas(id)
@@ -315,6 +317,7 @@ const runFullSchema = () => {
         created_by TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_by TEXT,
+        motivo_cambio TEXT,
         FOREIGN KEY (persona_id) REFERENCES personas(id),
         FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id),
         FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
@@ -335,6 +338,7 @@ const runFullSchema = () => {
         created_by TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_by TEXT,
+        motivo_cambio TEXT,
         FOREIGN KEY (persona_id) REFERENCES personas(id),
         FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id),
         FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
@@ -388,41 +392,51 @@ const runFullSchema = () => {
       }
     });
 
-    // Semilla de administrador inicial (Nuevo Modelo)
-    db.get("SELECT COUNT(*) as count FROM personas WHERE codigo_interno = 'admin'", (err, row) => {
+    // Semilla de administrador inicial (Nuevo Modelo - Idempotente)
+    const createAdminUser = (personaId) => {
+      db.get("SELECT id FROM usuarios WHERE persona_id = ?", [personaId], (err, user) => {
+        if (err) return logger.error('Error al verificar usuario admin:', err.message);
+        if (!user) {
+          const hashedPassword = bcrypt.hashSync(adminPassword, 10);
+          db.run("INSERT INTO usuarios (persona_id, username, password_hash, must_change_password, created_by, motivo_cambio) VALUES (?, 'admin', ?, 0, 'SYSTEM', 'Semilla inicial')", [personaId, hashedPassword], (err) => {
+            if (err) logger.error('Error al insertar usuario admin:', err.message);
+            else logger.info('Usuario administrador inicial creado con éxito.');
+          });
+        }
+      });
+    };
+
+    const assignAdminRole = (personaId) => {
+      db.get("SELECT id FROM roles WHERE nombre = 'Administrador'", (err, rol) => {
+        if (err || !rol) return;
+        db.get("SELECT id FROM persona_roles WHERE persona_id = ? AND rol_id = ?", [personaId, rol.id], (err, mapping) => {
+          if (!mapping) {
+            db.run("INSERT INTO persona_roles (persona_id, rol_id, asignado_por, motivo_cambio) VALUES (?, ?, ?, 'Semilla inicial')", [personaId, rol.id, personaId]);
+          }
+        });
+      });
+    };
+
+    db.get("SELECT id FROM personas WHERE codigo_interno = 'admin'", (err, persona) => {
       if (err) {
         logger.error('Error al verificar persona admin:', err.message);
-      } else if (row && row.count === 0) {
-        db.serialize(() => {
-          const hashedPassword = bcrypt.hashSync(adminPassword, 10);
-
-          // 1. Obtener ID de área 'Sistemas'
-          db.get("SELECT id FROM areas WHERE nombre = 'Sistemas'", (err, area) => {
-            const areaId = area ? area.id : 1;
-
-            // 2. Insertar Persona
-            db.run("INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email, tipo_personal, created_by) VALUES ('Admin', 'Sistema', 'admin', ?, 'admin@prodsys.com', 'administrativo', 'SYSTEM')", [areaId], function(err) {
-              if (err) {
-                logger.error('Error al insertar persona admin:', err.message);
-                return;
-              }
-              const personaId = this.lastID;
-
-              // 3. Insertar Usuario
-              db.run("INSERT INTO usuarios (persona_id, username, password_hash, must_change_password, created_by) VALUES (?, 'admin', ?, 0, 'SYSTEM')", [personaId, hashedPassword], (err) => {
-                if (err) logger.error('Error al insertar usuario admin:', err.message);
-                else logger.info('Usuario administrador inicial creado con éxito.');
-              });
-
-              // 4. Asignar Rol Administrador
-              db.get("SELECT id FROM roles WHERE nombre = 'Administrador'", (err, rol) => {
-                if (rol) {
-                  db.run("INSERT INTO persona_roles (persona_id, rol_id, asignado_por) VALUES (?, ?, ?)", [personaId, rol.id, personaId]);
-                }
-              });
-            });
+      } else if (!persona) {
+        db.get("SELECT id FROM areas WHERE nombre = 'Sistemas'", (err, area) => {
+          const areaId = area ? area.id : 1;
+          db.run("INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email, tipo_personal, created_by) VALUES ('Admin', 'Sistema', 'admin', ?, 'admin@prodsys.com', 'administrativo', 'SYSTEM')", [areaId], function(err) {
+            if (err) {
+              logger.error('Error al insertar persona admin:', err.message);
+              return;
+            }
+            const newPersonaId = this.lastID;
+            createAdminUser(newPersonaId);
+            assignAdminRole(newPersonaId);
           });
         });
+      } else {
+        // La persona ya existe, asegurar que tenga usuario y rol
+        createAdminUser(persona.id);
+        assignAdminRole(persona.id);
       }
     });
 

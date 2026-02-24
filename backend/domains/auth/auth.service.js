@@ -26,8 +26,8 @@ class AuthService {
     const user = await this.authRepository.findByUsername(username);
 
     if (user) {
-        if (user.estado_usuario !== 'activo') {
-            throw new UnauthorizedError(`Cuenta ${user.estado_usuario}`);
+        if (user.estado_usuario !== 'Activo') {
+            throw new UnauthorizedError(`Acceso denegado: Cuenta en estado ${user.estado_usuario}`);
         }
         if (user.bloqueado_at) {
             // Podríamos implementar lógica de desbloqueo por tiempo aquí si fuera necesario
