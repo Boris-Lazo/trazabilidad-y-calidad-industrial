@@ -57,7 +57,16 @@ echo -e "-------------------------------------------------------"
 echo -e "${YELLOW}¿Deseas iniciar el servidor ahora? (s/n)${NC}"
 read -r response
 if [[ "$response" =~ ^([sS][iI]|[sS])$ ]]; then
+    # Matar cualquier proceso en el puerto 3000
+    echo -e "${YELLOW}Cerrando cualquier proceso existente en el puerto 3000...${NC}"
+    if lsof -ti :3000; then
+        kill -9 $(lsof -ti :3000)
+        echo -e "${GREEN}Proceso en el puerto 3000 cerrado con éxito.${NC}"
+    else
+        echo -e "${BLUE}No hay procesos en el puerto 3000.${NC}"
+    fi
     echo -e "${GREEN}Iniciando servidor en modo desarrollo...${NC}"
+    echo -e "Puedes ver tu proyecto en: ${GREEN}http://localhost:3000${NC}"
     npm run dev
 else
     echo -e "Puedes iniciar el servidor más tarde con: ${GREEN}npm run dev${NC}"
