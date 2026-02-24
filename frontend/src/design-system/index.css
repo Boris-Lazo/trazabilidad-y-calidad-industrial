@@ -230,6 +230,15 @@ a { text-decoration: none; color: inherit; }
     padding-left: calc(var(--space-2) + 20px);
 }
 
+.nav-section-label {
+    padding: 12px var(--space-2) 4px calc(var(--space-2) + 8px);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.5px;
+}
+
 .nav-item-single {
     padding-left: var(--space-2);
     color: var(--sidebar-text);

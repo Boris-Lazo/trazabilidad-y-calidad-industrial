@@ -4,7 +4,7 @@
     <script src="/design-system/theme/index.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Personal | PROD-SYS</title>
+    <title>Gestión de Colaboradores | PROD-SYS</title>
     <link rel="stylesheet" href="/design-system/index.css">
     <script src="js/auth.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -46,16 +46,20 @@
                     </div>
                 </div>
 
-                <div class="nav-group open">
+                                <div class="nav-group open" id="nav-group-admin">
                     <button class="nav-group-toggle">
                         <i data-lucide="settings" class="nav-icon"></i>
-                        <span>Sistema</span>
+                        <span>Administración</span>
                         <i data-lucide="chevron-right" class="chevron"></i>
                     </button>
                     <div class="nav-group-items">
-                        <a href="/personal.html" class="nav-item active">Personal</a>
-                        <a href="/configuracion.html" class="nav-item">Configuración</a>
-                        <a href="/auditoria.html" class="nav-item">Auditoría</a>
+                        <div class="nav-section-label">Colaboradores</div>
+                        <a href="/personal.html" class="nav-item active">Lista</a>
+                        <a href="/grupos.html" class="nav-item ">Grupos</a>
+                        <a href="/personal.html?view=usuarios" class="nav-item ">Usuarios</a>
+                        <div class="nav-section-label">Sistema</div>
+                        <a href="/configuracion.html" class="nav-item ">Configuración</a>
+                        <a href="/auditoria.html" class="nav-item ">Auditoría</a>
                     </div>
                 </div>
             </nav>
@@ -73,14 +77,14 @@
 
         <div class="main-container">
             <header class="topbar">
-                <h1>Gestión de Personal y Usuarios</h1>
+                <h1 id="page-title">Gestión de Colaboradores</h1>
                 <div class="topbar-actions">
                     <button id="theme-toggle" class="btn btn-secondary">
                         <i data-lucide="sun" class="sun-icon"></i>
                         <i data-lucide="moon" class="moon-icon"></i>
                     </button>
                     <button id="btn-nuevo-personal" class="btn btn-primary">
-                        <i data-lucide="user-plus"></i> Nuevo Personal
+                        <i data-lucide="user-plus"></i> Nuevo Colaborador
                     </button>
                 </div>
             </header>
@@ -90,7 +94,7 @@
                 <div class="card mb-4">
                     <div class="card-body" style="display: flex; gap: 16px; align-items: flex-end;">
                         <div class="form-group mb-0" style="flex: 1;">
-                            <label class="form-label">Buscar por nombre o código</label>
+                            <label class="form-label">Buscar colaborador</label>
                             <input type="text" id="search-staff" class="form-control" placeholder="Ej: Juan Perez o 12345">
                         </div>
                         <div class="form-group mb-0" style="width: 200px;">
@@ -102,8 +106,8 @@
                     </div>
                 </div>
 
-                <!-- Tabla de Personal -->
-                <div class="card">
+                <!-- Tabla de Colaboradores -->
+                <div class="card" id="card-tabla-colaboradores">
                     <div class="table-container">
                         <table class="table" id="tabla-personal">
                             <thead>
@@ -113,13 +117,13 @@
                                     <th>Área</th>
                                     <th>Rol</th>
                                     <th>Estado Laboral</th>
-                                    <th>Estado Usuario</th>
+                                    <th class="col-usuario">Estado Usuario</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="lista-personal">
                                 <tr>
-                                    <td colspan="7" class="text-center py-4">Cargando personal...</td>
+                                    <td colspan="7" class="text-center py-4">Cargando colaboradores...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -129,11 +133,11 @@
         </div>
     </div>
 
-    <!-- Modal Nuevo Personal -->
+    <!-- Modal Nuevo Colaborador -->
     <div id="modal-personal" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
-                <h2 id="modal-title">Registrar Nuevo Personal</h2>
+                <h2 id="modal-title">Registrar Nuevo Colaborador</h2>
                 <button class="btn-close" onclick="closeModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -150,7 +154,7 @@
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group">
-                            <label class="form-label">Código Interno (Login)</label>
+                            <label class="form-label">Código Interno</label>
                             <input type="text" id="p-codigo" class="form-control" required>
                         </div>
                         <div class="form-group">
@@ -170,7 +174,7 @@
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group">
-                            <label class="form-label">Tipo Personal</label>
+                            <label class="form-label">Tipo Colaborador</label>
                             <select id="p-tipo" class="form-control" required>
                                 <option value="operativo">Operativo</option>
                                 <option value="administrativo">Administrativo</option>
@@ -212,7 +216,7 @@
     <div id="modal-detalle" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
-                <h2 id="detail-title">Detalle de Personal</h2>
+                <h2 id="detail-title">Detalle de Colaborador</h2>
                 <button class="btn-close" onclick="closeDetailModal()">&times;</button>
             </div>
             <div class="modal-body">
