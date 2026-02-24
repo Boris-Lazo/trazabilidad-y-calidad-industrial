@@ -47,6 +47,38 @@ class TelaresRepository {
     `, [bitacoraId, maquinaId, estado, observacion]);
   }
 
+  async getProcesoTelaresId() {
+    const proceso = await this.db.get("SELECT id FROM PROCESO_TIPO WHERE nombre = 'Telares'");
+    return proceso ? proceso.id : 2;
+  }
+
+  async getOrdenEspecificaciones(ordenId) {
+    return await this.db.get("SELECT especificaciones FROM orden_produccion WHERE id = ?", [ordenId]);
+  }
+
+  async deleteMachineRecords(bitacoraId, maquinaId) {
+    await this.db.run("DELETE FROM registros_trabajo WHERE bitacora_id = ? AND maquina_id = ?", [bitacoraId, maquinaId]);
+    await this.db.run("DELETE FROM muestras WHERE bitacora_id = ? AND maquina_id = ?", [bitacoraId, maquinaId]);
+    await this.db.run("DELETE FROM calidad_telares_visual WHERE bitacora_id = ? AND maquina_id = ?", [bitacoraId, maquinaId]);
+    await this.db.run("DELETE FROM incidentes WHERE bitacora_id = ? AND maquina_id = ?", [bitacoraId, maquinaId]);
+  }
+
+  async saveDefectoVisual(data) {
+    const { bitacora_id, maquina_id, orden_id, rollo_numero, tipo_defecto, observacion, usuario_modificacion } = data;
+    return await this.db.run(
+      "INSERT INTO calidad_telares_visual (bitacora_id, maquina_id, orden_id, rollo_numero, tipo_defecto, observacion, usuario_modificacion, fecha_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+      [bitacora_id, maquina_id, orden_id, rollo_numero, tipo_defecto, observacion, usuario_modificacion]
+    );
+  }
+
+  async saveIncidente(data) {
+    const { titulo, descripcion, severidad, maquina_id, bitacora_id } = data;
+    return await this.db.run(
+      "INSERT INTO incidentes (titulo, descripcion, severidad, maquina_id, bitacora_id, fecha_creacion, estado) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'abierto')",
+      [titulo, descripcion, severidad, maquina_id, bitacora_id]
+    );
+  }
+
   async withTransaction(fn) {
     return await this.db.withTransaction(fn);
   }

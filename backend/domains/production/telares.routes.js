@@ -11,6 +11,7 @@ const IncidenteRepository = require('./incidente.repository');
 const sqlite = require('../../database/sqlite');
 const authMiddleware = require('../../middlewares/auth.middleware');
 const authorize = require('../../middlewares/authorize');
+const { PERMISSIONS } = require('../../shared/auth/permissions');
 
 const telaresRepo = new TelaresRepository(sqlite);
 const lineaRepo = new LineaEjecucionRepository(sqlite);
@@ -21,11 +22,9 @@ const incidenteRepo = new IncidenteRepository(sqlite);
 const telaresService = new TelaresService(telaresRepo, lineaRepo, registroRepo, muestraRepo, incidenteRepo);
 const telaresController = new TelaresController(telaresService);
 
-router.use(authMiddleware);
-
 router.get('/resumen', telaresController.getResumen);
 router.get('/paro-tipos', telaresController.getParoTipos);
 router.get('/detalle/:maquinaId', telaresController.getDetalle);
-router.post('/guardar', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR'), telaresController.guardarDetalle);
+router.post('/guardar', authorize(PERMISSIONS.MANAGE_QUALITY), telaresController.guardarDetalle);
 
 module.exports = router;
