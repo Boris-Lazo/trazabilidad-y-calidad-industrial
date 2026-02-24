@@ -62,11 +62,11 @@ class AuthService {
     await this.authRepository.resetLoginAttempts(user.id);
 
     const payload = {
-      id: user.persona_id, // Usamos persona_id como ID principal para auditoría
+      id: user.persona_id, // Null para usuario técnico admin
       usuario_id: user.id,
       username: user.username,
       rol: user.rol,
-      nombre: `${user.nombre} ${user.apellido}`,
+      nombre: user.persona_id ? `${user.nombre} ${user.apellido}` : 'Administrador de Sistema',
       must_change_password: !!user.must_change_password
     };
 
