@@ -95,6 +95,13 @@ class GruposService {
     const grupo = await this.gruposRepository.getGrupoById(grupoId);
     if (!grupo) throw new ValidationError('Grupo no encontrado');
 
+    // Validar membresía activa
+    const actuales = await this.gruposRepository.getIntegrantesByGrupo(grupoId);
+    const esMiembro = actuales.find(i => i.persona_id === parseInt(personaId));
+    if (!esMiembro) {
+      throw new ValidationError('El colaborador no pertenece a este grupo');
+    }
+
     return await this.gruposRepository.withTransaction(async () => {
       await this.gruposRepository.removeIntegrante(grupoId, personaId);
 
