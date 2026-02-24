@@ -5,9 +5,13 @@ const PersonalService = require('./personal.service');
 const PersonalRepository = require('./personal.repository');
 const sqlite = require('../../database/sqlite');
 const authorize = require('../../middlewares/authorize');
+const AuditRepository = require('../../shared/audit/AuditRepository');
+const AuditService = require('../../shared/audit/AuditService');
 
 const personalRepository = new PersonalRepository(sqlite);
-const personalService = new PersonalService(personalRepository);
+const auditRepository = new AuditRepository(sqlite);
+const auditService = new AuditService(auditRepository);
+const personalService = new PersonalService(personalRepository, auditService);
 const personalController = new PersonalController(personalService);
 
 // Todas las rutas de gestión de personal requieren ser ADMIN
