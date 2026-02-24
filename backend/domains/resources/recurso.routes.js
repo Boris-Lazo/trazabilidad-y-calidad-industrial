@@ -4,6 +4,7 @@ const RecursoService = require('./recurso.service');
 const RecursoController = require('./recurso.controller');
 const sqlite = require('../../database/sqlite');
 const authorize = require('../../middlewares/authorize');
+const { PERMISSIONS } = require('../../shared/auth/permissions');
 
 const recursoRepository = new RecursoRepository(sqlite);
 const recursoService = new RecursoService(recursoRepository);
@@ -12,6 +13,6 @@ const recursoController = new RecursoController(recursoService);
 const router = express.Router();
 
 router.get('/', recursoController.getAll);
-router.post('/', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR'), recursoController.create);
+router.post('/', authorize(PERMISSIONS.MANAGE_PRODUCTION), recursoController.create);
 
 module.exports = router;
