@@ -4,6 +4,7 @@ const ValidationError = require('../../shared/errors/ValidationError');
 describe('PersonalService', () => {
     let personalService;
     let personalRepositoryMock;
+    let auditServiceMock;
 
     beforeEach(() => {
         personalRepositoryMock = {
@@ -14,34 +15,114 @@ describe('PersonalService', () => {
             createPersona: jest.fn(),
             createUser: jest.fn(),
             assignRole: jest.fn(),
+            findUserByPersonaId: jest.fn(),
+            updateUserStatus: jest.fn(),
+            updateUserRole: jest.fn(),
+            assignOperation: jest.fn(),
             withTransaction: jest.fn(fn => fn())
         };
-        personalService = new PersonalService(personalRepositoryMock);
+        auditServiceMock = {
+            logChange: jest.fn(),
+            logStatusChange: jest.fn(),
+            logUpdate: jest.fn()
+        };
+        personalService = new PersonalService(personalRepositoryMock, auditServiceMock);
     });
 
-    test('registerStaff lanza error si el código interno ya existe', async () => {
-        personalRepositoryMock.findByCodigoInterno.mockResolvedValue({ id: 1 });
+    describe('registerStaff', () => {
+        test('lanza error si el código interno ya existe', async () => {
+            personalRepositoryMock.findByCodigoInterno.mockResolvedValue({ id: 1 });
 
-        await expect(personalService.registerStaff({ codigo_interno: '123' }, 1))
-            .rejects.toThrow(ValidationError);
+            await expect(personalService.registerStaff({ codigo_interno: '123' }, 1))
+                .rejects.toThrow(ValidationError);
+        });
+
+        test('crea persona, usuario y rol exitosamente', async () => {
+            personalRepositoryMock.findByCodigoInterno.mockResolvedValue(null);
+            personalRepositoryMock.findByEmail.mockResolvedValue(null);
+            personalRepositoryMock.createPersona.mockResolvedValue(1);
+
+            const result = await personalService.registerStaff({
+                nombre: 'Juan',
+                apellido: 'Perez',
+                codigo_interno: '123',
+                email: 'juan@test.com',
+                rol_id: 1
+            }, 99);
+
+            expect(personalRepositoryMock.createPersona).toHaveBeenCalled();
+            expect(personalRepositoryMock.createUser).toHaveBeenCalled();
+            expect(personalRepositoryMock.assignRole).toHaveBeenCalled();
+            expect(result).toHaveProperty('tempPassword');
+        });
     });
 
-    test('registerStaff crea persona, usuario y rol exitosamente', async () => {
-        personalRepositoryMock.findByCodigoInterno.mockResolvedValue(null);
-        personalRepositoryMock.findByEmail.mockResolvedValue(null);
-        personalRepositoryMock.createPersona.mockResolvedValue(1);
+    describe('updateUserStatus', () => {
+        test('lanza error si el usuario está en Baja lógica', async () => {
+            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ id: 1, estado_usuario: 'Baja lógica' });
 
-        const result = await personalService.registerStaff({
-            nombre: 'Juan',
-            apellido: 'Perez',
-            codigo_interno: '123',
-            email: 'juan@test.com',
-            rol_id: 1
-        }, 99);
+            await expect(personalService.updateUserStatus(1, 'Activo', 99, 'Reactivación'))
+                .rejects.toThrow(/Estado terminal/);
+        });
 
-        expect(personalRepositoryMock.createPersona).toHaveBeenCalled();
-        expect(personalRepositoryMock.createUser).toHaveBeenCalled();
-        expect(personalRepositoryMock.assignRole).toHaveBeenCalled();
-        expect(result).toHaveProperty('tempPassword');
+        test('actualiza el estado correctamente', async () => {
+            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ id: 1, estado_usuario: 'Suspendido' });
+
+            await personalService.updateUserStatus(1, 'Activo', 99, 'Reactivación');
+
+            expect(personalRepositoryMock.updateUserStatus).toHaveBeenCalledWith(1, 'Activo', 99, 'Reactivación');
+            expect(auditServiceMock.logStatusChange).toHaveBeenCalled();
+        });
+    });
+
+    describe('reactivateUser', () => {
+        test('lanza error si el usuario está en Baja lógica', async () => {
+            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ id: 1, estado_usuario: 'Baja lógica' });
+
+            await expect(personalService.reactivateUser(1, 99, 'Reactivación'))
+                .rejects.toThrow(/Baja lógica es irreversible/);
+        });
+
+        test('reactiva un usuario suspendido', async () => {
+            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ id: 1, estado_usuario: 'Suspendido' });
+
+            await personalService.reactivateUser(1, 99, 'Reactivación');
+
+            expect(personalRepositoryMock.updateUserStatus).toHaveBeenCalledWith(1, 'Activo', 99, 'Reactivación');
+            expect(auditServiceMock.logChange).toHaveBeenCalledWith(expect.objectContaining({
+                accion: 'REACTIVACION_USUARIO'
+            }));
+        });
+    });
+
+    describe('assignOperation', () => {
+        test('bloquea asignación si el usuario no está Activo', async () => {
+            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ persona_id: 1, estado_usuario: 'Suspendido' });
+
+            await expect(personalService.assignOperation({ persona_id: 1, turno: 'Mañana' }, 99))
+                .rejects.toThrow(/Asignación bloqueada/);
+        });
+
+        test('permite asignación si el usuario está Activo', async () => {
+            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ persona_id: 1, estado_usuario: 'Activo' });
+
+            await personalService.assignOperation({ persona_id: 1, turno: 'Mañana' }, 99);
+
+            expect(personalRepositoryMock.assignOperation).toHaveBeenCalled();
+        });
+    });
+
+    describe('assignRole', () => {
+        test('realiza auditoría reforzada al cambiar rol', async () => {
+            personalRepositoryMock.getPersonaById.mockResolvedValue({ id: 1, rol_actual: 'Operario' });
+
+            await personalService.assignRole(1, 2, 99, 'Ascenso a Supervisor');
+
+            expect(personalRepositoryMock.updateUserRole).toHaveBeenCalledWith(1, 2, 99, 'Ascenso a Supervisor');
+            expect(auditServiceMock.logChange).toHaveBeenCalledWith(expect.objectContaining({
+                accion: 'ROLE_CHANGE',
+                motivo_cambio: 'Ascenso a Supervisor'
+            }));
+        });
     });
 });

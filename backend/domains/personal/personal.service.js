@@ -66,9 +66,18 @@ class PersonalService {
     });
   }
 
+  async _checkTerminalState(personaId) {
+    const user = await this.personalRepository.findUserByPersonaId(personaId);
+    if (user && user.estado_usuario === 'Baja lógica') {
+      throw new ValidationError('Estado terminal: No se pueden realizar cambios en un usuario con Baja lógica');
+    }
+  }
+
   async updateStaff(id, data, updaterId) {
     const persona = await this.personalRepository.getPersonaById(id);
     if (!persona) throw new ValidationError('Persona no encontrada');
+
+    await this._checkTerminalState(id);
 
     await this.personalRepository.updatePersona(id, {
       ...data,
@@ -91,11 +100,86 @@ class PersonalService {
     return { areas, roles };
   }
 
-  async assignRole(personaId, rolId, assignerId) {
-    return await this.personalRepository.assignRole(personaId, rolId, assignerId);
+  async assignRole(personaId, rolId, assignerId, reason) {
+    if (!reason) throw new ValidationError('El motivo del cambio de rol es obligatorio');
+
+    const persona = await this.personalRepository.getPersonaById(personaId);
+    if (!persona) throw new ValidationError('Persona no encontrada');
+
+    await this._checkTerminalState(personaId);
+
+    return await this.personalRepository.withTransaction(async () => {
+      await this.personalRepository.updateUserRole(personaId, rolId, assignerId, reason);
+
+      // Auditoría reforzada para cambio de rol
+      await this.auditService.logChange({
+        usuario: assignerId,
+        accion: 'ROLE_CHANGE',
+        entidad: 'Persona',
+        entidad_id: personaId,
+        valor_anterior: { rol: persona.rol_actual },
+        valor_nuevo: { rol_id: rolId },
+        motivo_cambio: reason
+      });
+
+      return true;
+    });
+  }
+
+  async updateUserStatus(personaId, newStatus, updaterId, reason) {
+    const user = await this.personalRepository.findUserByPersonaId(personaId);
+    if (!user) throw new ValidationError('Usuario no encontrado');
+
+    if (user.estado_usuario === 'Baja lógica') {
+      throw new ValidationError('Estado terminal: No se pueden realizar cambios en un usuario con Baja lógica');
+    }
+
+    return await this.personalRepository.withTransaction(async () => {
+      await this.personalRepository.updateUserStatus(user.id, newStatus, updaterId, reason);
+
+      await this.auditService.logStatusChange(updaterId, 'Usuario', user.id, user.estado_usuario, newStatus, reason);
+
+      return true;
+    });
+  }
+
+  async reactivateUser(personaId, updaterId, reason) {
+    const user = await this.personalRepository.findUserByPersonaId(personaId);
+    if (!user) throw new ValidationError('Usuario no encontrado');
+
+    if (user.estado_usuario === 'Baja lógica') {
+      throw new ValidationError('La Baja lógica es irreversible. No se puede reactivar el usuario.');
+    }
+
+    if (user.estado_usuario === 'Activo') {
+      throw new ValidationError('El usuario ya se encuentra Activo');
+    }
+
+    return await this.personalRepository.withTransaction(async () => {
+      await this.personalRepository.updateUserStatus(user.id, 'Activo', updaterId, reason);
+
+      // Auditoría reforzada para reactivación
+      await this.auditService.logChange({
+        usuario: updaterId,
+        accion: 'REACTIVACION_USUARIO',
+        entidad: 'Usuario',
+        entidad_id: user.id,
+        valor_anterior: { estado: user.estado_usuario },
+        valor_nuevo: { estado: 'Activo' },
+        motivo_cambio: reason
+      });
+
+      return true;
+    });
   }
 
   async assignOperation(assignmentData, creatorId) {
+    const user = await this.personalRepository.findUserByPersonaId(assignmentData.persona_id);
+
+    if (!user || user.estado_usuario !== 'Activo') {
+      throw new ValidationError('Asignación bloqueada: El personal no tiene un usuario en estado Activo');
+    }
+
     return await this.personalRepository.assignOperation({
       ...assignmentData,
       created_by: creatorId

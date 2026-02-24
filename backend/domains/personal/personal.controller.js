@@ -35,7 +35,8 @@ class PersonalController {
       });
     } catch (error) {
       if (error.name === 'ZodError') {
-        return next(new ValidationError('Error de validación', error.errors));
+        const message = error.errors.map(e => e.message).join('. ');
+        return next(new ValidationError(message));
       }
       next(error);
     }
@@ -48,7 +49,8 @@ class PersonalController {
       res.json({ success: true, message: 'Personal actualizado correctamente.' });
     } catch (error) {
       if (error.name === 'ZodError') {
-        return next(new ValidationError('Error de validación', error.errors));
+        const message = error.errors.map(e => e.message).join('. ');
+        return next(new ValidationError(message));
       }
       next(error);
     }
@@ -65,10 +67,42 @@ class PersonalController {
 
   async assignRole(req, res, next) {
     try {
-      const { rol_id } = personalValidation.assignRole.parse(req.body);
-      await this.personalService.assignRole(req.params.id, rol_id, req.user.id);
+      const { rol_id, motivo_cambio } = personalValidation.assignRole.parse(req.body);
+      await this.personalService.assignRole(req.params.id, rol_id, req.user.id, motivo_cambio);
       res.json({ success: true, message: 'Rol asignado correctamente.' });
     } catch (error) {
+      if (error.name === 'ZodError') {
+        const message = error.errors.map(e => e.message).join('. ');
+        return next(new ValidationError(message));
+      }
+      next(error);
+    }
+  }
+
+  async updateStatus(req, res, next) {
+    try {
+      const { estado_usuario, motivo_cambio } = personalValidation.updateStatus.parse(req.body);
+      await this.personalService.updateUserStatus(req.params.id, estado_usuario, req.user.id, motivo_cambio);
+      res.json({ success: true, message: `Estado de usuario actualizado a ${estado_usuario}.` });
+    } catch (error) {
+      if (error.name === 'ZodError') {
+        const message = error.errors.map(e => e.message).join('. ');
+        return next(new ValidationError(message));
+      }
+      next(error);
+    }
+  }
+
+  async reactivateUser(req, res, next) {
+    try {
+      const { motivo_cambio } = personalValidation.reactivateUser.parse(req.body);
+      await this.personalService.reactivateUser(req.params.id, req.user.id, motivo_cambio);
+      res.json({ success: true, message: 'Usuario reactivado correctamente.' });
+    } catch (error) {
+      if (error.name === 'ZodError') {
+        const message = error.errors.map(e => e.message).join('. ');
+        return next(new ValidationError(message));
+      }
       next(error);
     }
   }
@@ -82,6 +116,10 @@ class PersonalController {
       }, req.user.id);
       res.json({ success: true, message: 'Asignación operativa registrada correctamente.' });
     } catch (error) {
+      if (error.name === 'ZodError') {
+        const message = error.errors.map(e => e.message).join('. ');
+        return next(new ValidationError(message));
+      }
       next(error);
     }
   }

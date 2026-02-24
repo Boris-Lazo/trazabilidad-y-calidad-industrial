@@ -256,7 +256,7 @@ const runFullSchema = () => {
         email TEXT UNIQUE NOT NULL,
         telefono TEXT,
         fecha_ingreso DATE,
-        estado_laboral TEXT CHECK(estado_laboral IN ('activo', 'inactivo', 'baja')) DEFAULT 'activo',
+        estado_laboral TEXT CHECK(estado_laboral IN ('Activo', 'Inactivo', 'Baja')) DEFAULT 'Activo',
         tipo_personal TEXT CHECK(tipo_personal IN ('operativo', 'administrativo')) NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         created_by TEXT,
@@ -275,12 +275,13 @@ const runFullSchema = () => {
         intentos_fallidos INTEGER DEFAULT 0,
         bloqueado_at DATETIME,
         bloqueado_por INTEGER,
-        estado_usuario TEXT CHECK(estado_usuario IN ('activo', 'suspendido', 'bloqueado')) DEFAULT 'activo',
+        estado_usuario TEXT CHECK(estado_usuario IN ('Activo', 'Suspendido', 'Bloqueado', 'Baja lógica')) DEFAULT 'Activo',
         must_change_password BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         created_by TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_by TEXT,
+        motivo_cambio TEXT,
         FOREIGN KEY (persona_id) REFERENCES personas(id),
         FOREIGN KEY (bloqueado_por) REFERENCES personas(id)
     );`);
@@ -297,6 +298,7 @@ const runFullSchema = () => {
         fecha_asignacion DATETIME DEFAULT CURRENT_TIMESTAMP,
         asignado_por INTEGER,
         activo BOOLEAN DEFAULT 1,
+        motivo_cambio TEXT,
         FOREIGN KEY (persona_id) REFERENCES personas(id),
         FOREIGN KEY (rol_id) REFERENCES roles(id),
         FOREIGN KEY (asignado_por) REFERENCES personas(id)

@@ -27,7 +27,7 @@ describe('AuthService', () => {
             rol: 'Administrador',
             nombre: 'Test',
             apellido: 'User',
-            estado_usuario: 'activo'
+            estado_usuario: 'Activo'
         };
         authRepositoryMock.findByUsername.mockResolvedValue(user);
 
@@ -60,7 +60,7 @@ describe('AuthService', () => {
             id: 1,
             username: 'testuser',
             password_hash: 'hashedpassword',
-            estado_usuario: 'activo'
+            estado_usuario: 'Activo'
         };
         authRepositoryMock.findByUsername.mockResolvedValue(user);
         const bcrypt = require('bcrypt');

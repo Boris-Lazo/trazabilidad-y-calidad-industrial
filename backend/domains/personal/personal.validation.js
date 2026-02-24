@@ -14,14 +14,28 @@ const personalValidation = {
   }),
 
   updatePersona: z.object({
+    nombre: z.string().min(1).optional(),
+    apellido: z.string().min(1).optional(),
     email: z.string().email('Email inválido').optional(),
     telefono: z.string().optional(),
-    estado_laboral: z.enum(['activo', 'inactivo', 'baja_definitiva']).optional(),
+    estado_laboral: z.enum(['Activo', 'Inactivo', 'Baja']).optional(),
     motivo_cambio: z.string().min(5, 'El motivo del cambio debe tener al menos 5 caracteres'),
   }),
 
+  updateStatus: z.object({
+    estado_usuario: z.enum(['Activo', 'Suspendido', 'Bloqueado', 'Baja lógica'], {
+        error_map: () => ({ message: 'Estado de usuario inválido' })
+    }),
+    motivo_cambio: z.string({ required_error: 'El motivo del cambio es obligatorio' }).min(5, 'El motivo del cambio debe ser descriptivo (min 5 caracteres)'),
+  }),
+
+  reactivateUser: z.object({
+    motivo_cambio: z.string({ required_error: 'El motivo de reactivación es obligatorio' }).min(5, 'El motivo de reactivación es obligatorio'),
+  }),
+
   assignRole: z.object({
-    rol_id: z.number().int().positive(),
+    rol_id: z.number({ required_error: 'El rol es obligatorio' }).int().positive(),
+    motivo_cambio: z.string({ required_error: 'El motivo del cambio de rol es obligatorio' }).min(5, 'El motivo del cambio de rol es obligatorio'),
   }),
 
   assignOperation: z.object({

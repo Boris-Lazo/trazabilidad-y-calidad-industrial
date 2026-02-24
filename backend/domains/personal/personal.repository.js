@@ -51,8 +51,10 @@ class PersonalRepository {
     const fields = [];
     const params = [];
 
+    const allowedFields = ['nombre', 'apellido', 'email', 'telefono', 'estado_laboral', 'updated_by', 'motivo_cambio'];
+
     Object.keys(updateData).forEach(key => {
-      if (['email', 'telefono', 'estado_laboral', 'updated_by', 'motivo_cambio'].includes(key)) {
+      if (allowedFields.includes(key)) {
         fields.push(`${key} = ?`);
         params.push(updateData[key]);
       }
@@ -63,6 +65,32 @@ class PersonalRepository {
 
     const sql = `UPDATE personas SET ${fields.join(', ')} WHERE id = ?`;
     return await db.run(sql, params);
+  }
+
+  async findUserByPersonaId(personaId) {
+    return await this.db.get('SELECT * FROM usuarios WHERE persona_id = ?', [personaId]);
+  }
+
+  async updateUserStatus(userId, status, updaterId, reason, tx) {
+    const db = tx || this.db;
+    const sql = `
+      UPDATE usuarios
+      SET estado_usuario = ?, updated_by = ?, motivo_cambio = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `;
+    return await db.run(sql, [status, updaterId, reason, userId]);
+  }
+
+  async updateUserRole(personaId, roleId, updaterId, reason, tx) {
+    const db = tx || this.db;
+    // Deactivate current role
+    await db.run('UPDATE persona_roles SET activo = 0 WHERE persona_id = ?', [personaId]);
+
+    const sql = `
+      INSERT INTO persona_roles (persona_id, rol_id, asignado_por, activo, motivo_cambio)
+      VALUES (?, ?, ?, 1, ?)
+    `;
+    return await db.run(sql, [personaId, roleId, updaterId, reason]);
   }
 
   async createUser(userData, tx) {
@@ -84,8 +112,8 @@ class PersonalRepository {
     await db.run('UPDATE persona_roles SET activo = 0 WHERE persona_id = ?', [personaId]);
 
     const sql = `
-      INSERT INTO persona_roles (persona_id, rol_id, asignado_por, activo)
-      VALUES (?, ?, ?, 1)
+      INSERT INTO persona_roles (persona_id, rol_id, asignado_por, activo, motivo_cambio)
+      VALUES (?, ?, ?, 1, 'Asignación inicial')
     `;
     return await db.run(sql, [personaId, rolId, assignedBy]);
   }

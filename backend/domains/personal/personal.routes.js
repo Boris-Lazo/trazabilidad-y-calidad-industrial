@@ -21,6 +21,8 @@ router.get('/:id', authorize('Administrador', 'ADMIN'), (req, res, next) => pers
 router.post('/', authorize('Administrador', 'ADMIN'), (req, res, next) => personalController.registerStaff(req, res, next));
 router.put('/:id', authorize('Administrador', 'ADMIN'), (req, res, next) => personalController.updateStaff(req, res, next));
 router.post('/:id/rol', authorize('Administrador', 'ADMIN'), (req, res, next) => personalController.assignRole(req, res, next));
+router.put('/:id/estado', authorize('Administrador', 'ADMIN'), (req, res, next) => personalController.updateStatus(req, res, next));
+router.put('/:id/reactivar', authorize('Administrador', 'ADMIN'), (req, res, next) => personalController.reactivateUser(req, res, next));
 
 // Asignaciones operativas pueden ser hechas por Inspector o Supervisor también
 router.post('/:id/asignacion', authorize('Administrador', 'ADMIN', 'Inspector', 'Supervisor'), (req, res, next) => personalController.assignOperation(req, res, next));
