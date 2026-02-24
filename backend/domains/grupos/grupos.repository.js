@@ -10,13 +10,12 @@ class GruposRepository {
     return await this.db.query(sql);
   }
 
-  async createGrupo(data, tx) {
-    const db = tx || this.db;
+  async createGrupo(data) {
     const sql = `
       INSERT INTO grupos (nombre, tipo, turno_actual)
       VALUES (?, ?, ?)
     `;
-    const result = await db.run(sql, [data.nombre, data.tipo, data.turno_actual]);
+    const result = await this.db.run(sql, [data.nombre, data.tipo, data.turno_actual]);
     return result.lastID;
   }
 
@@ -40,23 +39,32 @@ class GruposRepository {
     return await this.db.query(sql, [grupoId]);
   }
 
-  async addIntegrante(data, tx) {
-    const db = tx || this.db;
+  async getHistorialIntegrantesByGrupo(grupoId) {
+    const sql = `
+      SELECT gi.*, p.nombre, p.apellido, p.codigo_interno, p.tipo_personal
+      FROM grupo_integrantes gi
+      JOIN personas p ON gi.persona_id = p.id
+      WHERE gi.grupo_id = ?
+      ORDER BY gi.fecha_desde DESC
+    `;
+    return await this.db.query(sql, [grupoId]);
+  }
+
+  async addIntegrante(data) {
     const sql = `
       INSERT INTO grupo_integrantes (grupo_id, persona_id, motivo, asignado_por)
       VALUES (?, ?, ?, ?)
     `;
-    return await db.run(sql, [data.grupo_id, data.persona_id, data.motivo, data.asignado_por]);
+    return await this.db.run(sql, [data.grupo_id, data.persona_id, data.motivo, data.asignado_por]);
   }
 
-  async removeIntegrante(grupoId, personaId, tx) {
-    const db = tx || this.db;
+  async removeIntegrante(grupoId, personaId) {
     const sql = `
       UPDATE grupo_integrantes
       SET fecha_hasta = CURRENT_TIMESTAMP
       WHERE grupo_id = ? AND persona_id = ? AND fecha_hasta IS NULL
     `;
-    return await db.run(sql, [grupoId, personaId]);
+    return await this.db.run(sql, [grupoId, personaId]);
   }
 
   async getRolesOperativos() {
@@ -74,10 +82,9 @@ class GruposRepository {
     return await this.db.query(sql, [personaId]);
   }
 
-  async assignRolOperativo(data, tx) {
-    const db = tx || this.db;
+  async assignRolOperativo(data) {
     // Close current role
-    await db.run(
+    await this.db.run(
       'UPDATE persona_roles_operativos SET fecha_hasta = CURRENT_TIMESTAMP WHERE persona_id = ? AND fecha_hasta IS NULL',
       [data.persona_id]
     );
@@ -86,13 +93,12 @@ class GruposRepository {
       INSERT INTO persona_roles_operativos (persona_id, rol_operativo_id, motivo, asignado_por)
       VALUES (?, ?, ?, ?)
     `;
-    return await db.run(sql, [data.persona_id, data.rol_operativo_id, data.motivo, data.asignado_por]);
+    return await this.db.run(sql, [data.persona_id, data.rol_operativo_id, data.motivo, data.asignado_por]);
   }
 
-  async updateTurnoGrupo(grupoId, nuevoTurno, tx) {
-    const db = tx || this.db;
+  async updateTurnoGrupo(grupoId, nuevoTurno) {
     const sql = `UPDATE grupos SET turno_actual = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-    return await db.run(sql, [nuevoTurno, grupoId]);
+    return await this.db.run(sql, [nuevoTurno, grupoId]);
   }
 
   async withTransaction(fn) {

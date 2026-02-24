@@ -56,7 +56,10 @@ class PersonalService {
         motivo_cambio: 'Registro inicial de personal y usuario'
       });
 
-      logger.info(`Personal registrado: ${data.codigo_interno}. Contraseña temporal enviada a ${data.email}: ${tempPassword}`);
+      logger.info(`Personal registrado: ${data.codigo_interno}. Contraseña temporal generada para ${data.email}.`);
+      if (process.env.NODE_ENV !== 'production') {
+        logger.debug(`[DEV ONLY] Contraseña temporal para ${data.codigo_interno}: ${tempPassword}`);
+      }
 
       return {
         id: personaId,
