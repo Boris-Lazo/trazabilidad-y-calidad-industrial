@@ -27,11 +27,11 @@ const bitacoraController = new BitacoraController(bitacoraService);
 const router = express.Router();
 
 router.get('/estado', bitacoraController.getEstadoActual);
-router.post('/abrir', authorize('ADMIN', 'INSPECTOR'), bitacoraController.abrirBitacora);
-router.post('/:id/cerrar', authorize('ADMIN', 'INSPECTOR'), bitacoraController.cerrarBitacora);
+router.post('/abrir', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR'), bitacoraController.abrirBitacora);
+router.post('/:id/cerrar', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR'), bitacoraController.cerrarBitacora);
 router.get('/tiempo-actual', bitacoraController.getTiempoActual);
 router.get('/proceso-data', bitacoraController.getProcesoData);
-router.post('/guardar-proceso', authorize('ADMIN', 'INSPECTOR', 'OPERACIONES'), bitacoraController.guardarProcesoData);
+router.post('/guardar-proceso', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR', 'Operario', 'OPERACIONES'), bitacoraController.guardarProcesoData);
 router.get('/inspectores', bitacoraController.getInspectores);
 
 module.exports = router;

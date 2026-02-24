@@ -13,7 +13,7 @@ const incidenteController = new IncidenteController(incidenteService);
 const router = express.Router();
 
 router.get('/', incidenteController.getAll);
-router.post('/', authorize('ADMIN', 'INSPECTOR', 'OPERACIONES'), incidenteController.create);
-router.put('/:id', authorize('ADMIN', 'INSPECTOR', 'OPERACIONES'), incidenteController.update);
+router.post('/', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR', 'Operario', 'OPERACIONES'), incidenteController.create);
+router.put('/:id', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR', 'Operario', 'OPERACIONES'), incidenteController.update);
 
 module.exports = router;

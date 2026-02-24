@@ -12,6 +12,6 @@ const recursoController = new RecursoController(recursoService);
 const router = express.Router();
 
 router.get('/', recursoController.getAll);
-router.post('/', authorize('ADMIN', 'INSPECTOR'), recursoController.create);
+router.post('/', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR'), recursoController.create);
 
 module.exports = router;

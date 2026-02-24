@@ -93,7 +93,10 @@ class BitacoraController {
 
   guardarProcesoData = async (req, res, next) => {
       try {
-          await this.bitacoraService.saveProcesoData(req.body);
+          await this.bitacoraService.saveProcesoData({
+              ...req.body,
+              usuario: req.user.nombre || req.user.username
+          });
           return sendSuccess(res, { message: 'Datos guardados correctamente.' });
       } catch (error) {
           next(error);

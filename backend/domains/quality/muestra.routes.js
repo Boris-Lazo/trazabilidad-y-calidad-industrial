@@ -12,6 +12,6 @@ const muestraController = new QualityMuestraController(muestraService);
 const router = express.Router();
 
 router.get('/lote/:id', muestraController.getByLoteId);
-router.post('/', authorize('ADMIN', 'INSPECTOR'), muestraController.create);
+router.post('/', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR'), muestraController.create);
 
 module.exports = router;

@@ -66,7 +66,26 @@ class BitacoraRepository {
   }
 
   async getInspectores() {
-    return await this.db.query("SELECT DISTINCT inspector FROM bitacora_turno UNION SELECT nombre FROM usuarios WHERE rol IN ('ADMIN', 'INSPECTOR')");
+    const sql = `
+      SELECT DISTINCT p.nombre || ' ' || p.apellido as nombre
+      FROM personas p
+      JOIN persona_roles pr ON p.id = pr.persona_id
+      JOIN roles r ON pr.rol_id = r.id
+      WHERE r.nombre IN ('Administrador', 'Inspector', 'Supervisor')
+      AND p.estado_laboral = 'activo'
+    `;
+    return await this.db.query(sql);
+  }
+
+  async checkAssignmentsForProcess(procesoId, shift) {
+    const sql = `
+      SELECT COUNT(*) as count
+      FROM asignaciones_operativas
+      WHERE proceso_tipo_id = ? AND turno = ?
+      AND (fecha_fin IS NULL OR fecha_fin > CURRENT_TIMESTAMP)
+    `;
+    const res = await this.db.get(sql, [procesoId, shift]);
+    return res.count > 0;
   }
 
   async withTransaction(fn) {
