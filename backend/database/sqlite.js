@@ -343,6 +343,48 @@ const runFullSchema = () => {
         nombre TEXT UNIQUE NOT NULL
     );`);
 
+    db.run(`CREATE TABLE IF NOT EXISTS grupos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT UNIQUE NOT NULL,
+        tipo TEXT CHECK(tipo IN ('operativo', 'administrativo')) NOT NULL,
+        turno_actual TEXT,
+        activo BOOLEAN DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS grupo_integrantes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        grupo_id INTEGER NOT NULL,
+        persona_id INTEGER NOT NULL,
+        fecha_desde DATETIME DEFAULT CURRENT_TIMESTAMP,
+        fecha_hasta DATETIME,
+        motivo TEXT,
+        asignado_por INTEGER,
+        FOREIGN KEY (grupo_id) REFERENCES grupos(id),
+        FOREIGN KEY (persona_id) REFERENCES personas(id),
+        FOREIGN KEY (asignado_por) REFERENCES personas(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS roles_operativos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT UNIQUE NOT NULL,
+        activo BOOLEAN DEFAULT 1
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS persona_roles_operativos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        persona_id INTEGER NOT NULL,
+        rol_operativo_id INTEGER NOT NULL,
+        fecha_desde DATETIME DEFAULT CURRENT_TIMESTAMP,
+        fecha_hasta DATETIME,
+        motivo TEXT,
+        asignado_por INTEGER,
+        FOREIGN KEY (persona_id) REFERENCES personas(id),
+        FOREIGN KEY (rol_operativo_id) REFERENCES roles_operativos(id),
+        FOREIGN KEY (asignado_por) REFERENCES personas(id)
+    );`);
+
     db.run(`CREATE TABLE IF NOT EXISTS persona_roles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         persona_id INTEGER NOT NULL,
@@ -427,6 +469,31 @@ const runFullSchema = () => {
 
     // --- SEMILLAS ---
     // Las semillas deben ejecutarse en orden para respetar dependencias
+    db.get("SELECT COUNT(*) as count FROM grupos", (err, row) => {
+      if (err) return logger.error('Error al verificar grupos:', err.message);
+      if (row && row.count === 0) {
+        const defaultGroups = [
+          ['Grupo A', 'operativo', 'T1'],
+          ['Grupo B', 'operativo', 'T2'],
+          ['Grupo C', 'operativo', 'T3'],
+          ['Administrativo', 'administrativo', 'T4']
+        ];
+        const stmt = db.prepare("INSERT INTO grupos (nombre, tipo, turno_actual) VALUES (?, ?, ?)");
+        defaultGroups.forEach(g => stmt.run(g));
+        stmt.finalize(() => logger.info('Grupos inicializados.'));
+      }
+    });
+
+    db.get("SELECT COUNT(*) as count FROM roles_operativos", (err, row) => {
+      if (err) return logger.error('Error al verificar roles operativos:', err.message);
+      if (row && row.count === 0) {
+        const defaultOpsRoles = ['Tejedor', 'Urdidor', 'Mecánico', 'Inspector de Calidad', 'Auxiliar', 'Supervisor de Planta'];
+        const stmt = db.prepare("INSERT INTO roles_operativos (nombre) VALUES (?)");
+        defaultOpsRoles.forEach(r => stmt.run(r));
+        stmt.finalize(() => logger.info('Roles operativos inicializados.'));
+      }
+    });
+
     db.get("SELECT COUNT(*) as count FROM roles", (err, row) => {
       if (err) return logger.error('Error al verificar roles:', err.message);
 

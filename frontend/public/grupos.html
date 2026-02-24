@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="/design-system/theme/index.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Grupos | PROD-SYS</title>
+    <link rel="stylesheet" href="/design-system/index.css">
+    <script src="js/auth.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/design-system/index.js" defer></script>
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">PROD-SYS</div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item nav-item-single">
+                    <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-group">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="clipboard-list" class="nav-icon"></i>
+                        <span>Producción</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/bitacora.html" class="nav-item">Bitácora de Turno</a>
+                        <a href="/ordenes.html" class="nav-item">Órdenes</a>
+                        <a href="/ejecucion.html" class="nav-item">Ejecución</a>
+                        <a href="/incidentes.html" class="nav-item">Incidentes</a>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="shield-check" class="nav-icon"></i>
+                        <span>Control</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/calidad.html" class="nav-item">Calidad</a>
+                        <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+                    </div>
+                </div>
+
+                                <div class="nav-group open" id="nav-group-admin">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="settings" class="nav-icon"></i>
+                        <span>Administración</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <div class="nav-section-label">Colaboradores</div>
+                        <a href="/personal.html" class="nav-item ">Lista</a>
+                        <a href="/grupos.html" class="nav-item active">Grupos</a>
+                        <a href="/personal.html?view=usuarios" class="nav-item ">Usuarios</a>
+                        <div class="nav-section-label">Sistema</div>
+                        <a href="/configuracion.html" class="nav-item ">Configuración</a>
+                        <a href="/auditoria.html" class="nav-item ">Auditoría</a>
+                    </div>
+                </div>
+            </nav>
+            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
+                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+                    <span id="user-name-label">Usuario: -</span>
+                </div>
+                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
+                    <i data-lucide="log-out" class="nav-icon"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </aside>
+
+        <div class="main-container">
+            <header class="topbar">
+                <h1>Gestión de Grupos de Colaboradores</h1>
+                <div class="topbar-actions">
+                    <button id="theme-toggle" class="btn btn-secondary">
+                        <i data-lucide="sun" class="sun-icon"></i>
+                        <i data-lucide="moon" class="moon-icon"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <div class="dashboard-grid" style="grid-template-columns: 1fr 2fr; gap: 24px;">
+                    <!-- Listado de Grupos -->
+                    <div class="card">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <h2 class="card-title">Grupos Registrados</h2>
+                            <button id="btn-nuevo-grupo" class="btn btn-primary btn-sm">
+                                <i data-lucide="plus"></i> Nuevo
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="lista-grupos" class="list-group">
+                                <!-- Grupos se cargarán aquí -->
+                                <div class="p-4 text-center text-secondary">Cargando grupos...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detalle del Grupo Seleccionado -->
+                    <div id="detalle-grupo-container" class="card" style="display: none;">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h2 id="grupo-nombre-titulo" class="card-title">Seleccione un grupo</h2>
+                                <p id="grupo-tipo-badge" class="text-secondary" style="font-size: 12px; margin: 0;"></p>
+                            </div>
+                            <div id="turno-control" style="display: flex; align-items: center; gap: 12px;">
+                                <span class="badge badge-info" style="font-size: 14px; padding: 8px 12px;">
+                                    Turno Actual: <span id="grupo-turno-actual">-</span>
+                                </span>
+                                <button id="btn-rotar-turno" class="btn btn-secondary btn-sm" title="Rotar Turno">
+                                    <i data-lucide="rotate-cw" style="width:14px; height:14px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3 style="font-size: 16px; font-weight: 600;">Integrantes del Grupo</h3>
+                                <button id="btn-add-integrante" class="btn btn-primary btn-sm">
+                                    <i data-lucide="user-plus"></i> Añadir Integrante
+                                </button>
+                            </div>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Colaborador</th>
+                                            <th>Código</th>
+                                            <th>Rol Operativo</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lista-integrantes">
+                                        <!-- Integrantes se cargarán aquí -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="no-grupo-selected" class="card" style="display: flex; align-items: center; justify-content: center; min-height: 400px; color: var(--text-secondary);">
+                        <div class="text-center">
+                            <i data-lucide="users" style="width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                            <p>Seleccione un grupo de la lista para ver sus detalles e integrantes.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Añadir Integrante -->
+    <div id="modal-integrante" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Añadir Integrante al Grupo</h2>
+                <button class="btn-close" data-close="modal-integrante">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-integrante">
+                    <div class="form-group">
+                        <label class="form-label">Colaborador</label>
+                        <select id="select-persona" class="form-control" required>
+                            <!-- Colaboradores cargados dinámicamente -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Motivo de la Asignación</label>
+                        <textarea id="integrante-motivo" class="form-control" rows="3" placeholder="Ej: Rotación mensual, refuerzo de turno..." required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close="modal-integrante">Cancelar</button>
+                <button type="button" id="btn-confirm-add" class="btn btn-primary">Añadir al Grupo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Rotar Turno -->
+    <div id="modal-turno" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Rotar Turno de Grupo</h2>
+                <button class="btn-close" data-close="modal-turno">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Nuevo Turno</label>
+                    <select id="select-turno" class="form-control">
+                        <option value="T1">Turno 1 (Mañana)</option>
+                        <option value="T2">Turno 2 (Tarde)</option>
+                        <option value="T3">Turno 3 (Noche)</option>
+                    </select>
+                </div>
+                <p class="text-secondary" style="font-size: 13px;">Esta acción cambiará el turno operativo para todos los integrantes del grupo.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close="modal-turno">Cancelar</button>
+                <button type="button" id="btn-confirm-turno" class="btn btn-primary">Guardar Cambio</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Rol Operativo -->
+    <div id="modal-rol" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Cambiar Rol Operativo</h2>
+                <button class="btn-close" data-close="modal-rol">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="rol-colaborador-nombre" style="font-weight: 600; margin-bottom: 16px;"></p>
+                <form id="form-rol">
+                    <div class="form-group">
+                        <label class="form-label">Nuevo Rol Operativo</label>
+                        <select id="select-rol-operativo" class="form-control" required>
+                            <!-- Roles cargados dinámicamente -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Motivo del Cambio</label>
+                        <textarea id="rol-motivo" class="form-control" rows="2" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close="modal-rol">Cancelar</button>
+                <button type="button" id="btn-confirm-rol" class="btn btn-primary">Actualizar Rol</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Remoción -->
+    <div id="modal-remove" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>Remover del Grupo</h2>
+                <button class="btn-close" data-close="modal-remove">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="remove-text">¿Está seguro de que desea remover a este colaborador del grupo?</p>
+                <div class="form-group mt-3">
+                    <label class="form-label">Motivo de la Salida</label>
+                    <textarea id="remove-motivo" class="form-control" rows="2" required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close="modal-remove">Cancelar</button>
+                <button type="button" id="btn-confirm-remove" class="btn btn-danger">Confirmar Salida</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nuevo Grupo -->
+    <div id="modal-nuevo-grupo" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Crear Nuevo Grupo</h2>
+                <button class="btn-close" data-close="modal-nuevo-grupo">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-nuevo-grupo">
+                    <div class="form-group">
+                        <label class="form-label">Nombre del Grupo</label>
+                        <input type="text" id="nuevo-grupo-nombre" class="form-control" placeholder="Ej: Grupo D" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tipo de Grupo</label>
+                        <select id="nuevo-grupo-tipo" class="form-control" required>
+                            <option value="operativo">Operativo (Rotativo)</option>
+                            <option value="administrativo">Administrativo (Fijo T4)</option>
+                        </select>
+                    </div>
+                    <div id="nuevo-grupo-turno-container" class="form-group">
+                        <label class="form-label">Turno Inicial</label>
+                        <select id="nuevo-grupo-turno" class="form-control">
+                            <option value="T1">Turno 1</option>
+                            <option value="T2">Turno 2</option>
+                            <option value="T3">Turno 3</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close="modal-nuevo-grupo">Cancelar</button>
+                <button type="button" id="btn-confirm-nuevo-grupo" class="btn btn-primary">Crear Grupo</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/grupos.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

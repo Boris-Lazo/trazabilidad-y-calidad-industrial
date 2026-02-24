@@ -9,11 +9,26 @@ const PersonalModule = {
     processes: [],
     machines: [],
     currentStaffId: null,
+    currentView: 'lista',
 
     async init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        this.currentView = urlParams.get('view') || 'lista';
+        this.applyViewAdjustments();
+
         await this.loadCatalogs();
         await this.loadStaff();
         this.setupEventListeners();
+    },
+
+    applyViewAdjustments() {
+        const title = document.getElementById('page-title');
+        if (this.currentView === 'usuarios') {
+            if (title) title.textContent = 'Gestión de Usuarios';
+            // Ocultar columnas no relevantes para vista usuarios si fuera necesario
+        } else {
+            if (title) title.textContent = 'Gestión de Colaboradores';
+        }
     },
 
     async loadCatalogs() {
@@ -76,8 +91,20 @@ const PersonalModule = {
         const tbody = document.getElementById('lista-personal');
         const searchTerm = document.getElementById('search-staff').value.toLowerCase();
         const areaFilter = document.getElementById('filter-area').value;
+        const user = Auth.getUser();
+        const isReadOnly = user && (user.rol === 'Inspector' || user.rol === 'Inspector de Calidad');
+
+        if (isReadOnly) {
+            const btnNuevo = document.getElementById('btn-nuevo-personal');
+            if (btnNuevo) btnNuevo.style.display = 'none';
+        }
 
         const filtered = this.staff.filter(p => {
+            if (this.currentView === 'usuarios' && !p.username && p.username !== '') {
+                 // Si es vista usuarios, quizá solo mostrar los que tienen usuario?
+                 // O mostrar todos para poder crearles usuario?
+                 // Regla: Todos deben tener usuario.
+            }
             const matchesSearch = p.nombre.toLowerCase().includes(searchTerm) ||
                                  p.apellido.toLowerCase().includes(searchTerm) ||
                                  p.codigo_interno.toLowerCase().includes(searchTerm);
@@ -108,9 +135,10 @@ const PersonalModule = {
                 </td>
                 <td>
                     <div style="display: flex; gap: 8px;">
+                        ${!isReadOnly ? `
                         <button class="btn btn-secondary btn-sm" onclick="PersonalModule.editStaff(${p.id})" title="Editar">
                             <i data-lucide="edit-2" style="width:14px; height:14px;"></i>
-                        </button>
+                        </button>` : ''}
                         <button class="btn btn-secondary btn-sm" onclick="PersonalModule.viewDetails(${p.id})" title="Ver Detalles / Asignaciones">
                             <i data-lucide="eye" style="width:14px; height:14px;"></i>
                         </button>
@@ -241,12 +269,19 @@ const PersonalModule = {
 
     async viewDetails(id) {
         this.currentStaffId = id;
+        const user = Auth.getUser();
+        const isReadOnly = user && (user.rol === 'Inspector' || user.rol === 'Inspector de Calidad');
         try {
             const res = await fetch(`/api/personal/${id}`);
             const result = await res.json();
             if (result.success) {
                 const p = result.data;
                 document.getElementById('detail-title').textContent = `Detalles: ${p.nombre} ${p.apellido}`;
+
+                if (isReadOnly) {
+                    const formAsig = document.getElementById('form-asignacion');
+                    if (formAsig) formAsig.style.display = 'none';
+                }
 
                 document.getElementById('staff-info').innerHTML = `
                     <div class="metadata-grid">
