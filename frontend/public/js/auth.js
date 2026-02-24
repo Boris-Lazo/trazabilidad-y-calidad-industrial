@@ -43,7 +43,9 @@ const Auth = {
     },
     checkAuth() {
         const onLoginPage = window.location.pathname.includes('login.html');
-        if (!this.isAuthenticated() && !onLoginPage) {
+        const onBootstrapPage = window.location.pathname.includes('bootstrap.html');
+
+        if (!this.isAuthenticated() && !onLoginPage && !onBootstrapPage) {
             window.location.replace('/login.html');
         }
     }

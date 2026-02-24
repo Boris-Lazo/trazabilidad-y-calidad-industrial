@@ -2,6 +2,7 @@
 const bcrypt = require('bcrypt');
 const UnauthorizedError = require('../../shared/errors/UnauthorizedError');
 const { logger } = require('../../shared/logger/logger');
+const sqlite = require('../../database/sqlite');
 
 // Hash ficticio para protección contra timing attacks pre-calculado al inicio
 let DUMMY_HASH;
@@ -20,6 +21,12 @@ class AuthService {
   }
 
   async login(username, password) {
+    // 0. Verificar estado del sistema
+    const sysRow = await sqlite.get("SELECT valor FROM sistema_config WHERE clave = 'estado_sistema'");
+    if (!sysRow || sysRow.valor !== 'INICIALIZADO') {
+        throw new UnauthorizedError('El sistema requiere inicialización antes de permitir el acceso.');
+    }
+
     // Simular un tiempo de procesamiento uniforme para evitar enumeración de usuarios
     const start = Date.now();
 

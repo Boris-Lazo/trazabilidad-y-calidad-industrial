@@ -3,6 +3,7 @@ const app = require('../../app');
 const { initDB, db } = require('../../database/sqlite');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../../config/env');
+const { bootstrapTestSystem } = require('../helpers/testUtils');
 
 describe('Production Routes RBAC Integration Tests', () => {
     let adminToken;
@@ -13,6 +14,8 @@ describe('Production Routes RBAC Integration Tests', () => {
             initDB();
             setTimeout(resolve, 500);
         });
+
+        await bootstrapTestSystem(app);
 
         // Crear tokens manuales para evitar depender del endpoint de login en cada test
         adminToken = jwt.sign({ id: 1, username: 'admin', rol: 'ADMIN' }, JWT_SECRET);

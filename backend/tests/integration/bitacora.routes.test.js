@@ -3,6 +3,7 @@ const app = require('../../app');
 const { initDB, db } = require('../../database/sqlite');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../../config/env');
+const { bootstrapTestSystem } = require('../helpers/testUtils');
 
 describe('Bitacora Routes Integration Tests', () => {
     let adminToken;
@@ -12,6 +13,8 @@ describe('Bitacora Routes Integration Tests', () => {
             initDB();
             setTimeout(resolve, 500);
         });
+
+        await bootstrapTestSystem(app);
 
         adminToken = jwt.sign({ id: 1, username: 'admin', rol: 'ADMIN' }, JWT_SECRET);
     });
