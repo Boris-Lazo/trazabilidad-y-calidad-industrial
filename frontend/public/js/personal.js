@@ -97,12 +97,12 @@ const PersonalModule = {
                 <td>${p.area_nombre}</td>
                 <td><span class="badge badge-info">${p.rol_actual || 'Sin Rol'}</span></td>
                 <td>
-                    <span class="badge ${p.estado_laboral === 'activo' ? 'badge-success' : 'badge-danger'}">
+                    <span class="badge ${p.estado_laboral.toLowerCase() === 'activo' ? 'badge-success' : 'badge-danger'}">
                         ${p.estado_laboral.toUpperCase()}
                     </span>
                 </td>
                 <td>
-                    <span class="badge ${p.estado_usuario === 'activo' ? 'badge-success' : 'badge-warning'}">
+                    <span class="badge ${p.estado_usuario && p.estado_usuario.toLowerCase() === 'activo' ? 'badge-success' : 'badge-warning'}">
                         ${(p.estado_usuario || 'S/U').toUpperCase()}
                     </span>
                 </td>

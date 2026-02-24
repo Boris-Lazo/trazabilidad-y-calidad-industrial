@@ -10,9 +10,8 @@ class PersonalRepository {
       SELECT p.*, a.nombre as area_nombre, r.nombre as rol_actual, u.estado_usuario
       FROM personas p
       JOIN areas a ON p.area_id = a.id
-      LEFT JOIN persona_roles pr ON p.id = pr.persona_id AND pr.activo = 1
-      LEFT JOIN roles r ON pr.rol_id = r.id
       LEFT JOIN usuarios u ON p.id = u.persona_id
+      LEFT JOIN roles r ON u.rol_id = r.id
     `;
     return await this.db.query(sql);
   }
@@ -22,9 +21,8 @@ class PersonalRepository {
       SELECT p.*, a.nombre as area_nombre, r.id as rol_id, r.nombre as rol_actual, u.estado_usuario, u.username
       FROM personas p
       JOIN areas a ON p.area_id = a.id
-      LEFT JOIN persona_roles pr ON p.id = pr.persona_id AND pr.activo = 1
-      LEFT JOIN roles r ON pr.rol_id = r.id
       LEFT JOIN usuarios u ON p.id = u.persona_id
+      LEFT JOIN roles r ON u.rol_id = r.id
       WHERE p.id = ?
     `;
     return await this.db.get(sql, [id]);
@@ -71,6 +69,10 @@ class PersonalRepository {
     return await this.db.get('SELECT * FROM usuarios WHERE persona_id = ?', [personaId]);
   }
 
+  async findUserById(userId) {
+    return await this.db.get('SELECT * FROM usuarios WHERE id = ?', [userId]);
+  }
+
   async updateUserStatus(userId, status, updaterId, reason, tx) {
     const db = tx || this.db;
     const sql = `
@@ -83,39 +85,36 @@ class PersonalRepository {
 
   async updateUserRole(personaId, roleId, updaterId, reason, tx) {
     const db = tx || this.db;
-    // Deactivate current role
-    await db.run('UPDATE persona_roles SET activo = 0 WHERE persona_id = ?', [personaId]);
-
     const sql = `
-      INSERT INTO persona_roles (persona_id, rol_id, asignado_por, activo, motivo_cambio)
-      VALUES (?, ?, ?, 1, ?)
+      UPDATE usuarios
+      SET rol_id = ?, updated_by = ?, motivo_cambio = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE persona_id = ?
     `;
-    return await db.run(sql, [personaId, roleId, updaterId, reason]);
+    return await db.run(sql, [roleId, updaterId, reason, personaId]);
   }
 
   async createUser(userData, tx) {
     const db = tx || this.db;
     const sql = `
       INSERT INTO usuarios (
-        persona_id, username, password_hash, must_change_password, created_by
-      ) VALUES (?, ?, ?, ?, ?)
+        persona_id, username, password_hash, rol_id, must_change_password, created_by, motivo_cambio
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     return await db.run(sql, [
       userData.persona_id, userData.username, userData.password_hash,
-      userData.must_change_password ? 1 : 0, userData.created_by
+      userData.rol_id, userData.must_change_password ? 1 : 0, userData.created_by,
+      userData.motivo_cambio || 'Creación inicial'
     ]);
   }
 
   async assignRole(personaId, rolId, assignedBy, tx) {
     const db = tx || this.db;
-    // Deactivate current role
-    await db.run('UPDATE persona_roles SET activo = 0 WHERE persona_id = ?', [personaId]);
-
     const sql = `
-      INSERT INTO persona_roles (persona_id, rol_id, asignado_por, activo, motivo_cambio)
-      VALUES (?, ?, ?, 1, 'Asignación inicial')
+      UPDATE usuarios
+      SET rol_id = ?, updated_by = ?, motivo_cambio = 'Asignación inicial', updated_at = CURRENT_TIMESTAMP
+      WHERE persona_id = ?
     `;
-    return await db.run(sql, [personaId, rolId, assignedBy]);
+    return await db.run(sql, [rolId, assignedBy, personaId]);
   }
 
   async getAreas() {

@@ -8,9 +8,8 @@ class AuthRepository {
     const sql = `
       SELECT u.*, p.nombre, p.apellido, r.nombre as rol
       FROM usuarios u
-      JOIN personas p ON u.persona_id = p.id
-      LEFT JOIN persona_roles pr ON p.id = pr.persona_id AND pr.activo = 1
-      LEFT JOIN roles r ON pr.rol_id = r.id
+      LEFT JOIN personas p ON u.persona_id = p.id
+      LEFT JOIN roles r ON u.rol_id = r.id
       WHERE u.username = ?
     `;
     return await this.db.get(sql, [username]);
@@ -20,9 +19,8 @@ class AuthRepository {
     const sql = `
       SELECT u.*, p.nombre, p.apellido, r.nombre as rol
       FROM usuarios u
-      JOIN personas p ON u.persona_id = p.id
-      LEFT JOIN persona_roles pr ON p.id = pr.persona_id AND pr.activo = 1
-      LEFT JOIN roles r ON pr.rol_id = r.id
+      LEFT JOIN personas p ON u.persona_id = p.id
+      LEFT JOIN roles r ON u.rol_id = r.id
       WHERE u.id = ?
     `;
     return await this.db.get(sql, [id]);

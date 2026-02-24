@@ -28,25 +28,75 @@ const db = new sqlite3.Database(actualDbPath, (err) => {
 const initDB = () => {
   logger.info("Verificando/Creando esquema de base de datos...");
 
-  // --- MIGRACIÓN DE ESQUEMA LEGACY ---
-  // Detectar si la tabla usuarios es la versión antigua (sin persona_id)
+  // --- MIGRACIÓN DE ESQUEMA ROBUSTA ---
   db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='usuarios'", (err, row) => {
     if (row) {
       db.all("PRAGMA table_info(usuarios)", (err, columns) => {
-        if (columns && columns.length > 0) {
-          const hasPersonaId = columns.some(c => c.name === 'persona_id');
-          if (!hasPersonaId) {
-            logger.info("Detectado esquema de usuarios antiguo. Renombrando a usuarios_legacy...");
-            db.run("ALTER TABLE usuarios RENAME TO usuarios_legacy", (err) => {
-              if (err) {
-                logger.error(`Error al renombrar tabla usuarios: ${err.message}`);
-              }
+        const hasPersonaId = columns.some(c => c.name === 'persona_id');
+        const personaIdCol = columns.find(c => c.name === 'persona_id');
+        const hasRolId = columns.some(c => c.name === 'rol_id');
+
+        // Caso 1: Tabla muy antigua sin persona_id
+        if (!hasPersonaId) {
+          logger.info("Detectado esquema de usuarios antiguo. Renombrando a usuarios_legacy...");
+          db.run("ALTER TABLE usuarios RENAME TO usuarios_legacy", (err) => {
+            if (err) logger.error(`Error al renombrar tabla usuarios: ${err.message}`);
+            runFullSchema();
+          });
+        }
+        // Caso 2: Tabla tiene persona_id pero es NOT NULL o falta rol_id (Migración de dominio)
+        else if ((personaIdCol && personaIdCol.notnull === 1) || !hasRolId) {
+          logger.info("Migrando tabla usuarios para soportar nuevo dominio (persona_id NULL y rol_id)...");
+
+          db.serialize(() => {
+            db.run("BEGIN TRANSACTION");
+
+            // 1. Crear tabla temporal con el esquema correcto
+            db.run(`CREATE TABLE usuarios_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                persona_id INTEGER UNIQUE,
+                rol_id INTEGER,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                password_last_changed_at DATETIME,
+                intentos_fallidos INTEGER DEFAULT 0,
+                bloqueado_at DATETIME,
+                bloqueado_por INTEGER,
+                estado_usuario TEXT CHECK(estado_usuario IN ('Activo', 'Suspendido', 'Bloqueado', 'Baja lógica')) DEFAULT 'Activo',
+                must_change_password BOOLEAN DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_by TEXT,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_by TEXT,
+                motivo_cambio TEXT,
+                FOREIGN KEY (persona_id) REFERENCES personas(id),
+                FOREIGN KEY (bloqueado_por) REFERENCES personas(id),
+                FOREIGN KEY (rol_id) REFERENCES roles(id)
+            )`);
+
+            // 2. Copiar datos existentes
+            db.run(`INSERT INTO usuarios_new (
+                id, persona_id, username, password_hash, password_last_changed_at,
+                intentos_fallidos, bloqueado_at, bloqueado_por, estado_usuario,
+                must_change_password, created_at, created_by, updated_at, updated_by, motivo_cambio
+            ) SELECT
+                id, persona_id, username, password_hash, password_last_changed_at,
+                intentos_fallidos, bloqueado_at, bloqueado_por, estado_usuario,
+                must_change_password, created_at, created_by, updated_at, updated_by, motivo_cambio
+            FROM usuarios`);
+
+            // 3. Intercambiar tablas
+            db.run("DROP TABLE usuarios");
+            db.run("ALTER TABLE usuarios_new RENAME TO usuarios");
+
+            db.run("COMMIT", (err) => {
+              if (err) logger.error("Error al finalizar migración de usuarios:", err.message);
+              else logger.info("Migración de usuarios completada con éxito.");
               runFullSchema();
             });
-          } else {
-            runFullSchema();
-          }
-        } else {
+          });
+        }
+        else {
           runFullSchema();
         }
       });
@@ -268,7 +318,8 @@ const runFullSchema = () => {
 
     db.run(`CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        persona_id INTEGER UNIQUE NOT NULL,
+        persona_id INTEGER UNIQUE,
+        rol_id INTEGER,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         password_last_changed_at DATETIME,
@@ -283,7 +334,8 @@ const runFullSchema = () => {
         updated_by TEXT,
         motivo_cambio TEXT,
         FOREIGN KEY (persona_id) REFERENCES personas(id),
-        FOREIGN KEY (bloqueado_por) REFERENCES personas(id)
+        FOREIGN KEY (bloqueado_por) REFERENCES personas(id),
+        FOREIGN KEY (rol_id) REFERENCES roles(id)
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS roles (
@@ -367,78 +419,73 @@ const runFullSchema = () => {
     db.run(`CREATE INDEX IF NOT EXISTS idx_muestras_lote ON muestras(lote_id);`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_muestras_bitacora ON muestras(bitacora_id);`);
 
-    // Semillas de Personal y Roles
+    // --- SEMILLAS ---
+    // Las semillas deben ejecutarse en orden para respetar dependencias
     db.get("SELECT COUNT(*) as count FROM roles", (err, row) => {
-      if (err) {
-        logger.error('Error al verificar roles:', err.message);
-      } else if (row && row.count === 0) {
+      if (err) return logger.error('Error al verificar roles:', err.message);
+
+      if (row && row.count === 0) {
         const defaultRoles = ['Inspector', 'Supervisor', 'Jefe de Operaciones', 'Gerencia', 'Operario', 'Administrador'];
         const stmt = db.prepare("INSERT INTO roles (nombre) VALUES (?)");
         defaultRoles.forEach(r => stmt.run(r));
-        stmt.finalize();
-        logger.info('Roles inicializados.');
+        stmt.finalize(() => {
+          logger.info('Roles inicializados.');
+          seedAreasAndAdmin();
+        });
+      } else {
+        seedAreasAndAdmin();
       }
     });
 
-    db.get("SELECT COUNT(*) as count FROM areas", (err, row) => {
-      if (err) {
-        logger.error('Error al verificar áreas:', err.message);
-      } else if (row && row.count === 0) {
-        const defaultAreas = ['Producción', 'Calidad', 'Mantenimiento', 'Sistemas', 'Administración'];
-        const stmt = db.prepare("INSERT INTO areas (nombre) VALUES (?)");
-        defaultAreas.forEach(a => stmt.run(a));
-        stmt.finalize();
-        logger.info('Áreas inicializadas.');
-      }
-    });
+    const seedAreasAndAdmin = () => {
+      db.get("SELECT COUNT(*) as count FROM areas", (err, row) => {
+        if (err) return logger.error('Error al verificar áreas:', err.message);
 
-    // Semilla de administrador inicial (Nuevo Modelo - Idempotente)
-    const createAdminUser = (personaId) => {
-      db.get("SELECT id FROM usuarios WHERE persona_id = ?", [personaId], (err, user) => {
-        if (err) return logger.error('Error al verificar usuario admin:', err.message);
-        if (!user) {
-          const hashedPassword = bcrypt.hashSync(adminPassword, 10);
-          db.run("INSERT INTO usuarios (persona_id, username, password_hash, must_change_password, created_by, motivo_cambio) VALUES (?, 'admin', ?, 0, 'SYSTEM', 'Semilla inicial')", [personaId, hashedPassword], (err) => {
-            if (err) logger.error('Error al insertar usuario admin:', err.message);
-            else logger.info('Usuario administrador inicial creado con éxito.');
+        if (row && row.count === 0) {
+          const defaultAreas = ['Producción', 'Calidad', 'Mantenimiento', 'Sistemas', 'Administración'];
+          const stmt = db.prepare("INSERT INTO areas (nombre) VALUES (?)");
+          defaultAreas.forEach(a => stmt.run(a));
+          stmt.finalize(() => {
+            logger.info('Áreas inicializadas.');
+            seedAdminUser();
           });
+        } else {
+          seedAdminUser();
         }
       });
     };
 
-    const assignAdminRole = (personaId) => {
+    const seedAdminUser = () => {
+      // Semilla de administrador inicial (Usuario Técnico - Sin Persona)
       db.get("SELECT id FROM roles WHERE nombre = 'Administrador'", (err, rol) => {
-        if (err || !rol) return;
-        db.get("SELECT id FROM persona_roles WHERE persona_id = ? AND rol_id = ?", [personaId, rol.id], (err, mapping) => {
-          if (!mapping) {
-            db.run("INSERT INTO persona_roles (persona_id, rol_id, asignado_por, motivo_cambio) VALUES (?, ?, ?, 'Semilla inicial')", [personaId, rol.id, personaId]);
+        if (err || !rol) return logger.error('No se pudo encontrar el rol Administrador para la semilla.');
+
+        const adminRolId = rol.id;
+
+        db.get("SELECT id, persona_id FROM usuarios WHERE username = 'admin'", (err, user) => {
+          if (err) return logger.error('Error al verificar usuario admin:', err.message);
+
+          const hashedPassword = bcrypt.hashSync(adminPassword, 10);
+
+          if (!user) {
+            db.run("INSERT INTO usuarios (username, password_hash, rol_id, must_change_password, created_by, motivo_cambio) VALUES ('admin', ?, ?, 0, 'SYSTEM', 'Semilla inicial técnica')",
+              [hashedPassword, adminRolId], (err) => {
+              if (err) logger.error('Error al insertar usuario admin:', err.message);
+              else logger.info('Usuario administrador técnico inicial creado con éxito.');
+            });
+          } else {
+            // Asegurar que el admin no tenga persona asociada y tenga el rol correcto
+            if (user.persona_id) {
+              logger.info("Migrando usuario admin a cuenta técnica pura (sin persona)...");
+              db.run("UPDATE usuarios SET persona_id = NULL, rol_id = ?, updated_by = 'SYSTEM', motivo_cambio = 'Corrección de dominio: Admin sin Persona' WHERE username = 'admin'", [adminRolId]);
+              db.run("DELETE FROM personas WHERE codigo_interno = 'admin'");
+            } else {
+              db.run("UPDATE usuarios SET rol_id = ? WHERE username = 'admin' AND (rol_id IS NULL OR rol_id != ?)", [adminRolId, adminRolId]);
+            }
           }
         });
       });
     };
-
-    db.get("SELECT id FROM personas WHERE codigo_interno = 'admin'", (err, persona) => {
-      if (err) {
-        logger.error('Error al verificar persona admin:', err.message);
-      } else if (!persona) {
-        db.get("SELECT id FROM areas WHERE nombre = 'Sistemas'", (err, area) => {
-          const areaId = area ? area.id : 1;
-          db.run("INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email, tipo_personal, created_by) VALUES ('Admin', 'Sistema', 'admin', ?, 'admin@prodsys.com', 'administrativo', 'SYSTEM')", [areaId], function(err) {
-            if (err) {
-              logger.error('Error al insertar persona admin:', err.message);
-              return;
-            }
-            const newPersonaId = this.lastID;
-            createAdminUser(newPersonaId);
-            assignAdminRole(newPersonaId);
-          });
-        });
-      } else {
-        // La persona ya existe, asegurar que tenga usuario y rol
-        createAdminUser(persona.id);
-        assignAdminRole(persona.id);
-      }
-    });
 
     // Semilla de procesos por defecto
     db.get("SELECT COUNT(*) as count FROM PROCESO_TIPO", (err, row) => {
@@ -507,8 +554,25 @@ const runFullSchema = () => {
       { table: 'lineas_ejecucion', column: 'fecha_fin', type: 'DATETIME' },
       { table: 'auditoria', column: 'valor_anterior', type: 'TEXT' },
       { table: 'auditoria', column: 'valor_nuevo', type: 'TEXT' },
-      { table: 'auditoria', column: 'motivo_cambio', type: 'TEXT' }
+      { table: 'auditoria', column: 'motivo_cambio', type: 'TEXT' },
+      { table: 'usuarios', column: 'rol_id', type: 'INTEGER' }
     ];
+
+    // Migración de roles desde persona_roles a usuarios (Idempotente)
+    db.run(`
+      UPDATE usuarios
+      SET rol_id = (
+        SELECT rol_id FROM persona_roles
+        WHERE persona_roles.persona_id = usuarios.persona_id
+        AND persona_roles.activo = 1
+        LIMIT 1
+      )
+      WHERE rol_id IS NULL
+      AND persona_id IS NOT NULL
+      AND EXISTS (SELECT 1 FROM persona_roles WHERE persona_id = usuarios.persona_id)
+    `, (err) => {
+        if (err) logger.error('Error al migrar roles a usuarios:', err.message);
+    });
 
     columnsToAdd.forEach(item => {
       db.run(`ALTER TABLE ${item.table} ADD COLUMN ${item.column} ${item.type}`, (err) => {

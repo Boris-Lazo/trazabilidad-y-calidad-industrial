@@ -51,13 +51,20 @@ describe('PersonalService', () => {
             }, 99);
 
             expect(personalRepositoryMock.createPersona).toHaveBeenCalled();
-            expect(personalRepositoryMock.createUser).toHaveBeenCalled();
-            expect(personalRepositoryMock.assignRole).toHaveBeenCalled();
+            expect(personalRepositoryMock.createUser).toHaveBeenCalledWith(expect.objectContaining({
+                rol_id: 1,
+                motivo_cambio: expect.any(String)
+            }));
             expect(result).toHaveProperty('tempPassword');
         });
     });
 
     describe('updateUserStatus', () => {
+        test('lanza error si no se proporciona motivo', async () => {
+            await expect(personalService.updateUserStatus(1, 'Activo', 99, null))
+                .rejects.toThrow(/motivo.*obligatorio/);
+        });
+
         test('lanza error si el usuario está en Baja lógica', async () => {
             personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ id: 1, estado_usuario: 'Baja lógica' });
 
@@ -104,11 +111,18 @@ describe('PersonalService', () => {
         });
 
         test('permite asignación si el usuario está Activo', async () => {
-            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ persona_id: 1, estado_usuario: 'Activo' });
+            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ persona_id: 1, username: 'operario1', estado_usuario: 'Activo' });
 
             await personalService.assignOperation({ persona_id: 1, turno: 'Mañana' }, 99);
 
             expect(personalRepositoryMock.assignOperation).toHaveBeenCalled();
+        });
+
+        test('bloquea asignación si el usuario es admin técnico', async () => {
+            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ persona_id: 1, username: 'admin', estado_usuario: 'Activo' });
+
+            await expect(personalService.assignOperation({ persona_id: 1, turno: 'Mañana' }, 99))
+                .rejects.toThrow(/Excepción Técnica/);
         });
     });
 
