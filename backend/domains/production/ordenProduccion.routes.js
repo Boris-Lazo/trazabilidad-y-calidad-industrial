@@ -4,10 +4,14 @@ const OrdenProduccionService = require('./ordenProduccion.service');
 const OrdenProduccionController = require('./ordenProduccion.controller');
 const sqlite = require('../../database/sqlite');
 const authorize = require('../../middlewares/authorize');
+const AuditRepository = require('../../shared/audit/AuditRepository');
+const AuditService = require('../../shared/audit/AuditService');
 
 // Instanciación manual
 const ordenProduccionRepository = new OrdenProduccionRepository(sqlite);
-const ordenProduccionService = new OrdenProduccionService(ordenProduccionRepository);
+const auditRepository = new AuditRepository(sqlite);
+const auditService = new AuditService(auditRepository);
+const ordenProduccionService = new OrdenProduccionService(ordenProduccionRepository, auditService);
 const ordenProduccionController = new OrdenProduccionController(ordenProduccionService);
 
 const router = express.Router();

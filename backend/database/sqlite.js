@@ -64,7 +64,7 @@ const runFullSchema = () => {
         turno TEXT,
         fecha_operativa DATE,
         inspector TEXT,
-        estado TEXT DEFAULT 'EN CURSO',
+        estado TEXT CHECK(estado IN ('ABIERTA', 'REVISION', 'CERRADA')) DEFAULT 'ABIERTA',
         fuera_de_horario BOOLEAN DEFAULT 0,
         fecha_apertura DATETIME DEFAULT CURRENT_TIMESTAMP,
         fecha_cierre DATETIME
@@ -79,7 +79,7 @@ const runFullSchema = () => {
         fecha_planificada DATE,
         prioridad TEXT,
         observaciones TEXT,
-        estado TEXT DEFAULT 'Creada',
+        estado TEXT CHECK(estado IN ('Creada', 'Liberada', 'En producción', 'Pausada', 'Cerrada', 'Cancelada')) DEFAULT 'Creada',
         fecha_creacion DATE,
         especificaciones TEXT,
         motivo_cierre TEXT
@@ -109,10 +109,12 @@ const runFullSchema = () => {
 
     db.run(`CREATE TABLE IF NOT EXISTS lineas_ejecucion (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        estado TEXT,
+        estado TEXT CHECK(estado IN ('ACTIVA', 'PAUSADA', 'COMPLETADA', 'CANCELADA')) DEFAULT 'ACTIVA',
         orden_produccion_id INTEGER,
         proceso_tipo_id INTEGER,
         maquina_id INTEGER,
+        fecha_inicio DATETIME DEFAULT CURRENT_TIMESTAMP,
+        fecha_fin DATETIME,
         FOREIGN KEY (orden_produccion_id) REFERENCES orden_produccion(id),
         FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id),
         FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
@@ -254,7 +256,7 @@ const runFullSchema = () => {
         email TEXT UNIQUE NOT NULL,
         telefono TEXT,
         fecha_ingreso DATE,
-        estado_laboral TEXT CHECK(estado_laboral IN ('activo', 'inactivo', 'baja_definitiva')) DEFAULT 'activo',
+        estado_laboral TEXT CHECK(estado_laboral IN ('activo', 'inactivo', 'baja')) DEFAULT 'activo',
         tipo_personal TEXT CHECK(tipo_personal IN ('operativo', 'administrativo')) NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         created_by TEXT,
@@ -273,7 +275,7 @@ const runFullSchema = () => {
         intentos_fallidos INTEGER DEFAULT 0,
         bloqueado_at DATETIME,
         bloqueado_por INTEGER,
-        estado_usuario TEXT CHECK(estado_usuario IN ('activo', 'suspendido', 'bloqueado', 'baja_logica')) DEFAULT 'activo',
+        estado_usuario TEXT CHECK(estado_usuario IN ('activo', 'suspendido', 'bloqueado')) DEFAULT 'activo',
         must_change_password BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         created_by TEXT,
@@ -345,7 +347,9 @@ const runFullSchema = () => {
         accion TEXT,
         entidad TEXT,
         entidad_id INTEGER,
-        detalles TEXT,
+        valor_anterior TEXT,
+        valor_nuevo TEXT,
+        motivo_cambio TEXT,
         fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP
     );`);
 
@@ -399,23 +403,21 @@ const runFullSchema = () => {
             // 2. Insertar Persona
             db.run("INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email, tipo_personal, created_by) VALUES ('Admin', 'Sistema', 'admin', ?, 'admin@prodsys.com', 'administrativo', 'SYSTEM')", [areaId], function(err) {
               if (err) {
-                logger.error(`Error al insertar persona admin: ${err.message}`);
+                logger.error('Error al insertar persona admin:', err.message);
                 return;
               }
               const personaId = this.lastID;
 
               // 3. Insertar Usuario
               db.run("INSERT INTO usuarios (persona_id, username, password_hash, must_change_password, created_by) VALUES (?, 'admin', ?, 0, 'SYSTEM')", [personaId, hashedPassword], (err) => {
-                if (err) logger.error(`Error al insertar usuario admin: ${err.message}`);
+                if (err) logger.error('Error al insertar usuario admin:', err.message);
                 else logger.info('Usuario administrador inicial creado con éxito.');
               });
 
               // 4. Asignar Rol Administrador
               db.get("SELECT id FROM roles WHERE nombre = 'Administrador'", (err, rol) => {
                 if (rol) {
-                  db.run("INSERT INTO persona_roles (persona_id, rol_id, asignado_por) VALUES (?, ?, ?)", [personaId, rol.id, personaId], (err) => {
-                    if (err) logger.error(`Error al asignar rol admin: ${err.message}`);
-                  });
+                  db.run("INSERT INTO persona_roles (persona_id, rol_id, asignado_por) VALUES (?, ?, ?)", [personaId, rol.id, personaId]);
                 }
               });
             });
@@ -486,7 +488,12 @@ const runFullSchema = () => {
       { table: 'calidad_telares_visual', column: 'usuario_modificacion', type: 'TEXT' },
       { table: 'calidad_telares_visual', column: 'fecha_modificacion', type: 'DATETIME' },
       { table: 'orden_produccion', column: 'especificaciones', type: 'TEXT' },
-      { table: 'orden_produccion', column: 'motivo_cierre', type: 'TEXT' }
+      { table: 'orden_produccion', column: 'motivo_cierre', type: 'TEXT' },
+      { table: 'lineas_ejecucion', column: 'fecha_inicio', type: 'DATETIME' },
+      { table: 'lineas_ejecucion', column: 'fecha_fin', type: 'DATETIME' },
+      { table: 'auditoria', column: 'valor_anterior', type: 'TEXT' },
+      { table: 'auditoria', column: 'valor_nuevo', type: 'TEXT' },
+      { table: 'auditoria', column: 'motivo_cambio', type: 'TEXT' }
     ];
 
     columnsToAdd.forEach(item => {

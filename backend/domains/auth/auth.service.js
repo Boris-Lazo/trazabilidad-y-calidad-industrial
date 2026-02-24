@@ -46,16 +46,11 @@ class AuthService {
     }
 
     if (!user || !isMatch) {
-      if (!user) {
-          logger.warn(`Intento de login para usuario inexistente: ${username}`);
-      } else {
+      if (user) {
           const newAttempts = (user.intentos_fallidos || 0) + 1;
           let blockedAt = null;
           if (newAttempts >= 5) {
               blockedAt = new Date().toISOString();
-              logger.error(`Usuario bloqueado por excesivos intentos fallidos: ${username}`);
-          } else {
-              logger.warn(`Contraseña incorrecta para usuario: ${username}. Intento ${newAttempts}/5`);
           }
           await this.authRepository.updateLoginAttempts(user.id, newAttempts, blockedAt);
       }

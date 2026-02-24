@@ -3,8 +3,9 @@ const ValidationError = require('../../shared/errors/ValidationError');
 const { logger } = require('../../shared/logger/logger');
 
 class PersonalService {
-  constructor(personalRepository) {
+  constructor(personalRepository, auditService) {
     this.personalRepository = personalRepository;
+    this.auditService = auditService;
   }
 
   async getAllStaff() {
@@ -69,10 +70,19 @@ class PersonalService {
     const persona = await this.personalRepository.getPersonaById(id);
     if (!persona) throw new ValidationError('Persona no encontrada');
 
-    return await this.personalRepository.updatePersona(id, {
+    await this.personalRepository.updatePersona(id, {
       ...data,
       updated_by: updaterId
     });
+
+    // Auditoría detallada de cambio de estado o datos
+    if (data.estado_laboral && data.estado_laboral !== persona.estado_laboral) {
+        await this.auditService.logStatusChange(updaterId, 'Persona', id, persona.estado_laboral, data.estado_laboral, data.motivo_cambio || 'Cambio de estado laboral');
+    } else {
+        await this.auditService.logUpdate(updaterId, 'Persona', id, persona, data, data.motivo_cambio || 'Actualización de datos de personal');
+    }
+
+    return true;
   }
 
   async getCatalogs() {
