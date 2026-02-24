@@ -36,7 +36,8 @@ class GruposService {
     const grupo = await this.gruposRepository.getGrupoById(id);
     if (!grupo) throw new ValidationError('Grupo no encontrado');
     const integrantes = await this.gruposRepository.getIntegrantesByGrupo(id);
-    return { ...grupo, integrantes };
+    const historial = await this.gruposRepository.getHistorialIntegrantesByGrupo(id);
+    return { ...grupo, integrantes, historial };
   }
 
   async addIntegrante(grupoId, personaId, motivo, assignerId) {
@@ -81,7 +82,12 @@ class GruposService {
         accion: 'GRUPO_ADD_INTEGRANTE',
         entidad: 'Grupo',
         entidad_id: grupoId,
-        valor_nuevo: { persona_id: personaId, nombre: `${persona.nombre} ${persona.apellido}` },
+        valor_nuevo: {
+          persona_id: personaId,
+          colaborador: `${persona.nombre} ${persona.apellido}`,
+          grupo: grupo.nombre,
+          tipo_grupo: grupo.tipo
+        },
         motivo_cambio: motivo
       });
 
@@ -105,12 +111,17 @@ class GruposService {
     return await this.gruposRepository.withTransaction(async () => {
       await this.gruposRepository.removeIntegrante(grupoId, personaId);
 
+      const persona = await this.personalRepository.getPersonaById(personaId);
       await this.auditService.logChange({
         usuario: assignerId,
         accion: 'GRUPO_REMOVE_INTEGRANTE',
         entidad: 'Grupo',
         entidad_id: grupoId,
-        valor_anterior: { persona_id: personaId },
+        valor_anterior: {
+          persona_id: personaId,
+          colaborador: persona ? `${persona.nombre} ${persona.apellido}` : 'Desconocido',
+          grupo: grupo.nombre
+        },
         motivo_cambio: motivo
       });
 
