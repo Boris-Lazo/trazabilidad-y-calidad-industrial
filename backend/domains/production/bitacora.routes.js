@@ -8,6 +8,7 @@ const BitacoraService = require('./bitacora.service');
 const BitacoraController = require('./bitacora.controller');
 const sqlite = require('../../database/sqlite');
 const authorize = require('../../middlewares/authorize');
+const { PERMISSIONS } = require('../../shared/auth/permissions');
 const AuditRepository = require('../../shared/audit/AuditRepository');
 const AuditService = require('../../shared/audit/AuditService');
 
@@ -32,11 +33,11 @@ const bitacoraController = new BitacoraController(bitacoraService);
 const router = express.Router();
 
 router.get('/estado', bitacoraController.getEstadoActual);
-router.post('/abrir', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR'), bitacoraController.abrirBitacora);
-router.post('/:id/cerrar', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR'), bitacoraController.cerrarBitacora);
+router.post('/abrir', authorize(PERMISSIONS.MANAGE_QUALITY), bitacoraController.abrirBitacora);
+router.post('/:id/cerrar', authorize(PERMISSIONS.MANAGE_QUALITY), bitacoraController.cerrarBitacora);
 router.get('/tiempo-actual', bitacoraController.getTiempoActual);
 router.get('/proceso-data', bitacoraController.getProcesoData);
-router.post('/guardar-proceso', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR', 'Operario', 'OPERACIONES'), bitacoraController.guardarProcesoData);
+router.post('/guardar-proceso', authorize(PERMISSIONS.MANAGE_PRODUCTION), bitacoraController.guardarProcesoData);
 router.get('/inspectores', bitacoraController.getInspectores);
 
 module.exports = router;

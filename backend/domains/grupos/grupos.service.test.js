@@ -57,4 +57,12 @@ describe('GruposService', () => {
       accion: 'GRUPO_ADD_INTEGRANTE'
     }));
   });
+
+  test('no debe permitir remover a alguien que no está en el grupo', async () => {
+    groupsRepo.getGrupoById.mockResolvedValue({ id: 1, nombre: 'Grupo A', tipo: 'operativo' });
+    groupsRepo.getIntegrantesByGrupo.mockResolvedValue([]); // grupo vacío
+
+    await expect(groupsService.removeIntegrante(1, 99, 'motivo válido', 1))
+      .rejects.toThrow('El colaborador no pertenece a este grupo');
+  });
 });
