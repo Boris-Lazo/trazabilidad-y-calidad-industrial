@@ -26,9 +26,38 @@ const db = new sqlite3.Database(actualDbPath, (err) => {
 
 // Función para inicializar el esquema e índices
 const initDB = () => {
-  db.serialize(() => {
-    logger.info("Verificando/Creando esquema de base de datos...");
+  logger.info("Verificando/Creando esquema de base de datos...");
 
+  // --- MIGRACIÓN DE ESQUEMA LEGACY ---
+  // Detectar si la tabla usuarios es la versión antigua (sin persona_id)
+  db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='usuarios'", (err, row) => {
+    if (row) {
+      db.all("PRAGMA table_info(usuarios)", (err, columns) => {
+        if (columns && columns.length > 0) {
+          const hasPersonaId = columns.some(c => c.name === 'persona_id');
+          if (!hasPersonaId) {
+            logger.info("Detectado esquema de usuarios antiguo. Renombrando a usuarios_legacy...");
+            db.run("ALTER TABLE usuarios RENAME TO usuarios_legacy", (err) => {
+              if (err) {
+                logger.error(`Error al renombrar tabla usuarios: ${err.message}`);
+              }
+              runFullSchema();
+            });
+          } else {
+            runFullSchema();
+          }
+        } else {
+          runFullSchema();
+        }
+      });
+    } else {
+      runFullSchema();
+    }
+  });
+};
+
+const runFullSchema = () => {
+  db.serialize(() => {
     // Tablas principales
     db.run(`CREATE TABLE IF NOT EXISTS bitacora_turno (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
