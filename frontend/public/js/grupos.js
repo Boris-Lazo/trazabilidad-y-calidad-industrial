@@ -105,6 +105,7 @@ const GruposModule = {
                 }
 
                 this.renderIntegrantes(g.integrantes);
+                this.renderHistorial(g.historial);
             }
         } catch (e) {
             DesignSystem.showToast('Error al cargar detalle del grupo', 'error');
@@ -125,7 +126,7 @@ const GruposModule = {
 
         tbody.innerHTML = integrantes.map(i => `
             <tr>
-                <td>${i.nombre} ${i.apellido}</td>
+                <td style="font-weight: 500;">${i.nombre} ${i.apellido}</td>
                 <td><code>${i.codigo_interno}</code></td>
                 <td>
                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -140,11 +141,36 @@ const GruposModule = {
                     ${!isReadOnly ? `
                     <button class="btn btn-danger btn-sm btn-remove-integrante" data-id="${i.persona_id}" data-nombre="${i.nombre} ${i.apellido}" title="Remover del grupo">
                         <i data-lucide="user-minus" style="width:14px; height:14px;"></i>
-                    </button>` : '<span class="text-secondary">-</span>'}
+                    </button>` : '<span class="badge badge-secondary">Activo</span>'}
                 </td>
             </tr>
         `).join('');
         DesignSystem.initLucide();
+    },
+
+    renderHistorial(historial) {
+        const tbody = document.getElementById('lista-historial-integrantes');
+        if (!tbody) return;
+
+        if (!historial || historial.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-secondary" style="font-size: 13px;">No hay registros históricos</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = historial.map(h => {
+            const fechaDesde = new Date(h.fecha_desde).toLocaleString();
+            const fechaHasta = h.fecha_hasta ? new Date(h.fecha_hasta).toLocaleString() : '<span class="text-success">Vigente</span>';
+            const esPasado = !!h.fecha_hasta;
+
+            return `
+                <tr style="${esPasado ? 'opacity: 0.7; background-color: rgba(0,0,0,0.02);' : 'font-weight: 500;'}">
+                    <td>${h.nombre} ${h.apellido}</td>
+                    <td style="font-size: 12px;">${fechaDesde}</td>
+                    <td style="font-size: 12px;">${fechaHasta}</td>
+                    <td style="font-size: 12px; font-style: italic;">${h.motivo || '-'}</td>
+                </tr>
+            `;
+        }).join('');
     },
 
     setupEventListeners() {
