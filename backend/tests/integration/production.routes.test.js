@@ -17,9 +17,9 @@ describe('Production Routes RBAC Integration Tests', () => {
 
         await bootstrapTestSystem(app);
 
-        // Crear tokens manuales para evitar depender del endpoint de login en cada test
-        adminToken = jwt.sign({ id: 1, username: 'admin', rol: 'ADMIN' }, JWT_SECRET);
-        inspectorToken = jwt.sign({ id: 2, username: 'inspector', rol: 'INSPECTOR' }, JWT_SECRET);
+        // Crear tokens manuales con los nombres de rol correctos
+        adminToken = jwt.sign({ id: 1, username: 'admin', rol: 'Administrador' }, JWT_SECRET);
+        inspectorToken = jwt.sign({ id: 2, username: 'inspector', rol: 'Inspector' }, JWT_SECRET);
     });
 
     describe('GET /api/ordenes-produccion', () => {
@@ -39,7 +39,7 @@ describe('Production Routes RBAC Integration Tests', () => {
     });
 
     describe('POST /api/ordenes-produccion', () => {
-        test('retorna 401 con token de rol INSPECTOR (no autorizado)', async () => {
+        test('retorna 401 con token de rol Inspector (no autorizado)', async () => {
             const response = await request(app)
                 .post('/api/ordenes-produccion')
                 .set('Cookie', [`token=${inspectorToken}`])
@@ -53,7 +53,7 @@ describe('Production Routes RBAC Integration Tests', () => {
             expect(response.body.error).toContain('No tiene permisos');
         });
 
-        test('retorna 201 con token de rol ADMIN', async () => {
+        test('retorna 201 con token de rol Administrador', async () => {
             const response = await request(app)
                 .post('/api/ordenes-produccion')
                 .set('Cookie', [`token=${adminToken}`])

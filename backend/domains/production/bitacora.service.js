@@ -2,6 +2,7 @@
 const AppError = require('../../shared/errors/AppError');
 const NotFoundError = require('../../shared/errors/NotFoundError');
 const ValidationError = require('../../shared/errors/ValidationError');
+const { ROLE_PERMISSIONS } = require('../../shared/auth/permissions');
 
 class BitacoraService {
   /**
@@ -33,50 +34,10 @@ class BitacoraService {
   }
 
   async closeBitacora(id, currentUser, userRol) {
-    const bitacora = await this.bitacoraRepository.findById(id);
-    if (!bitacora) {
-      throw new NotFoundError('Bitácora no encontrada.');
-    }
+    const bitacora = await this._getBitacoraOrThrow(id);
+    this._checkCloseAuthorization(bitacora, currentUser, userRol);
 
-    if (bitacora.estado === 'CERRADA') {
-        throw new ValidationError('La bitácora ya se encuentra cerrada.');
-    }
-
-    if (bitacora.inspector !== currentUser && userRol !== 'ADMIN' && userRol !== 'SUPERVISOR') {
-      throw new AppError('Solo el inspector que abrió la bitácora o un administrador pueden cerrarla.', 403);
-    }
-
-    let needsRevision = false;
-
-    // Validaciones de cierre
-    const procesos = await this.bitacoraRepository.getResumenProcesos();
-    for (const proceso of procesos) {
-        const registros = await this.bitacoraRepository.getRegistrosByProceso(id, proceso.id);
-        const muestras = await this.bitacoraRepository.getMuestrasByProceso(id, proceso.id);
-        const status = await this.bitacoraRepository.getProcesoStatus(id, proceso.id);
-
-        const isOperativo = !(status && status.no_operativo);
-        const hasData = registros.length > 0 || muestras.length > 0;
-
-        if (isOperativo && hasData) {
-            // Verificar personal asignado
-            const hasPersonnel = await this.bitacoraRepository.checkAssignmentsForProcess(proceso.id, bitacora.turno);
-            if (!hasPersonnel) {
-                throw new ValidationError(`No se puede cerrar el turno: El proceso '${proceso.nombre}' tiene actividad pero no cuenta con personal asignado para el turno ${bitacora.turno}.`);
-            }
-        }
-
-        const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
-        const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
-
-        if (hasRechazo || hasIncidente) {
-            needsRevision = true;
-            const hasObservaciones = registros.some(r => r.observaciones && r.observaciones.length > 10);
-            if (!hasObservaciones) {
-                throw new ValidationError(`El proceso '${proceso.nombre}' tiene desviaciones o rechazos pero no se ha proporcionado una explicación en las observaciones.`);
-            }
-        }
-    }
+    const needsRevision = await this._validateProcesosParaCierre(id, bitacora);
 
     const nuevoEstado = needsRevision ? 'REVISION' : 'CERRADA';
 
@@ -89,6 +50,81 @@ class BitacoraService {
             : 'Bitácora cerrada con éxito.',
         estado: nuevoEstado
     };
+  }
+
+  // --- Métodos Privados Extraídos ---
+
+  async _getBitacoraOrThrow(id) {
+    const bitacora = await this.bitacoraRepository.findById(id);
+    if (!bitacora) {
+      throw new NotFoundError('Bitácora no encontrada.');
+    }
+
+    if (bitacora.estado === 'CERRADA') {
+        throw new ValidationError('La bitácora ya se encuentra cerrada.');
+    }
+    return bitacora;
+  }
+
+  _checkCloseAuthorization(bitacora, currentUser, userRol) {
+    // Los roles con permiso para cerrar bitácoras de otros deben ser 'Administrador' y 'Supervisor'
+    // Derivamos los nombres exactos de las llaves de ROLE_PERMISSIONS para evitar hardcoding frágil
+    const roles = Object.keys(ROLE_PERMISSIONS);
+    const adminRole = roles.find(r => r.toLowerCase().includes('admin'));
+    const supervisorRole = roles.find(r => r.toLowerCase().includes('supervisor'));
+
+    const isOwner = bitacora.inspector === currentUser;
+    const canCloseOthers = userRol === adminRole || userRol === supervisorRole;
+
+    if (!isOwner && !canCloseOthers) {
+      throw new AppError('Solo el inspector que abrió la bitácora o un administrador pueden cerrarla.', 403);
+    }
+  }
+
+  async _validateProcesosParaCierre(bitacoraId, bitacora) {
+    let needsRevisionGlobal = false;
+    const procesos = await this.bitacoraRepository.getResumenProcesos();
+
+    for (const proceso of procesos) {
+        const registros = await this.bitacoraRepository.getRegistrosByProceso(bitacoraId, proceso.id);
+        const muestras = await this.bitacoraRepository.getMuestrasByProceso(bitacoraId, proceso.id);
+
+        await this._validateProcesoPersonal(proceso, bitacora, registros, muestras);
+
+        const processNeedsRevision = this._checkNeedsRevision(muestras, registros);
+        if (processNeedsRevision) {
+            needsRevisionGlobal = true;
+            this._validateObservacionesRequeridas(proceso, registros, muestras);
+        }
+    }
+    return needsRevisionGlobal;
+  }
+
+  async _validateProcesoPersonal(proceso, bitacora, registros, muestras) {
+    const status = await this.bitacoraRepository.getProcesoStatus(bitacora.id, proceso.id);
+    const isOperativo = !(status && status.no_operativo);
+    const hasData = registros.length > 0 || muestras.length > 0;
+
+    if (isOperativo && hasData) {
+        // Verificar personal asignado
+        const hasPersonnel = await this.bitacoraRepository.checkAssignmentsForProcess(proceso.id, bitacora.turno);
+        if (!hasPersonnel) {
+            throw new ValidationError(`No se puede cerrar el turno: El proceso '${proceso.nombre}' tiene actividad pero no cuenta con personal asignado para el turno ${bitacora.turno}.`);
+        }
+    }
+  }
+
+  _checkNeedsRevision(muestras, registros) {
+    const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
+    const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
+    return hasRechazo || hasIncidente;
+  }
+
+  _validateObservacionesRequeridas(proceso, registros, muestras) {
+    const hasObservaciones = registros.some(r => r.observaciones && r.observaciones.length > 10);
+    if (!hasObservaciones) {
+        throw new ValidationError(`El proceso '${proceso.nombre}' tiene desviaciones o rechazos pero no se ha proporcionado una explicación en las observaciones.`);
+    }
   }
 
   async getResumenProcesos(bitacoraId) {

@@ -16,7 +16,7 @@ describe('Bitacora Routes Integration Tests', () => {
 
         await bootstrapTestSystem(app);
 
-        adminToken = jwt.sign({ id: 1, username: 'admin', rol: 'ADMIN' }, JWT_SECRET);
+        adminToken = jwt.sign({ id: 1, username: 'admin', rol: 'Administrador' }, JWT_SECRET);
     });
 
     describe('GET /api/bitacora/estado', () => {
