@@ -18,8 +18,8 @@ const router = express.Router();
 
 router.get('/', ordenProduccionController.getAll);
 router.get('/:id', ordenProduccionController.getById);
-router.post('/', authorize('ADMIN'), ordenProduccionController.create);
-router.put('/:id', authorize('ADMIN'), ordenProduccionController.update);
-router.delete('/:id', authorize('ADMIN'), ordenProduccionController.remove);
+router.post('/', authorize('Administrador', 'ADMIN'), ordenProduccionController.create);
+router.put('/:id', authorize('Administrador', 'ADMIN'), ordenProduccionController.update);
+router.delete('/:id', authorize('Administrador', 'ADMIN'), ordenProduccionController.remove);
 
 module.exports = router;

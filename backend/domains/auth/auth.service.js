@@ -1,6 +1,7 @@
 // Servicio para lógica de negocio de autenticación
 const bcrypt = require('bcrypt');
 const UnauthorizedError = require('../../shared/errors/UnauthorizedError');
+const { logger } = require('../../shared/logger/logger');
 
 // Hash ficticio para protección contra timing attacks pre-calculado al inicio
 let DUMMY_HASH;

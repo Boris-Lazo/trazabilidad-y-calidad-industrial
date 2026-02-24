@@ -12,6 +12,6 @@ const loteController = new LoteController(loteService);
 const router = express.Router();
 
 router.get('/orden/:id', loteController.getByOrdenId);
-router.post('/', authorize('ADMIN', 'INSPECTOR'), loteController.create);
+router.post('/', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR'), loteController.create);
 
 module.exports = router;

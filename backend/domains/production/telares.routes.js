@@ -26,6 +26,6 @@ router.use(authMiddleware);
 router.get('/resumen', telaresController.getResumen);
 router.get('/paro-tipos', telaresController.getParoTipos);
 router.get('/detalle/:maquinaId', telaresController.getDetalle);
-router.post('/guardar', authorize('ADMIN', 'INSPECTOR'), telaresController.guardarDetalle);
+router.post('/guardar', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR'), telaresController.guardarDetalle);
 
 module.exports = router;

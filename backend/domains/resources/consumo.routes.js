@@ -12,6 +12,6 @@ const consumoController = new ConsumoController(consumoService);
 const router = express.Router();
 
 router.get('/registro/:id', consumoController.getByRegistroId);
-router.post('/', authorize('ADMIN', 'INSPECTOR', 'OPERACIONES'), consumoController.create);
+router.post('/', authorize('Administrador', 'ADMIN', 'Inspector', 'INSPECTOR', 'Operario', 'OPERACIONES'), consumoController.create);
 
 module.exports = router;
