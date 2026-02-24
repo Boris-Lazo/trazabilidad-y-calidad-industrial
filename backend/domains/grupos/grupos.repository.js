@@ -39,17 +39,6 @@ class GruposRepository {
     return await this.db.query(sql, [grupoId]);
   }
 
-  async getHistorialIntegrantesByGrupo(grupoId) {
-    const sql = `
-      SELECT gi.*, p.nombre, p.apellido, p.codigo_interno, p.tipo_personal
-      FROM grupo_integrantes gi
-      JOIN personas p ON gi.persona_id = p.id
-      WHERE gi.grupo_id = ?
-      ORDER BY gi.fecha_desde DESC
-    `;
-    return await this.db.query(sql, [grupoId]);
-  }
-
   async addIntegrante(data) {
     const sql = `
       INSERT INTO grupo_integrantes (grupo_id, persona_id, motivo, asignado_por)
