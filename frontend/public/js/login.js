@@ -1,4 +1,16 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Verificar si el sistema necesita bootstrap
+    try {
+        const res = await fetch('/api/bootstrap/status');
+        const status = await res.json();
+        if (status.success && !status.data.initialized) {
+            window.location.href = '/bootstrap.html';
+            return;
+        }
+    } catch (e) {
+        console.error('Error checking system status:', e);
+    }
+
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {

@@ -10,9 +10,11 @@ const { NODE_ENV } = require('./config/env');
 const errorMiddleware = require('./middlewares/error.middleware');
 const authMiddleware = require('./middlewares/auth.middleware');
 const { requestLogger } = require('./shared/logger/logger');
+const bootstrapGuard = require('./middlewares/bootstrap.middleware');
 
 // Importar rutas
 const authRoutes = require('./domains/auth/auth.routes');
+const bootstrapRoutes = require('./domains/bootstrap/bootstrap.routes');
 const procesoTipoRoutes = require('./domains/production/procesoTipo.routes');
 const bitacoraRoutes = require('./domains/production/bitacora.routes');
 const ordenProduccionRoutes = require('./domains/production/ordenProduccion.routes');
@@ -59,6 +61,9 @@ app.use(compression());
 app.use(cookieParser());
 app.use(express.json());
 
+// --- SEGURIDAD DE ARRANQUE (BOOTSTRAP) ---
+app.use(bootstrapGuard);
+
 // --- ACTIVOS ESTÁTICOS PÚBLICOS ---
 app.use('/css', express.static(path.join(__dirname, '../frontend/public/css')));
 app.use('/js', express.static(path.join(__dirname, '../frontend/public/js')));
@@ -66,6 +71,7 @@ app.use('/design-system', express.static(path.join(__dirname, '../frontend/src/d
 
 // --- RUTAS DE API ---
 app.use('/api/auth', authRoutes);
+app.use('/api/bootstrap', bootstrapRoutes);
 
 // Rutas protegidas de API
 app.use('/api/procesos-tipo', authMiddleware, procesoTipoRoutes);
@@ -82,6 +88,7 @@ app.use('/api/personal', authMiddleware, personalRoutes);
 
 // --- FRONTEND (PÁGINAS HTML) ---
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, '../frontend/public/login.html')));
+app.get('/bootstrap.html', (req, res) => res.sendFile(path.join(__dirname, '../frontend/public/bootstrap.html')));
 
 app.get('/', authMiddleware, (req, res) => res.sendFile(path.join(__dirname, '../frontend/index.html')));
 

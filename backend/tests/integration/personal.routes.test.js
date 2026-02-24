@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../../app');
 const { initDB, db } = require('../../database/sqlite');
+const { bootstrapTestSystem } = require('../helpers/testUtils');
 
 describe('Personal Routes Integration Tests', () => {
     let token;
@@ -12,6 +13,8 @@ describe('Personal Routes Integration Tests', () => {
             initDB();
             setTimeout(resolve, 500);
         });
+
+        await bootstrapTestSystem(app);
 
         // Login as admin para obtener token
         const loginRes = await request(app)

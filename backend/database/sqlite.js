@@ -409,6 +409,12 @@ const runFullSchema = () => {
         fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP
     );`);
 
+    db.run(`CREATE TABLE IF NOT EXISTS sistema_config (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        clave TEXT UNIQUE NOT NULL,
+        valor TEXT NOT NULL
+    );`);
+
     // Creación de índices críticos
     logger.info("Asegurando índices de base de datos...");
     db.run(`CREATE INDEX IF NOT EXISTS idx_usuarios_username ON usuarios(username);`);
@@ -447,43 +453,24 @@ const runFullSchema = () => {
           defaultAreas.forEach(a => stmt.run(a));
           stmt.finalize(() => {
             logger.info('Áreas inicializadas.');
-            seedAdminUser();
+            seedSystemConfig();
           });
         } else {
-          seedAdminUser();
+          seedSystemConfig();
         }
       });
     };
 
-    const seedAdminUser = () => {
-      // Semilla de administrador inicial (Usuario Técnico - Sin Persona)
-      db.get("SELECT id FROM roles WHERE nombre = 'Administrador'", (err, rol) => {
-        if (err || !rol) return logger.error('No se pudo encontrar el rol Administrador para la semilla.');
+    const seedSystemConfig = () => {
+      db.get("SELECT COUNT(*) as count FROM sistema_config WHERE clave = 'estado_sistema'", (err, row) => {
+        if (err) return logger.error('Error al verificar sistema_config:', err.message);
 
-        const adminRolId = rol.id;
-
-        db.get("SELECT id, persona_id FROM usuarios WHERE username = 'admin'", (err, user) => {
-          if (err) return logger.error('Error al verificar usuario admin:', err.message);
-
-          const hashedPassword = bcrypt.hashSync(adminPassword, 10);
-
-          if (!user) {
-            db.run("INSERT INTO usuarios (username, password_hash, rol_id, must_change_password, created_by, motivo_cambio) VALUES ('admin', ?, ?, 0, 'SYSTEM', 'Semilla inicial técnica')",
-              [hashedPassword, adminRolId], (err) => {
-              if (err) logger.error('Error al insertar usuario admin:', err.message);
-              else logger.info('Usuario administrador técnico inicial creado con éxito.');
-            });
-          } else {
-            // Asegurar que el admin no tenga persona asociada y tenga el rol correcto
-            if (user.persona_id) {
-              logger.info("Migrando usuario admin a cuenta técnica pura (sin persona)...");
-              db.run("UPDATE usuarios SET persona_id = NULL, rol_id = ?, updated_by = 'SYSTEM', motivo_cambio = 'Corrección de dominio: Admin sin Persona' WHERE username = 'admin'", [adminRolId]);
-              db.run("DELETE FROM personas WHERE codigo_interno = 'admin'");
-            } else {
-              db.run("UPDATE usuarios SET rol_id = ? WHERE username = 'admin' AND (rol_id IS NULL OR rol_id != ?)", [adminRolId, adminRolId]);
-            }
-          }
-        });
+        if (row && row.count === 0) {
+          db.run("INSERT INTO sistema_config (clave, valor) VALUES ('estado_sistema', 'NO_INICIALIZADO')", (err) => {
+            if (err) logger.error('Error al inicializar estado_sistema:', err.message);
+            else logger.info('Estado del sistema inicializado como NO_INICIALIZADO.');
+          });
+        }
       });
     };
 

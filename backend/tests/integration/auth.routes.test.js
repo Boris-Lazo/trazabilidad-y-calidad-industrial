@@ -4,15 +4,17 @@ const { initDB, db } = require('../../database/sqlite');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../../config/env');
+const { bootstrapTestSystem } = require('../helpers/testUtils');
 
 describe('Auth Routes Integration Tests', () => {
     beforeAll(async () => {
         // Asegurarse de que la base de datos está inicializada (en memoria para test)
         await new Promise((resolve) => {
             initDB();
-            // Esperar un poco a que las semillas se inserten ya que initDB usa db.serialize pero es asíncrono en su ejecución interna
             setTimeout(resolve, 500);
         });
+
+        await bootstrapTestSystem(app);
     });
 
     describe('POST /api/auth/login', () => {

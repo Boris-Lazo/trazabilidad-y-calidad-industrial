@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="/design-system/theme/index.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicialización del Sistema | PROD-SYS</title>
+    <link rel="stylesheet" href="/design-system/index.css">
+    <script src="/design-system/index.js" defer></script>
+    <style>
+        .bootstrap-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--bg-primary);
+            padding: 24px;
+        }
+        .bootstrap-box {
+            width: 100%;
+            max-width: 600px;
+        }
+        .bootstrap-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .bootstrap-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        .bootstrap-subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .alert-info {
+            background-color: rgba(30, 64, 175, 0.1);
+            border-left: 4px solid #1E40AF;
+            padding: 16px;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body class="bootstrap-page">
+    <div class="bootstrap-container">
+        <div class="bootstrap-box card">
+            <div class="bootstrap-header">
+                <h1 class="bootstrap-title">PROD-SYS</h1>
+                <p class="bootstrap-subtitle">Inicialización de Seguridad y Control</p>
+            </div>
+
+            <div class="alert-info">
+                <strong>Configuración Inicial:</strong> El sistema se encuentra en estado virgen. Debe crear el primer administrador real para habilitar las operaciones. Este proceso es irreversible y auditable.
+            </div>
+
+            <form id="bootstrap-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="nombre">Nombre(s)</label>
+                        <input class="form-control" type="text" id="nombre" name="nombre" placeholder="Nombre real" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="apellido">Apellido(s)</label>
+                        <input class="form-control" type="text" id="apellido" name="apellido" placeholder="Apellido real" required>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="codigo_interno">Código de Empleado (Login)</label>
+                        <input class="form-control" type="text" id="codigo_interno" name="codigo_interno" placeholder="Ej: 100234" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="area_id">Área / Departamento</label>
+                        <select class="form-control" id="area_id" name="area_id" required>
+                            <option value="">Cargando áreas...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Correo Electrónico Institucional</label>
+                    <input class="form-control" type="email" id="email" name="email" placeholder="usuario@empresa.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="telefono">Teléfono / Extensión</label>
+                    <input class="form-control" type="text" id="telefono" name="telefono" placeholder="Ej: +52 55..." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Contraseña de Administrador</label>
+                    <input class="form-control" type="password" id="password" name="password" placeholder="Mínimo 8 caracteres" required minlength="8">
+                </div>
+
+                <div id="bootstrap-error" class="error-message" style="display: none; margin-bottom: 16px;"></div>
+
+                <button type="submit" id="btn-init" class="btn btn-primary" style="width:100%; margin-top: 8px;">Inicializar Sistema y Crear Administrador</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/bootstrap.js"></script>
+</body>
+</html>
