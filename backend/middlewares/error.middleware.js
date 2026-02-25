@@ -8,10 +8,15 @@ const errorMiddleware = (err, req, res, next) => {
     ? 'Ocurrió un error interno en el servidor'
     : err.message;
 
-  // Registrar el error
-  logger.error(`${statusCode} - ${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`);
-  if (statusCode === 500) {
-    logger.error(err.stack);
+  // Registrar el error según severidad
+  if (statusCode >= 500) {
+      logger.error(`${statusCode} - ${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`);
+      logger.error(err.stack);
+  } else if (statusCode === 403) {
+      // Objetivo 1: No registrar como error del sistema intentos de usuarios desactivados
+      logger.info(`Acceso Denegado (403): ${err.message} - ${req.originalUrl} - ${req.ip}`);
+  } else {
+      logger.warn(`${statusCode} - ${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`);
   }
 
   return sendError(res, message, statusCode);

@@ -39,6 +39,17 @@ class GruposRepository {
     return await this.db.query(sql, [grupoId]);
   }
 
+  async getHistorialIntegrantesByGrupo(grupoId) {
+    const sql = `
+      SELECT gi.*, p.nombre, p.apellido
+      FROM grupo_integrantes gi
+      JOIN personas p ON gi.persona_id = p.id
+      WHERE gi.grupo_id = ?
+      ORDER BY gi.fecha_desde DESC
+    `;
+    return await this.db.query(sql, [grupoId]);
+  }
+
   async addIntegrante(data) {
     const sql = `
       INSERT INTO grupo_integrantes (grupo_id, persona_id, motivo, asignado_por)
@@ -88,6 +99,17 @@ class GruposRepository {
   async updateTurnoGrupo(grupoId, nuevoTurno) {
     const sql = `UPDATE grupos SET turno_actual = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
     return await this.db.run(sql, [nuevoTurno, grupoId]);
+  }
+
+  async getPersonaGroupHistory(personaId) {
+    const sql = `
+      SELECT gi.*, g.nombre as grupo_nombre, g.tipo as grupo_tipo
+      FROM grupo_integrantes gi
+      JOIN grupos g ON gi.grupo_id = g.id
+      WHERE gi.persona_id = ?
+      ORDER BY gi.fecha_desde DESC
+    `;
+    return await this.db.query(sql, [personaId]);
   }
 
   async withTransaction(fn) {

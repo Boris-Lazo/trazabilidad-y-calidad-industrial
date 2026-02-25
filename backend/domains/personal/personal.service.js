@@ -18,11 +18,15 @@ class PersonalService {
 
     const roleHistory = await this.personalRepository.getRoleHistory(id);
     const assignments = await this.personalRepository.getActiveAssignments(id);
+    const opRole = await this.personalRepository.getOperationalRole(id);
+    const groupHistory = await this.personalRepository.getGroupHistory(id);
 
     return {
       ...persona,
       historial_roles: roleHistory,
-      asignaciones_activas: assignments
+      asignaciones_activas: assignments,
+      rol_operativo_actual: opRole,
+      historial_grupos: groupHistory
     };
   }
 
@@ -88,9 +92,9 @@ class PersonalService {
 
     // Auditoría detallada de cambio de estado o datos
     if (data.estado_laboral && data.estado_laboral !== persona.estado_laboral) {
-        await this.auditService.logStatusChange(updaterId, 'Persona', id, persona.estado_laboral, data.estado_laboral, data.motivo_cambio || 'Cambio de estado laboral');
+        await this.auditService.logStatusChange(updaterId, 'Persona', id, persona.estado_laboral, data.estado_laboral, data.motivo_cambio || 'Cambio de estado laboral', data.categoria_motivo);
     } else {
-        await this.auditService.logUpdate(updaterId, 'Persona', id, persona, data, data.motivo_cambio || 'Actualización de datos de personal');
+        await this.auditService.logUpdate(updaterId, 'Persona', id, persona, data, data.motivo_cambio || 'Actualización de datos de personal', data.categoria_motivo);
     }
 
     return true;
@@ -102,7 +106,7 @@ class PersonalService {
     return { areas, roles };
   }
 
-  async assignRole(personaId, rolId, assignerId, reason, es_correccion = false) {
+  async assignRole(personaId, rolId, assignerId, reason, es_correccion = false, categoria_motivo = null) {
     if (!reason) throw new ValidationError('El motivo del cambio de rol es obligatorio');
     const finalReason = es_correccion ? `[CORRECCIÓN] ${reason}` : reason;
 
@@ -123,14 +127,15 @@ class PersonalService {
         valor_anterior: { rol: persona.rol_actual },
         valor_nuevo: { rol_id: rolId },
         motivo_cambio: finalReason,
-        es_correccion
+        es_correccion,
+        categoria_motivo
       });
 
       return true;
     });
   }
 
-  async updateUserStatus(identifier, newStatus, updaterId, reason, useUserId = false) {
+  async updateUserStatus(identifier, newStatus, updaterId, reason, useUserId = false, categoria_motivo = null) {
     if (!reason) throw new ValidationError('El motivo del cambio de estado es obligatorio');
 
     const user = useUserId
@@ -152,13 +157,13 @@ class PersonalService {
     return await this.personalRepository.withTransaction(async () => {
       await this.personalRepository.updateUserStatus(user.id, newStatus, updaterId, reason);
 
-      await this.auditService.logStatusChange(updaterId, 'Usuario', user.id, user.estado_usuario, newStatus, reason);
+      await this.auditService.logStatusChange(updaterId, 'Usuario', user.id, user.estado_usuario, newStatus, reason, categoria_motivo);
 
       return true;
     });
   }
 
-  async reactivateUser(personaId, updaterId, reason) {
+  async reactivateUser(personaId, updaterId, reason, categoria_motivo = null) {
     const user = await this.personalRepository.findUserByPersonaId(personaId);
     if (!user) throw new ValidationError('Usuario no encontrado');
 
@@ -181,7 +186,8 @@ class PersonalService {
         entidad_id: user.id,
         valor_anterior: { estado: user.estado_usuario },
         valor_nuevo: { estado: 'Activo' },
-        motivo_cambio: reason
+        motivo_cambio: reason,
+        categoria_motivo
       });
 
       return true;
@@ -189,7 +195,10 @@ class PersonalService {
   }
 
   async assignOperation(assignmentData, creatorId) {
-    const user = await this.personalRepository.findUserByPersonaId(assignmentData.persona_id);
+    const personaId = assignmentData.persona_id;
+    const isAuxiliarConAcceso = await this.personalRepository.isAuxiliarWithActiveUser(personaId);
+
+    const user = await this.personalRepository.findUserByPersonaId(personaId);
 
     // Un usuario debe estar Activo para ser asignado a operaciones
     if (!user) {
@@ -210,10 +219,19 @@ class PersonalService {
         ? `[CORRECCIÓN] ${assignmentData.motivo_cambio || 'Corrección de asignación'}`
         : (assignmentData.motivo_cambio || 'Asignación operativa regular');
 
-    const result = await this.personalRepository.assignOperation({
-      ...assignmentData,
-      motivo_cambio: finalMotivo,
-      created_by: creatorId
+    const result = await this.personalRepository.withTransaction(async () => {
+      // Regla: Si es Auxiliar con acceso y es movido de proceso/máquina, se desactiva
+      if (isAuxiliarConAcceso) {
+          const deactivationReason = `Desactivación automática por cambio en asignación operativa de Auxiliar: ${assignmentData.motivo_cambio || 'Reasignación'}`;
+          await this.personalRepository.updateUserStatus(user.id, 'Suspendido', creatorId, deactivationReason);
+          await this.auditService.logStatusChange(creatorId, 'Usuario', user.id, 'Activo', 'Suspendido', deactivationReason, 'AJUSTE_OPERATIVO');
+      }
+
+      return await this.personalRepository.assignOperation({
+        ...assignmentData,
+        motivo_cambio: finalMotivo,
+        created_by: creatorId
+      });
     });
 
     await this.auditService.logChange({

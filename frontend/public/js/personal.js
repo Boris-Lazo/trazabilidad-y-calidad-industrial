@@ -25,7 +25,6 @@ const PersonalModule = {
         const title = document.getElementById('page-title');
         if (this.currentView === 'usuarios') {
             if (title) title.textContent = 'Gestión de Usuarios';
-            // Ocultar columnas no relevantes para vista usuarios si fuera necesario
         } else {
             if (title) title.textContent = 'Gestión de Colaboradores';
         }
@@ -92,12 +91,14 @@ const PersonalModule = {
         const searchTerm = document.getElementById('search-staff').value.toLowerCase();
         const areaFilter = document.getElementById('filter-area').value;
         const user = Auth.getUser();
-        const isReadOnly = user && (user.rol === 'Inspector' || user.rol === 'Inspector de Calidad');
+
+        // Reglas de permisos estrictas: Solo Admin y Jefe de Operaciones pueden editar/gestionar acceso
+        const canManage = user && (user.rol === 'Administrador' || user.rol === 'Jefe de Operaciones');
+        const isReadOnly = !canManage;
 
         if (isReadOnly) {
             const btnNuevo = document.getElementById('btn-nuevo-personal');
             if (btnNuevo) btnNuevo.style.display = 'none';
-            // Mensaje de solo lectura
             if (!document.getElementById('readonly-notice')) {
                 const notice = document.createElement('div');
                 notice.id = 'readonly-notice';
@@ -145,18 +146,19 @@ const PersonalModule = {
                         <span class="badge ${p.estado_usuario && p.estado_usuario.toLowerCase() === 'activo' ? 'badge-success' : 'badge-warning'}">
                             ${(p.estado_usuario || 'S/U').toUpperCase()}
                         </span>
-                        <button class="btn btn-secondary btn-sm" onclick="PersonalModule.openStatusModal(${p.id}, '${p.nombre} ${p.apellido}', '${p.estado_usuario || 'Inactivo'}')" title="Cambiar Estado de Acceso">
-                            <i data-lucide="shield-alert" style="width:12px; height:12px;"></i>
-                        </button>
+                        ${canManage && p.estado_usuario !== 'Baja lógica' ? `
+                        <button class="btn btn-secondary btn-sm" onclick="PersonalModule.openStatusModal(${p.id}, '${p.nombre} ${p.apellido}', '${p.estado_usuario || 'Inactivo'}')" title="Estado / Acceso">
+                            <i data-lucide="shield" style="width:14px; height:14px;"></i>
+                        </button>` : ''}
                     </div>
                 </td>
                 <td>
                     <div style="display: flex; gap: 8px;">
-                        ${!isReadOnly ? `
-                        <button class="btn btn-secondary btn-sm" onclick="PersonalModule.editStaff(${p.id})" title="Editar">
-                            <i data-lucide="edit-2" style="width:14px; height:14px;"></i>
+                        ${canManage && p.estado_usuario !== 'Baja lógica' ? `
+                        <button class="btn btn-secondary btn-sm" onclick="PersonalModule.openModal(${p.id})" title="Editar">
+                            <i data-lucide="pencil" style="width:14px; height:14px;"></i>
                         </button>` : ''}
-                        <button class="btn btn-secondary btn-sm" onclick="PersonalModule.viewDetails(${p.id})" title="Ver Detalles / Asignaciones">
+                        <button class="btn btn-secondary btn-sm" onclick="PersonalModule.viewDetails(${p.id})" title="Ver Detalle">
                             <i data-lucide="eye" style="width:14px; height:14px;"></i>
                         </button>
                     </div>
@@ -167,35 +169,54 @@ const PersonalModule = {
     },
 
     setupEventListeners() {
-        document.getElementById('btn-nuevo-personal').addEventListener('click', () => this.openModal());
+        const btnNuevo = document.getElementById('btn-nuevo-personal');
+        if (btnNuevo) btnNuevo.addEventListener('click', () => this.openModal());
+
         document.getElementById('search-staff').addEventListener('input', () => this.renderStaffList());
         document.getElementById('filter-area').addEventListener('change', () => this.renderStaffList());
         document.getElementById('btn-save-personal').addEventListener('click', () => this.saveStaff());
-        document.getElementById('btn-save-assignment').addEventListener('click', () => this.saveAssignment());
+
+        const btnSaveAsig = document.getElementById('btn-save-assignment');
+        if (btnSaveAsig) btnSaveAsig.addEventListener('click', () => this.saveAssignment());
+
         document.getElementById('btn-confirm-status').addEventListener('click', () => this.saveStatusChange());
 
         const uEstado = document.getElementById('u-estado');
         if (uEstado) {
             uEstado.addEventListener('change', (e) => {
-                document.getElementById('status-warning').style.display = e.target.value === 'Baja lógica' ? 'block' : 'none';
+                const p = this.staff.find(s => s.id === this.currentStaffId);
+                const warning = document.getElementById('status-warning');
+                if (e.target.value === 'Baja lógica') {
+                    warning.style.display = 'block';
+                    warning.innerHTML = '<strong>Atención:</strong> El estado \'Baja lógica\' es irreversible e impedirá cualquier acceso futuro.';
+                } else if (p && p.es_auxiliar_activo) {
+                    warning.style.display = 'block';
+                    warning.innerHTML = '<strong>Atención:</strong> Este colaborador es un Auxiliar con acceso activo. Desactivar su acceso revocará sus permisos de inmediato.';
+                } else {
+                    warning.style.display = 'none';
+                }
             });
         }
 
-        document.getElementById('a-proceso').addEventListener('change', async (e) => {
-            const procesoId = e.target.value;
-            const machineSelect = document.getElementById('a-maquina');
-            machineSelect.innerHTML = '<option value="">Cualquier máquina</option>';
+        const aProceso = document.getElementById('a-proceso');
+        if (aProceso) {
+            aProceso.addEventListener('change', async (e) => {
+                const procesoId = e.target.value;
+                const machineSelect = document.getElementById('a-maquina');
+                if (!machineSelect) return;
+                machineSelect.innerHTML = '<option value="">Cualquier máquina</option>';
 
-            if (procesoId) {
-                try {
-                    const res = await fetch(`/api/telares/maquinas?proceso_id=${procesoId}`);
-                    const result = await res.json();
-                    if (result.success) {
-                        machineSelect.innerHTML += result.data.map(m => `<option value="${m.id}">${m.codigo}</option>`).join('');
-                    }
-                } catch (e) { console.error(e); }
-            }
-        });
+                if (procesoId) {
+                    try {
+                        const res = await fetch(`/api/telares/maquinas?proceso_id=${procesoId}`);
+                        const result = await res.json();
+                        if (result.success) {
+                            machineSelect.innerHTML += result.data.map(m => `<option value="${m.id}">${m.codigo}</option>`).join('');
+                        }
+                    } catch (e) { console.error(e); }
+                }
+            });
+        }
     },
 
     openModal(id = null) {
@@ -219,15 +240,18 @@ const PersonalModule = {
             document.getElementById('p-fecha-ingreso').value = p.fecha_ingreso;
             document.getElementById('p-telefono').value = p.telefono || '';
             document.getElementById('p-estado').value = p.estado_laboral;
+            document.getElementById('p-categoria').value = '';
 
             codigoInput.disabled = true;
             editFields.style.display = 'block';
-            document.getElementById('p-rol').closest('.form-group').style.display = 'none';
+            const rolGroup = document.getElementById('p-rol').closest('.form-group');
+            if (rolGroup) rolGroup.style.display = 'none';
         } else {
             modalTitle.textContent = 'Registrar Nuevo Personal';
             codigoInput.disabled = false;
             editFields.style.display = 'none';
-            document.getElementById('p-rol').closest('.form-group').style.display = 'block';
+            const rolGroup = document.getElementById('p-rol').closest('.form-group');
+            if (rolGroup) rolGroup.style.display = 'block';
         }
 
         document.getElementById('modal-personal').style.display = 'flex';
@@ -252,8 +276,13 @@ const PersonalModule = {
                 email: data.email,
                 telefono: data.telefono,
                 estado_laboral: document.getElementById('p-estado').value,
-                motivo_cambio: document.getElementById('p-motivo').value
+                motivo_cambio: document.getElementById('p-motivo').value,
+                categoria_motivo: document.getElementById('p-categoria').value
             };
+            if (!updateData.categoria_motivo) {
+                DesignSystem.showToast('La categoría de motivo es obligatoria', 'warning');
+                return;
+            }
             if (!updateData.motivo_cambio) {
                 DesignSystem.showToast('El motivo del cambio es obligatorio para editar', 'warning');
                 return;
@@ -294,8 +323,6 @@ const PersonalModule = {
 
     async viewDetails(id) {
         this.currentStaffId = id;
-        const user = Auth.getUser();
-        const isReadOnly = user && (user.rol === 'Inspector' || user.rol === 'Inspector de Calidad');
         try {
             const res = await fetch(`/api/personal/${id}`);
             const result = await res.json();
@@ -303,34 +330,56 @@ const PersonalModule = {
                 const p = result.data;
                 document.getElementById('detail-title').textContent = `Detalles: ${p.nombre} ${p.apellido}`;
 
-                if (isReadOnly) {
-                    const formAsig = document.getElementById('form-asignacion');
-                    if (formAsig) formAsig.style.display = 'none';
+                const isAuxActive = this.staff.find(s => s.id === id)?.es_auxiliar_activo;
+                const indicator = document.getElementById('detail-indicator');
+                if (isAuxActive) {
+                    indicator.innerHTML = `
+                        <div class="badge badge-primary w-100" style="padding: 10px; text-align: left; font-size: 0.9rem;">
+                            <i data-lucide="shield-check" class="inline-icon"></i>
+                            <strong>Atención:</strong> Colaborador identificado como Auxiliar con acceso activo al sistema.
+                        </div>
+                    `;
+                } else {
+                    indicator.innerHTML = '';
                 }
 
-                document.getElementById('staff-info').innerHTML = `
-                    <div class="metadata-grid">
-                        <div><strong>Código:</strong> ${p.codigo_interno}</div>
-                        <div><strong>Usuario:</strong> ${p.username || '-'}</div>
-                        <div><strong>Área:</strong> ${p.area_nombre}</div>
-                        <div><strong>Email:</strong> ${p.email}</div>
-                        <div><strong>Teléfono:</strong> ${p.telefono || '-'}</div>
-                        <div><strong>Tipo:</strong> ${p.tipo_personal}</div>
-                        <div><strong>Ingreso:</strong> ${p.fecha_ingreso}</div>
-                        <div><strong>Estado:</strong> ${p.estado_laboral}</div>
-                    </div>
+                document.getElementById('staff-info-details').innerHTML = `
+                    <div><strong>Código:</strong> ${p.codigo_interno}</div>
+                    <div><strong>Email:</strong> ${p.email}</div>
+                    <div><strong>Teléfono:</strong> ${p.telefono || '-'}</div>
+                    <div><strong>Área:</strong> ${p.area_nombre}</div>
+                    <div><strong>Ingreso:</strong> ${p.fecha_ingreso}</div>
+                    <div><strong>Estado Laboral:</strong> <span class="badge ${p.estado_laboral === 'Activo' ? 'badge-success' : 'badge-danger'}">${p.estado_laboral}</span></div>
+                    <div><strong>Estado Usuario:</strong> <span class="badge ${p.estado_usuario === 'Activo' ? 'badge-success' : 'badge-warning'}">${p.estado_usuario || 'SIN USUARIO'}</span></div>
                 `;
 
-                const assignmentsList = document.getElementById('active-assignments');
+                document.getElementById('current-op-role').innerHTML = p.rol_operativo_actual
+                    ? `<span class="badge badge-info" style="font-size: 1.1rem; padding: 8px 16px;">${p.rol_operativo_actual.rol_nombre}</span>`
+                    : '<span class="text-secondary italic">Sin rol operativo asignado</span>';
+
+                const assignmentsList = document.getElementById('active-assignments-details');
                 if (p.asignaciones_activas && p.asignaciones_activas.length > 0) {
                     assignmentsList.innerHTML = p.asignaciones_activas.map(a => `
-                        <div class="card p-2 mb-2" style="border-left: 4px solid var(--primary-base);">
+                        <div class="card p-2 mb-2" style="border-left: 4px solid var(--primary-base); background: rgba(0,0,0,0.02);">
                             <div style="font-weight: 600;">${a.proceso_nombre} ${a.maquina_codigo ? '- ' + a.maquina_codigo : ''}</div>
                             <div style="font-size: 12px; color: var(--text-secondary);">Turno: ${a.turno} ${a.permanente ? '(Permanente)' : ''}</div>
                         </div>
                     `).join('');
                 } else {
-                    assignmentsList.innerHTML = '<div class="text-secondary italic">Sin asignaciones activas</div>';
+                    assignmentsList.innerHTML = '<div class="text-secondary italic p-2">Sin asignaciones operativas activas</div>';
+                }
+
+                const groupList = document.getElementById('group-history-list');
+                if (p.historial_grupos && p.historial_grupos.length > 0) {
+                    groupList.innerHTML = p.historial_grupos.map(g => `
+                        <tr>
+                            <td><strong>${g.grupo_nombre}</strong></td>
+                            <td>${new Date(g.fecha_desde).toLocaleDateString()}</td>
+                            <td>${g.fecha_hasta ? new Date(g.fecha_hasta).toLocaleDateString() : '<span class="badge badge-success">Actual</span>'}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    groupList.innerHTML = '<tr><td colspan="3" class="text-center text-secondary italic">Sin historial de grupos</td></tr>';
                 }
 
                 document.getElementById('role-history-list').innerHTML = p.historial_roles.map(h => `
@@ -342,17 +391,35 @@ const PersonalModule = {
                     </tr>
                 `).join('');
 
+                DesignSystem.initLucide();
                 document.getElementById('modal-detalle').style.display = 'flex';
             }
-        } catch (e) { DesignSystem.showToast('Error al cargar detalles', 'error'); }
+        } catch (e) {
+            console.error(e);
+            DesignSystem.showToast('Error al cargar detalles', 'error');
+        }
     },
 
     openStatusModal(id, name, currentStatus) {
         this.currentStaffId = id;
+        const p = this.staff.find(s => s.id === id);
+
+        const btnConfirm = document.getElementById('btn-confirm-status');
+        if (btnConfirm) DesignSystem.setBtnLoading(btnConfirm, false);
+
         document.getElementById('status-target-name').textContent = `Colaborador: ${name}`;
         document.getElementById('u-estado').value = currentStatus === 'S/U' ? 'Suspendido' : currentStatus;
         document.getElementById('u-motivo').value = '';
-        document.getElementById('status-warning').style.display = 'none';
+        document.getElementById('u-categoria').value = '';
+
+        const warning = document.getElementById('status-warning');
+        if (p && p.es_auxiliar_activo) {
+            warning.style.display = 'block';
+            warning.innerHTML = '<strong>Atención:</strong> Este colaborador es un Auxiliar con acceso activo. Desactivar su acceso revocará sus permisos de inmediato.';
+        } else {
+            warning.style.display = 'none';
+        }
+
         document.getElementById('modal-estado-usuario').style.display = 'flex';
     },
 
@@ -364,6 +431,12 @@ const PersonalModule = {
         const id = this.currentStaffId;
         const estado_usuario = document.getElementById('u-estado').value;
         const motivo_cambio = document.getElementById('u-motivo').value;
+        const categoria_motivo = document.getElementById('u-categoria').value;
+
+        if (!categoria_motivo) {
+            DesignSystem.showToast('Debe seleccionar una categoría de motivo', 'warning');
+            return;
+        }
 
         if (!motivo_cambio || motivo_cambio.length < 5) {
             DesignSystem.showToast('Debe proporcionar un motivo descriptivo (mín. 5 caracteres)', 'warning');
@@ -371,11 +444,11 @@ const PersonalModule = {
         }
 
         try {
-            DesignSystem.setBtnLoading('btn-confirm-status', true);
+            DesignSystem.setBtnLoading(document.getElementById('btn-confirm-status'), true);
             const res = await fetch(`/api/personal/${id}/estado`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ estado_usuario, motivo_cambio })
+                body: JSON.stringify({ estado_usuario, motivo_cambio, categoria_motivo })
             });
             const result = await res.json();
             if (result.success) {
@@ -397,7 +470,9 @@ const PersonalModule = {
             proceso_tipo_id: parseInt(document.getElementById('a-proceso').value),
             maquina_id: document.getElementById('a-maquina').value ? parseInt(document.getElementById('a-maquina').value) : null,
             turno: document.getElementById('a-turno').value,
-            permanente: document.getElementById('a-permanente').checked
+            permanente: document.getElementById('a-permanente').checked,
+            motivo_cambio: document.getElementById('a-motivo').value,
+            categoria_motivo: document.getElementById('a-categoria').value
         };
 
         if (!data.proceso_tipo_id) {
@@ -414,8 +489,8 @@ const PersonalModule = {
             const result = await res.json();
             if (result.success) {
                 DesignSystem.showToast('Asignación registrada correctamente');
-                this.viewDetails(this.currentStaffId);
-                document.getElementById('form-asignacion').reset();
+                document.getElementById('modal-asignacion').style.display = 'none';
+                this.loadStaff();
             } else {
                 DesignSystem.showToast(result.error, 'error');
             }

@@ -20,6 +20,7 @@ const personalValidation = {
     telefono: z.string().optional(),
     estado_laboral: z.enum(['Activo', 'Inactivo', 'Baja']).optional(),
     motivo_cambio: z.string().min(5, 'El motivo del cambio debe tener al menos 5 caracteres'),
+    categoria_motivo: z.string().optional(),
   }),
 
   updateStatus: z.object({
@@ -27,16 +28,19 @@ const personalValidation = {
         error_map: () => ({ message: 'Estado de usuario inválido' })
     }),
     motivo_cambio: z.string({ required_error: 'El motivo del cambio es obligatorio' }).min(5, 'El motivo del cambio debe ser descriptivo (min 5 caracteres)'),
+    categoria_motivo: z.string({ required_error: 'La categoría del motivo es obligatoria' }),
   }),
 
   reactivateUser: z.object({
     motivo_cambio: z.string({ required_error: 'El motivo de reactivación es obligatorio' }).min(5, 'El motivo de reactivación es obligatorio'),
+    categoria_motivo: z.string().optional(), // Puede ser auto-clasificada
   }),
 
   assignRole: z.object({
     rol_id: z.number({ required_error: 'El rol es obligatorio' }).int().positive(),
     motivo_cambio: z.string({ required_error: 'El motivo del cambio de rol es obligatorio' }).min(5, 'El motivo del cambio de rol es obligatorio'),
     es_correccion: z.boolean().optional().default(false),
+    categoria_motivo: z.string().optional(),
   }),
 
   assignOperation: z.object({
@@ -45,6 +49,8 @@ const personalValidation = {
     maquina_id: z.number().int().positive().nullable().optional(),
     turno: z.string().min(1),
     permanente: z.boolean().default(false),
+    motivo_cambio: z.string().min(5).optional(),
+    categoria_motivo: z.string().optional(),
   })
 };
 

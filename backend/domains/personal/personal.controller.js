@@ -67,8 +67,8 @@ class PersonalController {
 
   async assignRole(req, res, next) {
     try {
-      const { rol_id, motivo_cambio, es_correccion } = personalValidation.assignRole.parse(req.body);
-      await this.personalService.assignRole(req.params.id, rol_id, req.user.id, motivo_cambio, es_correccion);
+      const { rol_id, motivo_cambio, es_correccion, categoria_motivo } = personalValidation.assignRole.parse(req.body);
+      await this.personalService.assignRole(req.params.id, rol_id, req.user.id, motivo_cambio, es_correccion, categoria_motivo);
       res.json({ success: true, message: 'Rol asignado correctamente.' });
     } catch (error) {
       if (error.name === 'ZodError') {
@@ -81,8 +81,8 @@ class PersonalController {
 
   async updateStatus(req, res, next) {
     try {
-      const { estado_usuario, motivo_cambio } = personalValidation.updateStatus.parse(req.body);
-      await this.personalService.updateUserStatus(req.params.id, estado_usuario, req.user.id, motivo_cambio);
+      const { estado_usuario, motivo_cambio, categoria_motivo } = personalValidation.updateStatus.parse(req.body);
+      await this.personalService.updateUserStatus(req.params.id, estado_usuario, req.user.id, motivo_cambio, false, categoria_motivo);
       res.json({ success: true, message: `Estado de usuario actualizado a ${estado_usuario}.` });
     } catch (error) {
       if (error.name === 'ZodError') {
@@ -95,8 +95,8 @@ class PersonalController {
 
   async reactivateUser(req, res, next) {
     try {
-      const { motivo_cambio } = personalValidation.reactivateUser.parse(req.body);
-      await this.personalService.reactivateUser(req.params.id, req.user.id, motivo_cambio);
+      const { motivo_cambio, categoria_motivo } = personalValidation.reactivateUser.parse(req.body);
+      await this.personalService.reactivateUser(req.params.id, req.user.id, motivo_cambio, categoria_motivo);
       res.json({ success: true, message: 'Usuario reactivado correctamente.' });
     } catch (error) {
       if (error.name === 'ZodError') {
