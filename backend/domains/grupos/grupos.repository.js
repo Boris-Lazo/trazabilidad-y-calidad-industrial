@@ -26,7 +26,7 @@ class GruposRepository {
 
   async getIntegrantesByGrupo(grupoId) {
     const sql = `
-      SELECT gi.*, p.nombre, p.apellido, p.codigo_interno, p.tipo_personal,
+      SELECT gi.*, p.nombre, p.apellido, p.codigo_interno, p.rol_organizacional,
              (SELECT ro.nombre
               FROM persona_roles_operativos pro
               JOIN roles_operativos ro ON pro.rol_operativo_id = ro.id

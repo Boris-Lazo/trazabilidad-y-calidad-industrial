@@ -19,6 +19,8 @@ describe('PersonalService', () => {
             updateUserStatus: jest.fn(),
             updateUserRole: jest.fn(),
             assignOperation: jest.fn(),
+            isAuxiliarWithActiveUser: jest.fn().mockResolvedValue(false),
+            getRoles: jest.fn().mockResolvedValue([{ id: 5, nombre: 'Operario' }]),
             withTransaction: jest.fn(fn => fn())
         };
         auditServiceMock = {
@@ -47,12 +49,12 @@ describe('PersonalService', () => {
                 apellido: 'Perez',
                 codigo_interno: '123',
                 email: 'juan@test.com',
-                rol_id: 1
+                rol_organizacional: 'Técnico Operador'
             }, 99);
 
             expect(personalRepositoryMock.createPersona).toHaveBeenCalled();
             expect(personalRepositoryMock.createUser).toHaveBeenCalledWith(expect.objectContaining({
-                rol_id: 1,
+                rol_id: 5, // Default from mock
                 motivo_cambio: expect.any(String)
             }));
             expect(result).toHaveProperty('tempPassword');

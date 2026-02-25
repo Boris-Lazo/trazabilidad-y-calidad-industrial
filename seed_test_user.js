@@ -13,8 +13,8 @@ async function seed() {
         await sqlite.run("DELETE FROM usuarios WHERE username IN ('admin', 'juan', 'maria')");
         await sqlite.run("DELETE FROM personas WHERE codigo_interno IN ('ADM001', 'AUX001', 'INS001')");
 
-        await sqlite.run(`INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email, tipo_personal)
-                          VALUES ('Admin', 'Test', 'ADM001', 1, 'admin@test.com', 'administrativo')`);
+        await sqlite.run(`INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email, rol_organizacional)
+                          VALUES ('Admin', 'Test', 'ADM001', 4, 'admin@test.com', 'Jefe de Operaciones')`);
         const personaId = (await sqlite.get('SELECT last_insert_rowid() as id')).id;
 
         const rolAdmin = await sqlite.get("SELECT id FROM roles WHERE nombre = 'Administrador'");
@@ -23,8 +23,8 @@ async function seed() {
                           VALUES (?, ?, 'admin', ?, 'Activo', 0)`, [personaId, rolAdmin.id, passwordHash]);
 
         // Add an Auxiliar to test highlighting
-        await sqlite.run(`INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email, tipo_personal)
-                          VALUES ('Juan', 'Auxiliar', 'AUX001', 1, 'juan@test.com', 'operativo')`);
+        await sqlite.run(`INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email, rol_organizacional)
+                          VALUES ('Juan', 'Auxiliar', 'AUX001', 1, 'juan@test.com', 'Auxiliar de Operaciones')`);
         const auxId = (await sqlite.get('SELECT last_insert_rowid() as id')).id;
 
         await sqlite.run(`INSERT INTO usuarios (persona_id, rol_id, username, password_hash, estado_usuario, must_change_password)
@@ -34,8 +34,8 @@ async function seed() {
                           VALUES (?, (SELECT id FROM roles_operativos WHERE nombre = 'Auxiliar'), 'Test')`, [auxId]);
 
         // Add an Inspector
-        await sqlite.run(`INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email, tipo_personal)
-                          VALUES ('Maria', 'Inspector', 'INS001', 2, 'maria@test.com', 'administrativo')`);
+        await sqlite.run(`INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email, rol_organizacional)
+                          VALUES ('Maria', 'Inspector', 'INS001', 2, 'maria@test.com', 'Inspector de Calidad')`);
         const insId = (await sqlite.get('SELECT last_insert_rowid() as id')).id;
 
         const rolInspector = await sqlite.get("SELECT id FROM roles WHERE nombre = 'Inspector'");

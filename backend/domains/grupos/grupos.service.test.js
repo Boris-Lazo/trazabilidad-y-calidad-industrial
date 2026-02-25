@@ -15,7 +15,8 @@ describe('GruposService', () => {
     };
     personalRepo = {
       getPersonaById: jest.fn(),
-      findUserByPersonaId: jest.fn()
+      findUserByPersonaId: jest.fn(),
+      isAuxiliarWithActiveUser: jest.fn().mockResolvedValue(false)
     };
     auditService = {
       logChange: jest.fn()
@@ -25,7 +26,7 @@ describe('GruposService', () => {
 
   test('no debe permitir añadir personal administrativo a grupos operativos', async () => {
     groupsRepo.getGrupoById.mockResolvedValue({ id: 1, nombre: 'Grupo A', tipo: 'operativo' });
-    personalRepo.getPersonaById.mockResolvedValue({ id: 10, nombre: 'Juan', apellido: 'Pérez', tipo_personal: 'administrativo' });
+    personalRepo.getPersonaById.mockResolvedValue({ id: 10, nombre: 'Juan', apellido: 'Pérez', area_nombre: 'Administración' });
     personalRepo.findUserByPersonaId.mockResolvedValue({ estado_usuario: 'Activo' });
     groupsRepo.getIntegrantesByGrupo.mockResolvedValue([]);
 
@@ -35,7 +36,7 @@ describe('GruposService', () => {
 
   test('no debe permitir añadir personal operativo al grupo administrativo', async () => {
     groupsRepo.getGrupoById.mockResolvedValue({ id: 4, nombre: 'Administrativo', tipo: 'administrativo' });
-    personalRepo.getPersonaById.mockResolvedValue({ id: 11, nombre: 'Pedro', apellido: 'Gómez', tipo_personal: 'operativo' });
+    personalRepo.getPersonaById.mockResolvedValue({ id: 11, nombre: 'Pedro', apellido: 'Gómez', area_nombre: 'Producción' });
     personalRepo.findUserByPersonaId.mockResolvedValue({ estado_usuario: 'Activo' });
     groupsRepo.getIntegrantesByGrupo.mockResolvedValue([]);
 
@@ -45,7 +46,7 @@ describe('GruposService', () => {
 
   test('debe permitir añadir un operativo a un grupo operativo', async () => {
     groupsRepo.getGrupoById.mockResolvedValue({ id: 1, nombre: 'Grupo A', tipo: 'operativo' });
-    personalRepo.getPersonaById.mockResolvedValue({ id: 11, nombre: 'Pedro', apellido: 'Gómez', tipo_personal: 'operativo' });
+    personalRepo.getPersonaById.mockResolvedValue({ id: 11, nombre: 'Pedro', apellido: 'Gómez', area_nombre: 'Producción' });
     personalRepo.findUserByPersonaId.mockResolvedValue({ estado_usuario: 'Activo' });
     groupsRepo.getIntegrantesByGrupo.mockResolvedValue([]);
 

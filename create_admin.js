@@ -8,7 +8,7 @@ async function createAdmin() {
 
         const passwordHash = await bcrypt.hash('admin123', 10);
 
-        await sqlite.run("INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email, tipo_personal) VALUES ('Admin', 'Root', 'ROOT001', 1, 'admin@prod-sys.com', 'administrativo')");
+        await sqlite.run("INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email, rol_organizacional) VALUES ('Admin', 'Root', 'ROOT001', 4, 'admin@prod-sys.com', 'Jefe de Operaciones')");
         const personaId = (await sqlite.get("SELECT last_insert_rowid() as id")).id;
 
         await sqlite.run("INSERT INTO usuarios (persona_id, rol_id, username, password_hash, estado_usuario, must_change_password) VALUES (?, 6, 'admin', ?, 'Activo', 0)", [personaId, passwordHash]);

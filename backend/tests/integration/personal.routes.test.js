@@ -34,8 +34,7 @@ describe('Personal Routes Integration Tests', () => {
                 area_id: 1,
                 email: 'carlos@test.com',
                 fecha_ingreso: '2024-01-01',
-                tipo_personal: 'operativo',
-                rol_id: 5 // Operario
+                rol_organizacional: 'Técnico Operador'
             });
 
         expect(response.status).toBe(201);
@@ -49,7 +48,8 @@ describe('Personal Routes Integration Tests', () => {
             .set('Authorization', `Bearer ${token}`)
             .send({
                 estado_usuario: 'Suspendido',
-                motivo_cambio: 'Falta disciplinaria'
+                motivo_cambio: 'Falta disciplinaria',
+                categoria_motivo: 'AJUSTE_OPERATIVO'
             });
 
         expect(response.status).toBe(200);
@@ -101,7 +101,8 @@ describe('Personal Routes Integration Tests', () => {
             .set('Authorization', `Bearer ${token}`)
             .send({
                 estado_usuario: 'Baja lógica',
-                motivo_cambio: 'Despido'
+                motivo_cambio: 'Despido',
+                categoria_motivo: 'AJUSTE_OPERATIVO'
             });
         expect(resBaja.status).toBe(200);
 
@@ -141,8 +142,7 @@ describe('Personal Routes Integration Tests', () => {
                 area_id: 1,
                 email: 'ana@test.com',
                 fecha_ingreso: '2024-01-01',
-                tipo_personal: 'operativo',
-                rol_id: 5
+                rol_organizacional: 'Técnico Operador'
             });
         const anaId = regRes.body.data.id;
 

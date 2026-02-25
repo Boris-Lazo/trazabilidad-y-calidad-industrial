@@ -24,8 +24,8 @@ class BootstrapRepository {
     const personaSql = `
       INSERT INTO personas (
         nombre, apellido, codigo_interno, area_id, email, telefono,
-        tipo_personal, created_by, motivo_cambio
-      ) VALUES (?, ?, ?, ?, ?, ?, 'administrativo', 'SYSTEM_BOOTSTRAP', 'Inicialización del sistema')
+        rol_organizacional, created_by, motivo_cambio
+      ) VALUES (?, ?, ?, ?, ?, ?, 'Jefe de Operaciones', 'SYSTEM_BOOTSTRAP', 'Inicialización del sistema')
     `;
     const personaResult = await db.run(personaSql, [
       personaData.nombre, personaData.apellido, personaData.codigo_interno,

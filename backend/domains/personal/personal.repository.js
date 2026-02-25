@@ -37,13 +37,13 @@ class PersonalRepository {
     const sql = `
       INSERT INTO personas (
         nombre, apellido, codigo_interno, area_id, email, telefono,
-        fecha_ingreso, tipo_personal, created_by
+        fecha_ingreso, rol_organizacional, created_by
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const result = await db.run(sql, [
       personaData.nombre, personaData.apellido, personaData.codigo_interno,
       personaData.area_id, personaData.email, personaData.telefono,
-      personaData.fecha_ingreso, personaData.tipo_personal, personaData.created_by
+      personaData.fecha_ingreso, personaData.rol_organizacional, personaData.created_by
     ]);
     return result.lastID;
   }
@@ -53,7 +53,7 @@ class PersonalRepository {
     const fields = [];
     const params = [];
 
-    const allowedFields = ['nombre', 'apellido', 'email', 'telefono', 'estado_laboral', 'updated_by', 'motivo_cambio'];
+    const allowedFields = ['nombre', 'apellido', 'email', 'telefono', 'area_id', 'rol_organizacional', 'estado_laboral', 'updated_by', 'motivo_cambio'];
 
     Object.keys(updateData).forEach(key => {
       if (allowedFields.includes(key)) {

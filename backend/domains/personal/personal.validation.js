@@ -9,8 +9,7 @@ const personalValidation = {
     email: z.string().email('Email inválido'),
     telefono: z.string().optional(),
     fecha_ingreso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)'),
-    tipo_personal: z.enum(['operativo', 'administrativo']),
-    rol_id: z.number().int().positive('El rol es obligatorio'),
+    rol_organizacional: z.string().min(1, 'El rol organizacional es obligatorio'),
   }),
 
   updatePersona: z.object({
@@ -18,6 +17,8 @@ const personalValidation = {
     apellido: z.string().min(1).optional(),
     email: z.string().email('Email inválido').optional(),
     telefono: z.string().optional(),
+    area_id: z.number().int().positive().optional(),
+    rol_organizacional: z.string().min(1).optional(),
     estado_laboral: z.enum(['Activo', 'Inactivo', 'Baja']).optional(),
     motivo_cambio: z.string().min(5, 'El motivo del cambio debe tener al menos 5 caracteres'),
     categoria_motivo: z.string().optional(),
