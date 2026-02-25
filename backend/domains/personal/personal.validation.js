@@ -45,7 +45,7 @@ const personalValidation = {
   }),
 
   assignOperation: z.object({
-    proceso_tipo_id: z.number().int().positive(),
+    proceso_id: z.number().int().positive(),
     es_correccion: z.boolean().optional().default(false),
     maquina_id: z.number().int().positive().nullable().optional(),
     turno: z.string().min(1),

@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 data.lineas_ejecucion.forEach(linea => {
                     const fila = `
                         <tr>
-                            <td><strong>Proceso #${linea.proceso_tipo_id}</strong></td>
+                            <td><strong>Proceso #${linea.proceso_id}</strong></td>
                             <td><span class="badge badge-info">${linea.estado}</span></td>
                             <td>
                                 <div style="width: 100px; background: var(--border-color); height: 6px; border-radius: 3px;">

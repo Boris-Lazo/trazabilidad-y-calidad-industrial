@@ -27,6 +27,15 @@ class BitacoraController {
     }
   };
 
+  getProcesos = async (req, res, next) => {
+    try {
+      const procesos = await this.bitacoraService.getResumenProcesos();
+      return sendSuccess(res, procesos);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   abrirBitacora = async (req, res, next) => {
     try {
       const inspector = req.user.nombre || req.user.username;

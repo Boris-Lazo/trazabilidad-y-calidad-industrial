@@ -164,7 +164,7 @@ class TelaresService {
               valor: a.valor,
               resultado: a.resultado,
               bitacora_id,
-              proceso_tipo_id: procesoId,
+              proceso_id: procesoId,
               maquina_id,
               valor_nominal: nominal,
               usuario_modificacion: usuario

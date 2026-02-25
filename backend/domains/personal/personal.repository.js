@@ -156,12 +156,12 @@ class PersonalRepository {
 
   async getActiveAssignments(personaId) {
     const sql = `
-      SELECT ao.*, pt.nombre as proceso_nombre, m.codigo as maquina_codigo
+      SELECT ao.*, m.codigo as maquina_codigo
       FROM asignaciones_operativas ao
-      JOIN PROCESO_TIPO pt ON ao.proceso_tipo_id = pt.id
       LEFT JOIN MAQUINAS m ON ao.maquina_id = m.id
       WHERE ao.persona_id = ? AND (ao.fecha_fin IS NULL OR ao.fecha_fin > CURRENT_TIMESTAMP)
     `;
+    // El nombre del proceso debe ser resuelto en el Service usando ProcessRegistry
     return await this.db.query(sql, [personaId]);
   }
 
@@ -191,11 +191,11 @@ class PersonalRepository {
     const db = tx || this.db;
     const sql = `
       INSERT INTO asignaciones_operativas (
-        persona_id, proceso_tipo_id, maquina_id, turno, permanente, created_by
+        persona_id, proceso_id, maquina_id, turno, permanente, created_by
       ) VALUES (?, ?, ?, ?, ?, ?)
     `;
     return await db.run(sql, [
-      assignmentData.persona_id, assignmentData.proceso_tipo_id,
+      assignmentData.persona_id, assignmentData.proceso_id,
       assignmentData.maquina_id, assignmentData.turno,
       assignmentData.permanente ? 1 : 0, assignmentData.created_by
     ]);

@@ -3,6 +3,7 @@ const AppError = require('../../shared/errors/AppError');
 const NotFoundError = require('../../shared/errors/NotFoundError');
 const ValidationError = require('../../shared/errors/ValidationError');
 const { ROLE_PERMISSIONS } = require('../../shared/auth/permissions');
+const ProcessRegistry = require('./contracts/ProcessRegistry');
 
 class BitacoraService {
   /**
@@ -83,7 +84,7 @@ class BitacoraService {
 
   async _validateProcesosParaCierre(bitacoraId, bitacora) {
     let needsRevisionGlobal = false;
-    const procesos = await this.bitacoraRepository.getResumenProcesos();
+    const procesos = ProcessRegistry.getAll();
 
     for (const proceso of procesos) {
         const registros = await this.bitacoraRepository.getRegistrosByProceso(bitacoraId, proceso.id);
@@ -128,7 +129,7 @@ class BitacoraService {
   }
 
   async getResumenProcesos(bitacoraId) {
-      const procesos = await this.bitacoraRepository.getResumenProcesos();
+      const procesos = ProcessRegistry.getAll();
       const resumen = [];
 
       for (const proceso of procesos) {
@@ -201,11 +202,12 @@ class BitacoraService {
           if (params.incidentes) incidentes = params.incidentes;
 
           if (r.orden_id) {
+              const contract = ProcessRegistry.get(procesoId);
               produccion.push({
                   maquina: params.maquina || '',
                   orden_id: r.orden_id,
                   cantidad: r.cantidad_producida,
-                  unidad: r.unidad
+                  unidad: contract.unidadProduccion
               });
               if (r.merma_kg > 0) {
                   desperdicio.push({
@@ -300,18 +302,31 @@ class BitacoraService {
               }
           }
 
+          // Validar unidades y parámetros según contrato
+          const contract = ProcessRegistry.get(proceso_id);
+          for (const p of (produccion || [])) {
+              if (p.unidad && !contract.validaUnidad(p.unidad)) {
+                  throw new ValidationError(`Unidad '${p.unidad}' no válida para el proceso ${contract.nombre}. Se esperaba ${contract.unidadProduccion}.`);
+              }
+          }
+
           // Para Muestras, dado que no tienen un identificador único claro desde el frontend,
           // mantenemos el reemplazo en la tabla pero LO REGISTRAMOS en la auditoría.
           // Una arquitectura superior requeriría IDs para cada muestra.
           if (muestras && muestras.length > 0) {
-              await this.bitacoraRepository.db.run(`DELETE FROM muestras WHERE bitacora_id = ? AND proceso_tipo_id = ?`, [bitacora_id, proceso_id]);
+              await this.bitacoraRepository.db.run(`DELETE FROM muestras WHERE bitacora_id = ? AND proceso_id = ?`, [bitacora_id, proceso_id]);
               for (const m of muestras) {
+                  const valParam = contract.validarParametro(m.parametro, m.valor);
+                  if (!valParam.valido) {
+                      throw new ValidationError(`Validación de parámetro fallida: ${valParam.error}`);
+                  }
+
                   await this.muestraRepository.create({
                       parametro: m.parametro,
                       valor: m.valor,
                       resultado: m.resultado,
                       bitacora_id,
-                      proceso_tipo_id: proceso_id,
+                      proceso_id: proceso_id,
                       usuario_modificacion: usuario
                   });
               }
