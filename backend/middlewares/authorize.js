@@ -1,4 +1,5 @@
 const UnauthorizedError = require('../shared/errors/UnauthorizedError');
+const ForbiddenError = require('../shared/errors/ForbiddenError');
 const { hasPermission } = require('../shared/auth/permissions');
 
 /**
@@ -27,7 +28,7 @@ const authorize = (...requirements) => {
     });
 
     if (!isAuthorized) {
-      return next(new UnauthorizedError('No tiene permisos para realizar esta acción'));
+      return next(new ForbiddenError('No tiene permisos para realizar esta acción'));
     }
 
     next();

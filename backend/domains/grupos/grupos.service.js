@@ -7,6 +7,18 @@ class GruposService {
     this.auditService = auditService;
   }
 
+  async _checkAndDeactivateAuxiliar(personaId, assignerId, reason) {
+    const isAuxiliarConAcceso = await this.personalRepository.isAuxiliarWithActiveUser(personaId);
+    if (isAuxiliarConAcceso) {
+      const user = await this.personalRepository.findUserByPersonaId(personaId);
+      if (user) {
+        const deactivationReason = `Desactivación automática por cambio en asignación/rol de Auxiliar: ${reason}`;
+        await this.personalRepository.updateUserStatus(user.id, 'Suspendido', assignerId, deactivationReason);
+        await this.auditService.logStatusChange(assignerId, 'Usuario', user.id, 'Activo', 'Suspendido', deactivationReason, 'AJUSTE_OPERATIVO');
+      }
+    }
+  }
+
   async getGrupos() {
     return await this.gruposRepository.getAllGrupos();
   }
@@ -70,6 +82,8 @@ class GruposService {
     }
 
     return await this.gruposRepository.withTransaction(async () => {
+      await this._checkAndDeactivateAuxiliar(personaId, assignerId, motivo);
+
       await this.gruposRepository.addIntegrante({
         grupo_id: grupoId,
         persona_id: personaId,
@@ -111,6 +125,8 @@ class GruposService {
     }
 
     return await this.gruposRepository.withTransaction(async () => {
+      await this._checkAndDeactivateAuxiliar(personaId, assignerId, motivo);
+
       await this.gruposRepository.removeIntegrante(grupoId, personaId);
 
       const persona = await this.personalRepository.getPersonaById(personaId);
@@ -171,6 +187,8 @@ class GruposService {
     if (!rol) throw new ValidationError('Rol operativo no encontrado');
 
     return await this.gruposRepository.withTransaction(async () => {
+      await this._checkAndDeactivateAuxiliar(personaId, assignerId, motivo);
+
       await this.gruposRepository.assignRolOperativo({
         persona_id: personaId,
         rol_operativo_id: rolOperativoId,

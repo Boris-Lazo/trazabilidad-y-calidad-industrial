@@ -1,6 +1,7 @@
 // Middleware para autenticación mediante JWT
 const tokenService = require('../shared/security/token.service');
 const UnauthorizedError = require('../shared/errors/UnauthorizedError');
+const ForbiddenError = require('../shared/errors/ForbiddenError');
 
 const sqlite = require('../database/sqlite');
 
@@ -28,9 +29,9 @@ const authMiddleware = async (req, res, next) => {
     // Verificación inmediata de estado de usuario en DB para cumplir con "cierre de sesión inmediato"
     const user = await sqlite.get('SELECT estado_usuario FROM usuarios WHERE id = ?', [decoded.usuario_id]);
 
-    if (!user || user.estado_usuario !== 'Active' && user.estado_usuario !== 'Activo') {
+    if (!user || (user.estado_usuario !== 'Active' && user.estado_usuario !== 'Activo')) {
         if (req.originalUrl.startsWith('/api/')) {
-            return next(new UnauthorizedError('Su cuenta ha sido desactivada o bloqueada. Acceso denegado.'));
+            return next(new ForbiddenError('Su cuenta ha sido desactivada o bloqueada. Acceso denegado.'));
         } else {
             return res.redirect('/login.html?error=account_disabled');
         }
