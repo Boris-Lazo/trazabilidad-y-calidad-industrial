@@ -33,6 +33,7 @@ const bitacoraController = new BitacoraController(bitacoraService);
 const router = express.Router();
 
 router.get('/estado', bitacoraController.getEstadoActual);
+router.get('/procesos', bitacoraController.getProcesos);
 router.post('/abrir', authorize(PERMISSIONS.MANAGE_QUALITY), bitacoraController.abrirBitacora);
 router.post('/:id/cerrar', authorize(PERMISSIONS.MANAGE_QUALITY), bitacoraController.cerrarBitacora);
 router.get('/tiempo-actual', bitacoraController.getTiempoActual);

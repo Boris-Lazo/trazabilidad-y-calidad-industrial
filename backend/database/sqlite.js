@@ -142,13 +142,151 @@ const initDB = () => {
             db.run("COMMIT", (err) => {
               if (err) logger.error("Error al finalizar migración de usuarios:", err.message);
               else logger.info("Migración de usuarios completada con éxito.");
-              runFullSchema();
+              migrateProcesoTipo();
             });
           });
         }
         else {
-          runFullSchema();
+          migrateProcesoTipo();
         }
+      });
+    } else {
+      migrateProcesoTipo();
+    }
+  });
+};
+
+const migrateProcesoTipo = () => {
+  db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='PROCESO_TIPO'", (err, row) => {
+    if (row) {
+      logger.info("Migrando esquema: Eliminando PROCESO_TIPO y rediseñando referencias a contratos estáticos...");
+      db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+
+        // 1. Migrar MAQUINAS
+        db.run(`CREATE TABLE MAQUINAS_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            codigo TEXT UNIQUE,
+            proceso_id INTEGER,
+            activo BOOLEAN DEFAULT 1
+        )`);
+        db.run(`INSERT INTO MAQUINAS_new (id, codigo, proceso_id, activo) SELECT id, codigo, proceso_tipo_id, activo FROM MAQUINAS`);
+        db.run("DROP TABLE MAQUINAS");
+        db.run("ALTER TABLE MAQUINAS_new RENAME TO MAQUINAS");
+
+        // 2. Migrar lineas_ejecucion
+        db.run(`CREATE TABLE lineas_ejecucion_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            estado TEXT CHECK(estado IN ('ACTIVA', 'PAUSADA', 'COMPLETADA', 'CANCELADA')) DEFAULT 'ACTIVA',
+            orden_produccion_id INTEGER,
+            proceso_id INTEGER,
+            maquina_id INTEGER,
+            fecha_inicio DATETIME DEFAULT CURRENT_TIMESTAMP,
+            fecha_fin DATETIME,
+            FOREIGN KEY (orden_produccion_id) REFERENCES orden_produccion(id),
+            FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
+        )`);
+        db.run(`INSERT INTO lineas_ejecucion_new (id, estado, orden_produccion_id, proceso_id, maquina_id, fecha_inicio, fecha_fin)
+                SELECT id, estado, orden_produccion_id, proceso_tipo_id, maquina_id, fecha_inicio, fecha_fin FROM lineas_ejecucion`);
+        db.run("DROP TABLE lineas_ejecucion");
+        db.run("ALTER TABLE lineas_ejecucion_new RENAME TO lineas_ejecucion");
+
+        // 3. Migrar muestras
+        db.run(`CREATE TABLE muestras_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            codigo_muestra TEXT,
+            fecha_analisis DATE,
+            lote_id INTEGER,
+            bitacora_id INTEGER,
+            proceso_id INTEGER,
+            maquina_id INTEGER,
+            resultado TEXT,
+            valor REAL,
+            parametro TEXT,
+            valor_nominal REAL,
+            usuario_modificacion TEXT,
+            fecha_modificacion DATETIME,
+            FOREIGN KEY (lote_id) REFERENCES lotes(id),
+            FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+            FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
+        )`);
+        db.run(`INSERT INTO muestras_new (id, codigo_muestra, fecha_analisis, lote_id, bitacora_id, proceso_id, maquina_id, resultado, valor, parametro, valor_nominal, usuario_modificacion, fecha_modificacion)
+                SELECT id, codigo_muestra, fecha_analisis, lote_id, bitacora_id, proceso_tipo_id, maquina_id, resultado, valor, parametro, valor_nominal, usuario_modificacion, fecha_modificacion FROM muestras`);
+        db.run("DROP TABLE muestras");
+        db.run("ALTER TABLE muestras_new RENAME TO muestras");
+
+        // 4. Migrar bitacora_proceso_status
+        db.run(`CREATE TABLE bitacora_proceso_status_new (
+            bitacora_id INTEGER,
+            proceso_id INTEGER,
+            no_operativo BOOLEAN DEFAULT 0,
+            motivo_no_operativo TEXT,
+            PRIMARY KEY (bitacora_id, proceso_id),
+            FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id)
+        )`);
+        db.run(`INSERT INTO bitacora_proceso_status_new SELECT bitacora_id, proceso_tipo_id, no_operativo, motivo_no_operativo FROM bitacora_proceso_status`);
+        db.run("DROP TABLE bitacora_proceso_status");
+        db.run("ALTER TABLE bitacora_proceso_status_new RENAME TO bitacora_proceso_status");
+
+        // 5. Migrar asignaciones_operativas
+        db.run(`CREATE TABLE asignaciones_operativas_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            persona_id INTEGER NOT NULL,
+            proceso_id INTEGER NOT NULL,
+            maquina_id INTEGER,
+            fecha_inicio DATETIME DEFAULT CURRENT_TIMESTAMP,
+            fecha_fin DATETIME,
+            turno TEXT,
+            permanente BOOLEAN DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_by TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_by TEXT,
+            motivo_cambio TEXT,
+            FOREIGN KEY (persona_id) REFERENCES personas(id),
+            FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
+        )`);
+        db.run(`INSERT INTO asignaciones_operativas_new (id, persona_id, proceso_id, maquina_id, fecha_inicio, fecha_fin, turno, permanente, created_at, created_by, updated_at, updated_by, motivo_cambio)
+                SELECT id, persona_id, proceso_tipo_id, maquina_id, fecha_inicio, fecha_fin, turno, permanente, created_at, created_by, updated_at, updated_by, motivo_cambio FROM asignaciones_operativas`);
+        db.run("DROP TABLE asignaciones_operativas");
+        db.run("ALTER TABLE asignaciones_operativas_new RENAME TO asignaciones_operativas");
+
+        // 6. Migrar ausencias
+        db.run(`CREATE TABLE ausencias_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            persona_id INTEGER NOT NULL,
+            tipo TEXT NOT NULL,
+            fecha DATE NOT NULL,
+            turno TEXT,
+            proceso_id INTEGER,
+            maquina_id INTEGER,
+            motivo TEXT,
+            comentario TEXT,
+            registrado_por INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_by TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_by TEXT,
+            motivo_cambio TEXT,
+            FOREIGN KEY (persona_id) REFERENCES personas(id),
+            FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+            FOREIGN KEY (registrado_por) REFERENCES personas(id)
+        )`);
+        db.run(`INSERT INTO ausencias_new (id, persona_id, tipo, fecha, turno, proceso_id, maquina_id, motivo, comentario, registrado_por, created_at, created_by, updated_at, updated_by, motivo_cambio)
+                SELECT id, persona_id, tipo, fecha, turno, proceso_tipo_id, maquina_id, motivo, comentario, registrado_por, created_at, created_by, updated_at, updated_by, motivo_cambio FROM ausencias`);
+        db.run("DROP TABLE ausencias");
+        db.run("ALTER TABLE ausencias_new RENAME TO ausencias");
+
+        // 7. Eliminar tablas obsoletas
+        db.run("DROP TABLE PROCESO_TIPO");
+        db.run("DROP TABLE IF EXISTS PARAMETRO_DEFINICION");
+        db.run("DROP TABLE IF EXISTS UNIDAD_MEDIDA");
+
+        db.run("COMMIT", (err) => {
+          if (err) logger.error("Error al finalizar migración de procesos:", err.message);
+          else logger.info("Migración de procesos a modelo estático completada.");
+          runFullSchema();
+        });
       });
     } else {
       runFullSchema();
@@ -185,20 +323,11 @@ const runFullSchema = () => {
         motivo_cierre TEXT
     );`);
 
-    db.run(`CREATE TABLE IF NOT EXISTS PROCESO_TIPO (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT,
-        unidad_produccion TEXT,
-        reporta_merma_kg BOOLEAN,
-        activo BOOLEAN DEFAULT TRUE
-    );`);
-
     db.run(`CREATE TABLE IF NOT EXISTS MAQUINAS (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         codigo TEXT UNIQUE,
-        proceso_tipo_id INTEGER,
-        activo BOOLEAN DEFAULT 1,
-        FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id)
+        proceso_id INTEGER,
+        activo BOOLEAN DEFAULT 1
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS PARO_TIPO (
@@ -211,12 +340,11 @@ const runFullSchema = () => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         estado TEXT CHECK(estado IN ('ACTIVA', 'PAUSADA', 'COMPLETADA', 'CANCELADA')) DEFAULT 'ACTIVA',
         orden_produccion_id INTEGER,
-        proceso_tipo_id INTEGER,
+        proceso_id INTEGER,
         maquina_id INTEGER,
         fecha_inicio DATETIME DEFAULT CURRENT_TIMESTAMP,
         fecha_fin DATETIME,
         FOREIGN KEY (orden_produccion_id) REFERENCES orden_produccion(id),
-        FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id),
         FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
     );`);
 
@@ -269,7 +397,7 @@ const runFullSchema = () => {
         fecha_analisis DATE,
         lote_id INTEGER,
         bitacora_id INTEGER,
-        proceso_tipo_id INTEGER,
+        proceso_id INTEGER,
         maquina_id INTEGER,
         resultado TEXT,
         valor REAL,
@@ -279,7 +407,6 @@ const runFullSchema = () => {
         fecha_modificacion DATETIME,
         FOREIGN KEY (lote_id) REFERENCES lotes(id),
         FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
-        FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id),
         FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
     );`);
 
@@ -329,12 +456,11 @@ const runFullSchema = () => {
 
     db.run(`CREATE TABLE IF NOT EXISTS bitacora_proceso_status (
         bitacora_id INTEGER,
-        proceso_tipo_id INTEGER,
+        proceso_id INTEGER,
         no_operativo BOOLEAN DEFAULT 0,
         motivo_no_operativo TEXT,
-        PRIMARY KEY (bitacora_id, proceso_tipo_id),
-        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
-        FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id)
+        PRIMARY KEY (bitacora_id, proceso_id),
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id)
     );`);
 
     // --- MÓDULO DE PERSONAL Y USUARIOS ---
@@ -451,7 +577,7 @@ const runFullSchema = () => {
     db.run(`CREATE TABLE IF NOT EXISTS asignaciones_operativas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         persona_id INTEGER NOT NULL,
-        proceso_tipo_id INTEGER NOT NULL,
+        proceso_id INTEGER NOT NULL,
         maquina_id INTEGER,
         fecha_inicio DATETIME DEFAULT CURRENT_TIMESTAMP,
         fecha_fin DATETIME,
@@ -463,7 +589,6 @@ const runFullSchema = () => {
         updated_by TEXT,
         motivo_cambio TEXT,
         FOREIGN KEY (persona_id) REFERENCES personas(id),
-        FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id),
         FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
     );`);
 
@@ -473,7 +598,7 @@ const runFullSchema = () => {
         tipo TEXT NOT NULL,
         fecha DATE NOT NULL,
         turno TEXT,
-        proceso_tipo_id INTEGER,
+        proceso_id INTEGER,
         maquina_id INTEGER,
         motivo TEXT,
         comentario TEXT,
@@ -484,7 +609,6 @@ const runFullSchema = () => {
         updated_by TEXT,
         motivo_cambio TEXT,
         FOREIGN KEY (persona_id) REFERENCES personas(id),
-        FOREIGN KEY (proceso_tipo_id) REFERENCES PROCESO_TIPO(id),
         FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
         FOREIGN KEY (registrado_por) REFERENCES personas(id)
     );`);
@@ -601,51 +725,29 @@ const runFullSchema = () => {
       });
     };
 
-    // Semilla de procesos por defecto
-    db.get("SELECT COUNT(*) as count FROM PROCESO_TIPO", (err, row) => {
-      if (err) {
-        logger.error('Error al verificar tipos de proceso:', err.message);
-      } else if (row && row.count === 0) {
-        const defaultProcesses = [
-          ['Extrusor PP', 'kg', 1],
-          ['Telares', 'm', 1],
-          ['Laminado', 'm', 1],
-          ['Imprenta', 'm', 1],
-          ['Conversión de sacos', 'unid', 1],
-          ['Extrusión PE', 'kg', 1],
-          ['Conversión de liner', 'unid', 1],
-          ['Peletizado', 'kg', 1],
-          ['Conversión de sacos vestidos', 'unid', 1]
-        ];
-        const stmt = db.prepare("INSERT INTO PROCESO_TIPO (nombre, unidad_produccion, reporta_merma_kg) VALUES (?, ?, ?)");
-        defaultProcesses.forEach(p => {
-          stmt.run(p, (err) => {
-            if (err) logger.error(`Error al insertar proceso ${p[0]}:`, err.message);
-          });
-        });
-        stmt.finalize();
-        logger.info('Procesos por defecto inicializados.');
+    // Semilla de procesos eliminada (ahora en contratos estáticos)
 
-        // Semilla de Máquinas (Telares)
-        db.get("SELECT id FROM PROCESO_TIPO WHERE nombre = 'Telares'", (err, row) => {
-          if (row) {
-            const telaresId = row.id;
-            const stmtM = db.prepare("INSERT INTO MAQUINAS (codigo, proceso_tipo_id) VALUES (?, ?)");
+    // Semilla de Máquinas (Telares)
+    db.get("SELECT COUNT(*) as count FROM MAQUINAS WHERE proceso_id = 2", (err, row) => {
+        if (row && row.count === 0) {
+            const stmtM = db.prepare("INSERT INTO MAQUINAS (codigo, proceso_id) VALUES (?, 2)");
             for (let i = 1; i <= 13; i++) {
-              stmtM.run([`T-${i.toString().padStart(2, '0')}`, telaresId]);
+                stmtM.run([`T-${i.toString().padStart(2, '0')}`]);
             }
             stmtM.finalize();
             logger.info('Máquinas de Telares inicializadas.');
-          }
-        });
+        }
+    });
 
-        // Semilla de Tipos de Paro
-        const paros = ['Mecánico', 'Eléctrico', 'Operativo', 'Calidad', 'Falta de material', 'Cambio de orden', 'Limpieza', 'Mantenimiento'];
-        const stmtP = db.prepare("INSERT INTO PARO_TIPO (nombre) VALUES (?)");
-        paros.forEach(p => stmtP.run(p));
-        stmtP.finalize();
-        logger.info('Tipos de paro inicializados.');
-      }
+    // Semilla de Tipos de Paro
+    db.get("SELECT COUNT(*) as count FROM PARO_TIPO", (err, row) => {
+        if (row && row.count === 0) {
+            const paros = ['Mecánico', 'Eléctrico', 'Operativo', 'Calidad', 'Falta de material', 'Cambio de orden', 'Limpieza', 'Mantenimiento'];
+            const stmtP = db.prepare("INSERT INTO PARO_TIPO (nombre) VALUES (?)");
+            paros.forEach(p => stmtP.run(p));
+            stmtP.finalize();
+            logger.info('Tipos de paro inicializados.');
+        }
     });
 
     // Migración manual de columnas si las tablas ya existen

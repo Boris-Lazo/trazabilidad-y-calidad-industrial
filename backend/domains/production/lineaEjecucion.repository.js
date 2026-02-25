@@ -13,13 +13,13 @@ class LineaEjecucionRepository {
 
     async findByOrdenAndProceso(ordenId, procesoId, maquinaId = null) {
         if (maquinaId) {
-            return await this.db.get('SELECT * FROM lineas_ejecucion WHERE orden_produccion_id = ? AND proceso_tipo_id = ? AND maquina_id = ?', [ordenId, procesoId, maquinaId]);
+            return await this.db.get('SELECT * FROM lineas_ejecucion WHERE orden_produccion_id = ? AND proceso_id = ? AND maquina_id = ?', [ordenId, procesoId, maquinaId]);
         }
-        return await this.db.get('SELECT * FROM lineas_ejecucion WHERE orden_produccion_id = ? AND proceso_tipo_id = ?', [ordenId, procesoId]);
+        return await this.db.get('SELECT * FROM lineas_ejecucion WHERE orden_produccion_id = ? AND proceso_id = ?', [ordenId, procesoId]);
     }
 
     async create(ordenId, procesoId, maquinaId = null) {
-        const result = await this.db.run('INSERT INTO lineas_ejecucion (orden_produccion_id, proceso_tipo_id, maquina_id, estado, fecha_inicio) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)', [ordenId, procesoId, maquinaId, 'ACTIVA']);
+        const result = await this.db.run('INSERT INTO lineas_ejecucion (orden_produccion_id, proceso_id, maquina_id, estado, fecha_inicio) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)', [ordenId, procesoId, maquinaId, 'ACTIVA']);
         return result.lastID;
     }
 

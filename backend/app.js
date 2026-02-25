@@ -15,7 +15,6 @@ const bootstrapGuard = require('./middlewares/bootstrap.middleware');
 // Importar rutas
 const authRoutes = require('./domains/auth/auth.routes');
 const bootstrapRoutes = require('./domains/bootstrap/bootstrap.routes');
-const procesoTipoRoutes = require('./domains/production/procesoTipo.routes');
 const bitacoraRoutes = require('./domains/production/bitacora.routes');
 const ordenProduccionRoutes = require('./domains/production/ordenProduccion.routes');
 const incidenteRoutes = require('./domains/production/incidente.routes');
@@ -76,7 +75,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/bootstrap', bootstrapRoutes);
 
 // Rutas protegidas de API
-app.use('/api/procesos-tipo', authMiddleware, procesoTipoRoutes);
 app.use('/api/bitacora', authMiddleware, bitacoraRoutes);
 app.use('/api/ordenes-produccion', authMiddleware, ordenProduccionRoutes);
 app.use('/api/incidentes', authMiddleware, incidenteRoutes);
@@ -98,7 +96,7 @@ app.get('/', authMiddleware, (req, res) => res.sendFile(path.join(__dirname, '..
 const protectedPages = [
     'auditoria.html', 'bitacora.html', 'calidad.html',
     'detalles_orden.html', 'ejecucion.html', 'incidentes.html', 'lotes.html',
-    'muestras.html', 'ordenes.html', 'proceso.html', 'trazabilidad.html',
+    'muestras.html', 'ordenes.html', 'trazabilidad.html',
     'telares_resumen.html', 'telares_detalle.html', 'personal.html', 'grupos.html'
 ];
 

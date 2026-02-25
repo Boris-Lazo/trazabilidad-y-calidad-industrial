@@ -74,7 +74,7 @@ describe('Personal Routes Integration Tests', () => {
             .post(`/api/personal/${personaId}/asignacion`)
             .set('Authorization', `Bearer ${token}`)
             .send({
-                proceso_tipo_id: 1,
+                proceso_id: 1,
                 turno: 'Mañana'
             });
 

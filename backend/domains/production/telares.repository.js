@@ -5,7 +5,7 @@ class TelaresRepository {
   }
 
   async getAllMaquinas() {
-    return await this.db.query("SELECT * FROM MAQUINAS WHERE proceso_tipo_id = (SELECT id FROM PROCESO_TIPO WHERE nombre = 'Telares') AND activo = 1");
+    return await this.db.query("SELECT * FROM MAQUINAS WHERE proceso_id = 2 AND activo = 1");
   }
 
   async getStatusMaquinas(bitacoraId) {
@@ -24,7 +24,7 @@ class TelaresRepository {
   }
 
   async getMuestrasByBitacora(bitacoraId) {
-    return await this.db.query("SELECT * FROM muestras WHERE bitacora_id = ? AND proceso_tipo_id = (SELECT id FROM PROCESO_TIPO WHERE nombre = 'Telares')", [bitacoraId]);
+    return await this.db.query("SELECT * FROM muestras WHERE bitacora_id = ? AND proceso_id = 2", [bitacoraId]);
   }
 
   async getDefectosVisuales(bitacoraId) {
@@ -48,8 +48,7 @@ class TelaresRepository {
   }
 
   async getProcesoTelaresId() {
-    const proceso = await this.db.get("SELECT id FROM PROCESO_TIPO WHERE nombre = 'Telares'");
-    return proceso ? proceso.id : 2;
+    return 2; // Telares es ID 2 según contrato estático
   }
 
   async getOrdenEspecificaciones(ordenId) {

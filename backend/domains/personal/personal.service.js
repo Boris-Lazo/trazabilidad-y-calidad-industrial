@@ -21,10 +21,20 @@ class PersonalService {
     const opRole = await this.personalRepository.getOperationalRole(id);
     const groupHistory = await this.personalRepository.getGroupHistory(id);
 
+    const ProcessRegistry = require('../production/contracts/ProcessRegistry');
+    const enrichedAssignments = assignments.map(a => {
+        try {
+            const contract = ProcessRegistry.get(a.proceso_id);
+            return { ...a, proceso_nombre: contract.nombre };
+        } catch (e) {
+            return { ...a, proceso_nombre: 'Desconocido' };
+        }
+    });
+
     return {
       ...persona,
       historial_roles: roleHistory,
-      asignaciones_activas: assignments,
+      asignaciones_activas: enrichedAssignments,
       rol_operativo_actual: opRole,
       historial_grupos: groupHistory
     };
@@ -234,6 +244,7 @@ class PersonalService {
 
       return await this.personalRepository.assignOperation({
         ...assignmentData,
+        proceso_id: assignmentData.proceso_id,
         motivo_cambio: finalMotivo,
         created_by: creatorId
       });
@@ -245,7 +256,7 @@ class PersonalService {
         entidad: 'Persona',
         entidad_id: assignmentData.persona_id,
         valor_nuevo: {
-            proceso_tipo_id: assignmentData.proceso_tipo_id,
+            proceso_id: assignmentData.proceso_id,
             maquina_id: assignmentData.maquina_id,
             turno: assignmentData.turno
         },

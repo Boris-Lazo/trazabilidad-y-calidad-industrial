@@ -62,7 +62,7 @@ const PersonalModule = {
                 this.renderCatalogSelects();
             }
 
-            const resProc = await fetch('/api/procesos-tipo');
+            const resProc = await fetch('/api/bitacora/procesos');
             const resultProc = await resProc.json();
             if (resultProc.success) {
                 this.processes = resultProc.data;
@@ -511,14 +511,14 @@ const PersonalModule = {
 
     async saveAssignment() {
         const data = {
-            proceso_tipo_id: parseInt(document.getElementById('a-proceso').value),
+            proceso_id: parseInt(document.getElementById('a-proceso').value),
             maquina_id: document.getElementById('a-maquina').value ? parseInt(document.getElementById('a-maquina').value) : null,
             turno: document.getElementById('a-turno').value,
             permanente: document.getElementById('a-permanente').checked,
             motivo_cambio: document.getElementById('a-motivo').value
         };
 
-        if (!data.proceso_tipo_id) {
+        if (!data.proceso_id) {
             DesignSystem.showToast('Debe seleccionar un proceso', 'warning');
             return;
         }
