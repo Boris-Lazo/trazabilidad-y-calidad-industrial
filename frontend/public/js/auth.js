@@ -93,10 +93,29 @@ window.fetch = async (...args) => {
     }
     const response = await originalFetch(resource, config);
     const onLoginPage = window.location.pathname.includes('login.html');
+
     if (response.status === 401 && !onLoginPage && !Auth.isLoggingOut) {
         Auth.isLoggingOut = true;
         Auth.clearSession();
         window.location.href = '/login.html';
     }
+
+    if (response.status === 403 && !onLoginPage && !Auth.isLoggingOut) {
+        // Objetivo 1: Manejo de usuario desactivado con sesión activa
+        Auth.isLoggingOut = true;
+
+        // Cerrar modales abiertos (estándar del design system)
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(m => m.style.display = 'none');
+
+        // Limpiar sesión
+        Auth.clearSession();
+
+        // Notificar al usuario con mensaje no técnico
+        alert("Tu acceso ha sido desactivado por un administrador. Serás redirigido al inicio.");
+
+        window.location.href = '/login.html?error=account_disabled';
+    }
+
     return response;
 };

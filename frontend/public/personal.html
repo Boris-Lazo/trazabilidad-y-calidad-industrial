@@ -199,6 +199,15 @@
                             </select>
                         </div>
                         <div class="form-group">
+                            <label class="form-label">Categoría de Motivo</label>
+                            <select id="p-categoria" class="form-control">
+                                <option value="">Seleccione categoría...</option>
+                                <option value="CORRECCION_HISTORICA">Corrección Histórica</option>
+                                <option value="AJUSTE_OPERATIVO">Ajuste Operativo</option>
+                                <option value="ERROR_CAPTURA">Error de Captura</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Motivo del Cambio (Obligatorio)</label>
                             <textarea id="p-motivo" class="form-control" rows="2"></textarea>
                         </div>
@@ -231,7 +240,17 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Motivo (Obligatorio)</label>
+                    <label class="form-label">Categoría de Motivo</label>
+                    <select id="u-categoria" class="form-control" required>
+                        <option value="">Seleccione una categoría...</option>
+                        <option value="AJUSTE_OPERATIVO">Ajuste Operativo</option>
+                        <option value="DESACTIVACION_SEGURIDAD">Desactivación por Seguridad</option>
+                        <option value="REACTIVACION_AUTORIZADA">Reactivación Autorizada</option>
+                        <option value="ERROR_CAPTURA">Error de Captura</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Motivo Descriptivo (Obligatorio)</label>
                     <textarea id="u-motivo" class="form-control" rows="3" placeholder="Ej: Ausencia injustificada, fin de contrato, etc."></textarea>
                 </div>
                 <div id="status-warning" class="badge badge-danger w-100 mb-3" style="display: none; white-space: normal; text-align: left; padding: 10px;">

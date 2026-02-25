@@ -240,6 +240,7 @@ const PersonalModule = {
             document.getElementById('p-fecha-ingreso').value = p.fecha_ingreso;
             document.getElementById('p-telefono').value = p.telefono || '';
             document.getElementById('p-estado').value = p.estado_laboral;
+            document.getElementById('p-categoria').value = '';
 
             codigoInput.disabled = true;
             editFields.style.display = 'block';
@@ -275,8 +276,13 @@ const PersonalModule = {
                 email: data.email,
                 telefono: data.telefono,
                 estado_laboral: document.getElementById('p-estado').value,
-                motivo_cambio: document.getElementById('p-motivo').value
+                motivo_cambio: document.getElementById('p-motivo').value,
+                categoria_motivo: document.getElementById('p-categoria').value
             };
+            if (!updateData.categoria_motivo) {
+                DesignSystem.showToast('La categoría de motivo es obligatoria', 'warning');
+                return;
+            }
             if (!updateData.motivo_cambio) {
                 DesignSystem.showToast('El motivo del cambio es obligatorio para editar', 'warning');
                 return;
@@ -424,6 +430,12 @@ const PersonalModule = {
         const id = this.currentStaffId;
         const estado_usuario = document.getElementById('u-estado').value;
         const motivo_cambio = document.getElementById('u-motivo').value;
+        const categoria_motivo = document.getElementById('u-categoria').value;
+
+        if (!categoria_motivo) {
+            DesignSystem.showToast('Debe seleccionar una categoría de motivo', 'warning');
+            return;
+        }
 
         console.log('Saving status change:', { id, estado_usuario, motivo_cambio });
 
@@ -438,7 +450,7 @@ const PersonalModule = {
             const res = await fetch(`/api/personal/${id}/estado`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ estado_usuario, motivo_cambio })
+                body: JSON.stringify({ estado_usuario, motivo_cambio, categoria_motivo })
             });
             const result = await res.json();
             if (result.success) {

@@ -51,7 +51,11 @@ class AuditService {
       await this.auditRepository.create(auditData);
     } catch (error) {
       // No bloqueamos la operación principal si falla la auditoría, pero lo registramos
-      logger.error('Error al registrar auditoría:', error);
+      logger.error('Error al registrar auditoría:', error.message);
+      // Re-lanzamos el error si es un error de validación de negocio (motivo/categoría)
+      if (error.message.includes('motivo') || error.message.includes('categoría')) {
+          throw error;
+      }
     }
   }
 
