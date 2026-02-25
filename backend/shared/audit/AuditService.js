@@ -4,9 +4,7 @@ class AuditService {
   static CATEGORIAS = {
     ERROR_CAPTURA: 'ERROR_CAPTURA',
     AJUSTE_OPERATIVO: 'AJUSTE_OPERATIVO',
-    REACTIVACION_AUTORIZADA: 'REACTIVACION_AUTORIZADA',
-    DESACTIVACION_SEGURIDAD: 'DESACTIVACION_SEGURIDAD',
-    CORRECCION_HISTORICA: 'CORRECCION_HISTORICA'
+    REACTIVACION_AUTORIZADA: 'REACTIVACION_AUTORIZADA'
   };
 
   /**
@@ -20,36 +18,27 @@ class AuditService {
     try {
       const auditData = { ...data };
 
-      // Clasificación automática inteligente si no se provee una
+      // Clasificación automática basada en acción si no se provee una
       if (!auditData.categoria_motivo) {
           if (auditData.accion === 'REACTIVACION_USUARIO') {
               auditData.categoria_motivo = AuditService.CATEGORIAS.REACTIVACION_AUTORIZADA;
           } else if (auditData.accion === 'OPERATIONAL_ASSIGNMENT' || auditData.accion === 'ROL_OPERATIVO_CHANGE') {
               auditData.categoria_motivo = AuditService.CATEGORIAS.AJUSTE_OPERATIVO;
-          } else if (auditData.accion === 'STATUS_CHANGE' && (auditData.valor_nuevo?.estado === 'Suspendido' || auditData.valor_nuevo?.estado === 'Baja lógica')) {
-              auditData.categoria_motivo = AuditService.CATEGORIAS.DESACTIVACION_SEGURIDAD;
           } else if (auditData.es_correccion) {
-              auditData.categoria_motivo = AuditService.CATEGORIAS.CORRECCION_HISTORICA;
+              auditData.categoria_motivo = AuditService.CATEGORIAS.ERROR_CAPTURA;
           }
-      }
-
-      // Validación estricta del catálogo cerrado
-      if (auditData.categoria_motivo && !Object.values(AuditService.CATEGORIAS).includes(auditData.categoria_motivo)) {
-          throw new Error(`Categoría de motivo inválida: ${auditData.categoria_motivo}`);
-      }
-
-      // El motivo y la categoría son obligatorios para acciones sensibles
-      const accionesSensibles = ['STATUS_CHANGE', 'UPDATE', 'REACTIVACION_USUARIO', 'OPERATIONAL_ASSIGNMENT', 'ROLE_CHANGE'];
-      if (accionesSensibles.includes(auditData.accion) || auditData.es_correccion) {
-          if (!auditData.motivo_cambio || auditData.motivo_cambio.length < 5) {
-              throw new Error('Debe proporcionar un motivo descriptivo para esta acción.');
-          }
-          if (!auditData.categoria_motivo) {
-              throw new Error('Debe seleccionar una categoría de motivo válida.');
+      } else {
+          // Validar catálogo cerrado si se provee
+          if (!Object.values(AuditService.CATEGORIAS).includes(auditData.categoria_motivo)) {
+              logger.warn(`Categoría de motivo inválida detectada: ${auditData.categoria_motivo}. Se ignorará.`);
+              auditData.categoria_motivo = null;
           }
       }
 
       if (auditData.es_correccion) {
+          if (!auditData.motivo_cambio) {
+              throw new Error('El motivo es obligatorio para registrar una corrección');
+          }
           // Asegurar que no se duplique el prefijo si ya viene de capas superiores
           if (auditData.accion && !auditData.accion.startsWith('CORRECCION_')) {
               auditData.accion = `CORRECCION_${auditData.accion}`;

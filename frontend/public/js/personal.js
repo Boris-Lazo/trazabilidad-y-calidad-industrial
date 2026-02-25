@@ -410,7 +410,6 @@ const PersonalModule = {
         document.getElementById('status-target-name').textContent = `Colaborador: ${name}`;
         document.getElementById('u-estado').value = currentStatus === 'S/U' ? 'Suspendido' : currentStatus;
         document.getElementById('u-motivo').value = '';
-        document.getElementById('u-categoria').value = '';
 
         const warning = document.getElementById('status-warning');
         if (p && p.es_auxiliar_activo) {
@@ -438,6 +437,8 @@ const PersonalModule = {
             return;
         }
 
+        console.log('Saving status change:', { id, estado_usuario, motivo_cambio });
+
         if (!motivo_cambio || motivo_cambio.length < 5) {
             DesignSystem.showToast('Debe proporcionar un motivo descriptivo (mín. 5 caracteres)', 'warning');
             return;
@@ -445,6 +446,7 @@ const PersonalModule = {
 
         try {
             DesignSystem.setBtnLoading(document.getElementById('btn-confirm-status'), true);
+            console.log(`Calling PUT /api/personal/${id}/estado`);
             const res = await fetch(`/api/personal/${id}/estado`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -471,8 +473,7 @@ const PersonalModule = {
             maquina_id: document.getElementById('a-maquina').value ? parseInt(document.getElementById('a-maquina').value) : null,
             turno: document.getElementById('a-turno').value,
             permanente: document.getElementById('a-permanente').checked,
-            motivo_cambio: document.getElementById('a-motivo').value,
-            categoria_motivo: document.getElementById('a-categoria').value
+            motivo_cambio: document.getElementById('a-motivo').value
         };
 
         if (!data.proceso_tipo_id) {
