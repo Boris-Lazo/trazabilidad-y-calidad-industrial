@@ -2,7 +2,9 @@
 const tokenService = require('../shared/security/token.service');
 const UnauthorizedError = require('../shared/errors/UnauthorizedError');
 
-const authMiddleware = (req, res, next) => {
+const sqlite = require('../database/sqlite');
+
+const authMiddleware = async (req, res, next) => {
   // Intentar obtener el token de la cabecera Authorization o de la cookie
   let token;
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -22,6 +24,18 @@ const authMiddleware = (req, res, next) => {
 
   try {
     const decoded = tokenService.verifyAccessToken(token);
+
+    // Verificación inmediata de estado de usuario en DB para cumplir con "cierre de sesión inmediato"
+    const user = await sqlite.get('SELECT estado_usuario FROM usuarios WHERE id = ?', [decoded.usuario_id]);
+
+    if (!user || user.estado_usuario !== 'Active' && user.estado_usuario !== 'Activo') {
+        if (req.originalUrl.startsWith('/api/')) {
+            return next(new UnauthorizedError('Su cuenta ha sido desactivada o bloqueada. Acceso denegado.'));
+        } else {
+            return res.redirect('/login.html?error=account_disabled');
+        }
+    }
+
     req.user = decoded;
     next();
   } catch (err) {

@@ -10,6 +10,10 @@ class AuditService {
 
   async logChange(data) {
     try {
+      if (data.es_correccion) {
+          data.accion = `CORRECCION_${data.accion}`;
+          data.motivo_cambio = `[CORRECCIÓN] ${data.motivo_cambio}`;
+      }
       await this.auditRepository.create(data);
     } catch (error) {
       // No bloqueamos la operación principal si falla la auditoría, pero lo registramos

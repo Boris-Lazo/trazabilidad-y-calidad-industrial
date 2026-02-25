@@ -18,8 +18,8 @@ describe('Production Routes RBAC Integration Tests', () => {
         await bootstrapTestSystem(app);
 
         // Crear tokens manuales con los nombres de rol correctos
-        adminToken = jwt.sign({ id: 1, username: 'admin', rol: 'Administrador' }, JWT_SECRET);
-        inspectorToken = jwt.sign({ id: 2, username: 'inspector', rol: 'Inspector' }, JWT_SECRET);
+        adminToken = jwt.sign({ id: 1, usuario_id: 1, username: 'admin', rol: 'Administrador' }, JWT_SECRET);
+        inspectorToken = jwt.sign({ id: 2, usuario_id: 2, username: 'inspector', rol: 'Inspector' }, JWT_SECRET);
     });
 
     describe('GET /api/ordenes-produccion', () => {

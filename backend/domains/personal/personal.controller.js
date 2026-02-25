@@ -67,8 +67,8 @@ class PersonalController {
 
   async assignRole(req, res, next) {
     try {
-      const { rol_id, motivo_cambio } = personalValidation.assignRole.parse(req.body);
-      await this.personalService.assignRole(req.params.id, rol_id, req.user.id, motivo_cambio);
+      const { rol_id, motivo_cambio, es_correccion } = personalValidation.assignRole.parse(req.body);
+      await this.personalService.assignRole(req.params.id, rol_id, req.user.id, motivo_cambio, es_correccion);
       res.json({ success: true, message: 'Rol asignado correctamente.' });
     } catch (error) {
       if (error.name === 'ZodError') {

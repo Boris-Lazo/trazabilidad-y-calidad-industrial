@@ -36,10 +36,10 @@ class GruposController {
   async addIntegrante(req, res, next) {
     try {
       const { id } = req.params; // grupoId
-      const { personaId, motivo } = req.body;
+      const { personaId, motivo, es_correccion } = req.body;
       const assignerId = req.user.persona_id;
 
-      await this.gruposService.addIntegrante(id, personaId, motivo, assignerId);
+      await this.gruposService.addIntegrante(id, personaId, motivo, assignerId, es_correccion);
       res.json({ success: true, data: { message: 'Integrante añadido con éxito' } });
     } catch (error) {
       next(error);
@@ -49,10 +49,10 @@ class GruposController {
   async removeIntegrante(req, res, next) {
     try {
       const { id, personaId } = req.params;
-      const { motivo } = req.body;
+      const { motivo, es_correccion } = req.body;
       const assignerId = req.user.persona_id;
 
-      await this.gruposService.removeIntegrante(id, personaId, motivo, assignerId);
+      await this.gruposService.removeIntegrante(id, personaId, motivo, assignerId, es_correccion);
       res.json({ success: true, data: { message: 'Integrante removido con éxito' } });
     } catch (error) {
       next(error);
@@ -84,10 +84,10 @@ class GruposController {
   async assignRolOperativo(req, res, next) {
     try {
       const { personaId } = req.params;
-      const { rolOperativoId, motivo } = req.body;
+      const { rolOperativoId, motivo, es_correccion } = req.body;
       const assignerId = req.user.persona_id;
 
-      await this.gruposService.assignRolOperativo(personaId, rolOperativoId, motivo, assignerId);
+      await this.gruposService.assignRolOperativo(personaId, rolOperativoId, motivo, assignerId, es_correccion);
       res.json({ success: true, data: { message: 'Rol operativo asignado con éxito' } });
     } catch (error) {
       next(error);

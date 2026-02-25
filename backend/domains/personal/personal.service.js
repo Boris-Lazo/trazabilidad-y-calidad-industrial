@@ -102,8 +102,9 @@ class PersonalService {
     return { areas, roles };
   }
 
-  async assignRole(personaId, rolId, assignerId, reason) {
+  async assignRole(personaId, rolId, assignerId, reason, es_correccion = false) {
     if (!reason) throw new ValidationError('El motivo del cambio de rol es obligatorio');
+    const finalReason = es_correccion ? `[CORRECCIÓN] ${reason}` : reason;
 
     const persona = await this.personalRepository.getPersonaById(personaId);
     if (!persona) throw new ValidationError('Persona no encontrada');
@@ -111,7 +112,7 @@ class PersonalService {
     await this._checkTerminalState(personaId);
 
     return await this.personalRepository.withTransaction(async () => {
-      await this.personalRepository.updateUserRole(personaId, rolId, assignerId, reason);
+      await this.personalRepository.updateUserRole(personaId, rolId, assignerId, finalReason);
 
       // Auditoría reforzada para cambio de rol
       await this.auditService.logChange({
@@ -121,7 +122,8 @@ class PersonalService {
         entidad_id: personaId,
         valor_anterior: { rol: persona.rol_actual },
         valor_nuevo: { rol_id: rolId },
-        motivo_cambio: reason
+        motivo_cambio: finalReason,
+        es_correccion
       });
 
       return true;
@@ -204,10 +206,31 @@ class PersonalService {
       throw new ValidationError('Excepción Técnica: El usuario administrador no puede participar en operaciones.');
     }
 
-    return await this.personalRepository.assignOperation({
+    const finalMotivo = assignmentData.es_correccion
+        ? `[CORRECCIÓN] ${assignmentData.motivo_cambio || 'Corrección de asignación'}`
+        : (assignmentData.motivo_cambio || 'Asignación operativa regular');
+
+    const result = await this.personalRepository.assignOperation({
       ...assignmentData,
+      motivo_cambio: finalMotivo,
       created_by: creatorId
     });
+
+    await this.auditService.logChange({
+        usuario: creatorId,
+        accion: 'OPERATIONAL_ASSIGNMENT',
+        entidad: 'Persona',
+        entidad_id: assignmentData.persona_id,
+        valor_nuevo: {
+            proceso_tipo_id: assignmentData.proceso_tipo_id,
+            maquina_id: assignmentData.maquina_id,
+            turno: assignmentData.turno
+        },
+        motivo_cambio: finalMotivo,
+        es_correccion: assignmentData.es_correccion
+    });
+
+    return result;
   }
 }
 

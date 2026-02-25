@@ -7,7 +7,11 @@ class PersonalRepository {
 
   async getAllPersonas() {
     const sql = `
-      SELECT p.*, a.nombre as area_nombre, r.nombre as rol_actual, u.estado_usuario
+      SELECT p.*, a.nombre as area_nombre, r.nombre as rol_actual, u.estado_usuario,
+             (SELECT 1 FROM persona_roles_operativos pro
+              JOIN roles_operativos ro ON pro.rol_operativo_id = ro.id
+              WHERE pro.persona_id = p.id AND pro.fecha_hasta IS NULL AND ro.nombre = 'Auxiliar'
+              LIMIT 1) AND (u.estado_usuario = 'Activo') as es_auxiliar_activo
       FROM personas p
       JOIN areas a ON p.area_id = a.id
       LEFT JOIN usuarios u ON p.id = u.persona_id
@@ -85,12 +89,25 @@ class PersonalRepository {
 
   async updateUserRole(personaId, roleId, updaterId, reason, tx) {
     const db = tx || this.db;
+
+    // 1. Update current role in usuarios
     const sql = `
       UPDATE usuarios
       SET rol_id = ?, updated_by = ?, motivo_cambio = ?, updated_at = CURRENT_TIMESTAMP
       WHERE persona_id = ?
     `;
-    return await db.run(sql, [roleId, updaterId, reason, personaId]);
+    await db.run(sql, [roleId, updaterId, reason, personaId]);
+
+    // 2. Insert into historical table persona_roles
+    // First deactivate old roles
+    await db.run('UPDATE persona_roles SET activo = 0 WHERE persona_id = ?', [personaId]);
+
+    // Then insert new one
+    const sqlHist = `
+      INSERT INTO persona_roles (persona_id, rol_id, asignado_por, motivo_cambio, activo)
+      VALUES (?, ?, ?, ?, 1)
+    `;
+    return await db.run(sqlHist, [personaId, roleId, updaterId, reason]);
   }
 
   async createUser(userData, tx) {

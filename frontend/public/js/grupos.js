@@ -81,6 +81,19 @@ const GruposModule = {
         const user = Auth.getUser();
         const isReadOnly = user && (user.rol === 'Inspector' || user.rol === 'Inspector de Calidad');
 
+        if (isReadOnly) {
+            if (!document.getElementById('readonly-notice-grupos')) {
+                const notice = document.createElement('div');
+                notice.id = 'readonly-notice-grupos';
+                notice.className = 'badge badge-warning mb-3 w-100';
+                notice.style.padding = '10px';
+                notice.innerHTML = '<i data-lucide="info" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i> Información histórica y no editable para Inspectores.';
+                const container = document.getElementById('detalle-grupo-container');
+                container.insertBefore(notice, container.firstChild);
+                DesignSystem.initLucide();
+            }
+        }
+
         document.getElementById('no-grupo-selected').style.display = 'none';
         document.getElementById('detalle-grupo-container').style.display = 'flex';
 
@@ -274,6 +287,7 @@ const GruposModule = {
     async addIntegrante() {
         const personaId = document.getElementById('select-persona').value;
         const motivo = document.getElementById('integrante-motivo').value;
+        const es_correccion = document.getElementById('integrante-es-correccion').checked;
 
         if (!personaId || !motivo) {
             DesignSystem.showToast('Debe seleccionar un colaborador y proporcionar un motivo', 'warning');
@@ -284,7 +298,7 @@ const GruposModule = {
             const res = await fetch(`/api/grupos/${this.currentGrupoId}/integrantes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ personaId, motivo })
+                body: JSON.stringify({ personaId, motivo, es_correccion })
             });
             const result = await res.json();
             if (result.success) {
@@ -325,6 +339,7 @@ const GruposModule = {
     async saveRol() {
         const rolOperativoId = document.getElementById('select-rol-operativo').value;
         const motivo = document.getElementById('rol-motivo').value;
+        const es_correccion = document.getElementById('rol-es-correccion').checked;
 
         if (!motivo) {
             DesignSystem.showToast('El motivo es obligatorio', 'warning');
@@ -335,7 +350,7 @@ const GruposModule = {
             const res = await fetch(`/api/grupos/persona/${this.currentPersonaId}/rol-operativo`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rolOperativoId, motivo })
+                body: JSON.stringify({ rolOperativoId, motivo, es_correccion })
             });
             const result = await res.json();
             if (result.success) {
@@ -353,6 +368,8 @@ const GruposModule = {
 
     async removeIntegrante() {
         const motivo = document.getElementById('remove-motivo').value;
+        const es_correccion = document.getElementById('remove-es-correccion').checked;
+
         if (!motivo) {
             DesignSystem.showToast('El motivo es obligatorio', 'warning');
             return;
@@ -362,7 +379,7 @@ const GruposModule = {
             const res = await fetch(`/api/grupos/${this.currentGrupoId}/integrantes/${this.currentPersonaId}/remove`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ motivo })
+                body: JSON.stringify({ motivo, es_correccion })
             });
             const result = await res.json();
             if (result.success) {

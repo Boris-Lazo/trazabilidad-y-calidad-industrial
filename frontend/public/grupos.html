@@ -198,6 +198,9 @@
                         <label class="form-label">Motivo de la Asignación</label>
                         <textarea id="integrante-motivo" class="form-control" rows="3" placeholder="Ej: Rotación mensual, refuerzo de turno..." required></textarea>
                     </div>
+                    <label class="form-check-label">
+                        <input type="checkbox" id="integrante-es-correccion"> Es una corrección de registro histórico
+                    </label>
                 </form>
             </div>
             <div class="modal-footer">
@@ -252,6 +255,9 @@
                         <label class="form-label">Motivo del Cambio</label>
                         <textarea id="rol-motivo" class="form-control" rows="2" required></textarea>
                     </div>
+                    <label class="form-check-label">
+                        <input type="checkbox" id="rol-es-correccion"> Es una corrección de registro histórico
+                    </label>
                 </form>
             </div>
             <div class="modal-footer">
@@ -274,6 +280,9 @@
                     <label class="form-label">Motivo de la Salida</label>
                     <textarea id="remove-motivo" class="form-control" rows="2" required></textarea>
                 </div>
+                <label class="form-check-label">
+                    <input type="checkbox" id="remove-es-correccion"> Es una corrección de registro histórico
+                </label>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-close="modal-remove">Cancelar</button>
