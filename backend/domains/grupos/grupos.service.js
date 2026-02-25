@@ -40,7 +40,7 @@ class GruposService {
     return { ...grupo, integrantes, historial };
   }
 
-  async addIntegrante(grupoId, personaId, motivo, assignerId) {
+  async addIntegrante(grupoId, personaId, motivo, assignerId, es_correccion = false) {
     if (!motivo) throw new ValidationError('El motivo de la asignación es obligatorio');
 
     const grupo = await this.gruposRepository.getGrupoById(grupoId);
@@ -77,6 +77,7 @@ class GruposService {
         asignado_por: assignerId
       });
 
+      const finalMotivo = es_correccion ? `[CORRECCIÓN] ${motivo}` : motivo;
       await this.auditService.logChange({
         usuario: assignerId,
         accion: 'GRUPO_ADD_INTEGRANTE',
@@ -88,14 +89,15 @@ class GruposService {
           grupo: grupo.nombre,
           tipo_grupo: grupo.tipo
         },
-        motivo_cambio: motivo
+        motivo_cambio: finalMotivo,
+        es_correccion
       });
 
       return true;
     });
   }
 
-  async removeIntegrante(grupoId, personaId, motivo, assignerId) {
+  async removeIntegrante(grupoId, personaId, motivo, assignerId, es_correccion = false) {
     if (!motivo) throw new ValidationError('El motivo de la remoción es obligatorio');
 
     const grupo = await this.gruposRepository.getGrupoById(grupoId);
@@ -112,6 +114,7 @@ class GruposService {
       await this.gruposRepository.removeIntegrante(grupoId, personaId);
 
       const persona = await this.personalRepository.getPersonaById(personaId);
+      const finalMotivo = es_correccion ? `[CORRECCIÓN] ${motivo}` : motivo;
       await this.auditService.logChange({
         usuario: assignerId,
         accion: 'GRUPO_REMOVE_INTEGRANTE',
@@ -122,7 +125,8 @@ class GruposService {
           colaborador: persona ? `${persona.nombre} ${persona.apellido}` : 'Desconocido',
           grupo: grupo.nombre
         },
-        motivo_cambio: motivo
+        motivo_cambio: finalMotivo,
+        es_correccion
       });
 
       return true;
@@ -159,7 +163,7 @@ class GruposService {
     return await this.gruposRepository.getRolesOperativos();
   }
 
-  async assignRolOperativo(personaId, rolOperativoId, motivo, assignerId) {
+  async assignRolOperativo(personaId, rolOperativoId, motivo, assignerId, es_correccion = false) {
     if (!motivo) throw new ValidationError('El motivo del cambio de rol es obligatorio');
 
     const roles = await this.gruposRepository.getRolesOperativos();
@@ -174,13 +178,15 @@ class GruposService {
         asignado_por: assignerId
       });
 
+      const finalMotivo = es_correccion ? `[CORRECCIÓN] ${motivo}` : motivo;
       await this.auditService.logChange({
         usuario: assignerId,
         accion: 'ROL_OPERATIVO_CHANGE',
         entidad: 'Persona',
         entidad_id: personaId,
         valor_nuevo: { rol_operativo: rol.nombre },
-        motivo_cambio: motivo
+        motivo_cambio: finalMotivo,
+        es_correccion
       });
 
       return true;

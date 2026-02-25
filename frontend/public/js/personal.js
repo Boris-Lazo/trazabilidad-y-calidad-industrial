@@ -97,14 +97,19 @@ const PersonalModule = {
         if (isReadOnly) {
             const btnNuevo = document.getElementById('btn-nuevo-personal');
             if (btnNuevo) btnNuevo.style.display = 'none';
+            // Mensaje de solo lectura
+            if (!document.getElementById('readonly-notice')) {
+                const notice = document.createElement('div');
+                notice.id = 'readonly-notice';
+                notice.className = 'badge badge-warning mb-3 w-100';
+                notice.style.padding = '10px';
+                notice.innerHTML = '<i data-lucide="info" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i> Información histórica y no editable para Inspectores.';
+                tbody.closest('.card').parentElement.insertBefore(notice, tbody.closest('.card'));
+                DesignSystem.initLucide();
+            }
         }
 
         const filtered = this.staff.filter(p => {
-            if (this.currentView === 'usuarios' && !p.username && p.username !== '') {
-                 // Si es vista usuarios, quizá solo mostrar los que tienen usuario?
-                 // O mostrar todos para poder crearles usuario?
-                 // Regla: Todos deben tener usuario.
-            }
             const matchesSearch = p.nombre.toLowerCase().includes(searchTerm) ||
                                  p.apellido.toLowerCase().includes(searchTerm) ||
                                  p.codigo_interno.toLowerCase().includes(searchTerm);
@@ -117,9 +122,16 @@ const PersonalModule = {
             return;
         }
 
-        tbody.innerHTML = filtered.map(p => `
-            <tr>
-                <td><strong>${p.codigo_interno}</strong></td>
+        tbody.innerHTML = filtered.map(p => {
+            const isAuxActive = p.es_auxiliar_activo;
+            const rowStyle = isAuxActive ? 'background-color: rgba(30, 64, 175, 0.05); border-left: 4px solid var(--primary-base);' : '';
+
+            return `
+            <tr style="${rowStyle}">
+                <td>
+                    <strong>${p.codigo_interno}</strong>
+                    ${isAuxActive ? '<br><small class="text-primary" style="font-weight:600;">Auxiliar con Acceso</small>' : ''}
+                </td>
                 <td>${p.nombre} ${p.apellido}</td>
                 <td>${p.area_nombre}</td>
                 <td><span class="badge badge-info">${p.rol_actual || 'Sin Rol'}</span></td>
@@ -129,9 +141,14 @@ const PersonalModule = {
                     </span>
                 </td>
                 <td>
-                    <span class="badge ${p.estado_usuario && p.estado_usuario.toLowerCase() === 'activo' ? 'badge-success' : 'badge-warning'}">
-                        ${(p.estado_usuario || 'S/U').toUpperCase()}
-                    </span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="badge ${p.estado_usuario && p.estado_usuario.toLowerCase() === 'activo' ? 'badge-success' : 'badge-warning'}">
+                            ${(p.estado_usuario || 'S/U').toUpperCase()}
+                        </span>
+                        <button class="btn btn-secondary btn-sm" onclick="PersonalModule.openStatusModal(${p.id}, '${p.nombre} ${p.apellido}', '${p.estado_usuario || 'Inactivo'}')" title="Cambiar Estado de Acceso">
+                            <i data-lucide="shield-alert" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
                 </td>
                 <td>
                     <div style="display: flex; gap: 8px;">
@@ -145,7 +162,7 @@ const PersonalModule = {
                     </div>
                 </td>
             </tr>
-        `).join('');
+        `}).join('');
         DesignSystem.initLucide();
     },
 
@@ -155,6 +172,14 @@ const PersonalModule = {
         document.getElementById('filter-area').addEventListener('change', () => this.renderStaffList());
         document.getElementById('btn-save-personal').addEventListener('click', () => this.saveStaff());
         document.getElementById('btn-save-assignment').addEventListener('click', () => this.saveAssignment());
+        document.getElementById('btn-confirm-status').addEventListener('click', () => this.saveStatusChange());
+
+        const uEstado = document.getElementById('u-estado');
+        if (uEstado) {
+            uEstado.addEventListener('change', (e) => {
+                document.getElementById('status-warning').style.display = e.target.value === 'Baja lógica' ? 'block' : 'none';
+            });
+        }
 
         document.getElementById('a-proceso').addEventListener('change', async (e) => {
             const procesoId = e.target.value;
@@ -320,6 +345,51 @@ const PersonalModule = {
                 document.getElementById('modal-detalle').style.display = 'flex';
             }
         } catch (e) { DesignSystem.showToast('Error al cargar detalles', 'error'); }
+    },
+
+    openStatusModal(id, name, currentStatus) {
+        this.currentStaffId = id;
+        document.getElementById('status-target-name').textContent = `Colaborador: ${name}`;
+        document.getElementById('u-estado').value = currentStatus === 'S/U' ? 'Suspendido' : currentStatus;
+        document.getElementById('u-motivo').value = '';
+        document.getElementById('status-warning').style.display = 'none';
+        document.getElementById('modal-estado-usuario').style.display = 'flex';
+    },
+
+    closeStatusModal() {
+        document.getElementById('modal-estado-usuario').style.display = 'none';
+    },
+
+    async saveStatusChange() {
+        const id = this.currentStaffId;
+        const estado_usuario = document.getElementById('u-estado').value;
+        const motivo_cambio = document.getElementById('u-motivo').value;
+
+        if (!motivo_cambio || motivo_cambio.length < 5) {
+            DesignSystem.showToast('Debe proporcionar un motivo descriptivo (mín. 5 caracteres)', 'warning');
+            return;
+        }
+
+        try {
+            DesignSystem.setBtnLoading('btn-confirm-status', true);
+            const res = await fetch(`/api/personal/${id}/estado`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado_usuario, motivo_cambio })
+            });
+            const result = await res.json();
+            if (result.success) {
+                DesignSystem.showToast('Estado de acceso actualizado correctamente');
+                this.closeStatusModal();
+                this.loadStaff();
+            } else {
+                DesignSystem.showToast(result.error, 'error');
+            }
+        } catch (e) {
+            DesignSystem.showToast('Error de red', 'error');
+        } finally {
+            DesignSystem.setBtnLoading('btn-confirm-status', false);
+        }
     },
 
     async saveAssignment() {

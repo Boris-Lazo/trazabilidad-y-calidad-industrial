@@ -36,10 +36,12 @@ const personalValidation = {
   assignRole: z.object({
     rol_id: z.number({ required_error: 'El rol es obligatorio' }).int().positive(),
     motivo_cambio: z.string({ required_error: 'El motivo del cambio de rol es obligatorio' }).min(5, 'El motivo del cambio de rol es obligatorio'),
+    es_correccion: z.boolean().optional().default(false),
   }),
 
   assignOperation: z.object({
     proceso_tipo_id: z.number().int().positive(),
+    es_correccion: z.boolean().optional().default(false),
     maquina_id: z.number().int().positive().nullable().optional(),
     turno: z.string().min(1),
     permanente: z.boolean().default(false),
