@@ -448,6 +448,7 @@ const runFullSchema = () => {
         valor_anterior TEXT,
         valor_nuevo TEXT,
         motivo_cambio TEXT,
+        categoria_motivo TEXT,
         fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP
     );`);
 
@@ -609,6 +610,7 @@ const runFullSchema = () => {
       { table: 'auditoria', column: 'valor_anterior', type: 'TEXT' },
       { table: 'auditoria', column: 'valor_nuevo', type: 'TEXT' },
       { table: 'auditoria', column: 'motivo_cambio', type: 'TEXT' },
+      { table: 'auditoria', column: 'categoria_motivo', type: 'TEXT' },
       { table: 'usuarios', column: 'rol_id', type: 'INTEGER' }
     ];
 

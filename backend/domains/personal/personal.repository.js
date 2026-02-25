@@ -84,7 +84,7 @@ class PersonalRepository {
       SET estado_usuario = ?, updated_by = ?, motivo_cambio = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `;
-    return await db.run(sql, [status, updaterId, reason, userId]);
+    return await this.db.run(sql, [status, updaterId, reason, userId]);
   }
 
   async updateUserRole(personaId, roleId, updaterId, reason, tx) {
@@ -154,6 +154,39 @@ class PersonalRepository {
     return await this.db.query(sql, [personaId]);
   }
 
+  async getActiveAssignments(personaId) {
+    const sql = `
+      SELECT ao.*, pt.nombre as proceso_nombre, m.codigo as maquina_codigo
+      FROM asignaciones_operativas ao
+      JOIN PROCESO_TIPO pt ON ao.proceso_tipo_id = pt.id
+      LEFT JOIN MAQUINAS m ON ao.maquina_id = m.id
+      WHERE ao.persona_id = ? AND (ao.fecha_fin IS NULL OR ao.fecha_fin > CURRENT_TIMESTAMP)
+    `;
+    return await this.db.query(sql, [personaId]);
+  }
+
+  async getOperationalRole(personaId) {
+    const sql = `
+      SELECT pro.*, ro.nombre as rol_nombre
+      FROM persona_roles_operativos pro
+      JOIN roles_operativos ro ON pro.rol_operativo_id = ro.id
+      WHERE pro.persona_id = ? AND pro.fecha_hasta IS NULL
+      LIMIT 1
+    `;
+    return await this.db.get(sql, [personaId]);
+  }
+
+  async getGroupHistory(personaId) {
+    const sql = `
+      SELECT gi.*, g.nombre as grupo_nombre
+      FROM grupo_integrantes gi
+      JOIN grupos g ON gi.grupo_id = g.id
+      WHERE gi.persona_id = ?
+      ORDER BY gi.fecha_desde DESC
+    `;
+    return await this.db.query(sql, [personaId]);
+  }
+
   async assignOperation(assignmentData, tx) {
     const db = tx || this.db;
     const sql = `
@@ -168,23 +201,29 @@ class PersonalRepository {
     ]);
   }
 
-  async getActiveAssignments(personaId) {
-    const sql = `
-      SELECT ao.*, pt.nombre as proceso_nombre, m.codigo as maquina_codigo
-      FROM asignaciones_operativas ao
-      JOIN PROCESO_TIPO pt ON ao.proceso_tipo_id = pt.id
-      LEFT JOIN MAQUINAS m ON ao.maquina_id = m.id
-      WHERE ao.persona_id = ? AND (ao.fecha_fin IS NULL OR ao.fecha_fin > CURRENT_TIMESTAMP)
-    `;
-    return await this.db.query(sql, [personaId]);
-  }
-
   async findByCodigoInterno(codigo) {
     return await this.db.get('SELECT * FROM personas WHERE codigo_interno = ?', [codigo]);
   }
 
   async findByEmail(email) {
     return await this.db.get('SELECT * FROM personas WHERE email = ?', [email]);
+  }
+
+  async isAuxiliarWithActiveUser(personaId) {
+    const sql = `
+      SELECT 1 as is_auxiliar
+      FROM personas p
+      JOIN usuarios u ON p.id = u.persona_id
+      JOIN persona_roles_operativos pro ON p.id = pro.persona_id
+      JOIN roles_operativos ro ON pro.rol_operativo_id = ro.id
+      WHERE p.id = ?
+      AND u.estado_usuario = 'Activo'
+      AND pro.fecha_hasta IS NULL
+      AND ro.nombre = 'Auxiliar'
+      LIMIT 1
+    `;
+    const result = await this.db.get(sql, [personaId]);
+    return !!result;
   }
 
   async withTransaction(fn) {

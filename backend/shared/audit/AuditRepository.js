@@ -4,10 +4,10 @@ class AuditRepository {
   }
 
   async create(data) {
-    const { usuario, accion, entidad, entidad_id, valor_anterior, valor_nuevo, motivo_cambio } = data;
+    const { usuario, accion, entidad, entidad_id, valor_anterior, valor_nuevo, motivo_cambio, categoria_motivo } = data;
     const sql = `
-      INSERT INTO auditoria (usuario, accion, entidad, entidad_id, valor_anterior, valor_nuevo, motivo_cambio)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO auditoria (usuario, accion, entidad, entidad_id, valor_anterior, valor_nuevo, motivo_cambio, categoria_motivo)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
     return await this.db.run(sql, [
       usuario,
@@ -16,7 +16,8 @@ class AuditRepository {
       entidad_id,
       valor_anterior ? JSON.stringify(valor_anterior) : null,
       valor_nuevo ? JSON.stringify(valor_nuevo) : null,
-      motivo_cambio
+      motivo_cambio,
+      categoria_motivo || null
     ]);
   }
 

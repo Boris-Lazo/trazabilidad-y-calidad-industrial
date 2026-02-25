@@ -245,65 +245,115 @@
         </div>
     </div>
 
-    <!-- Modal Detalle / Asignación -->
+    <!-- Modal Detalle (Solo Lectura) -->
     <div id="modal-detalle" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header">
                 <h2 id="detail-title">Detalle de Colaborador</h2>
                 <button class="btn-close" onclick="closeDetailModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="dashboard-grid" style="grid-template-columns: 1fr 1.5fr;">
-                    <div>
-                        <h3 class="mb-3">Información General</h3>
-                        <div id="staff-info"></div>
-                    </div>
-                    <div>
-                        <h3 class="mb-3">Asignación Operativa Actual</h3>
-                        <div id="active-assignments" class="mb-4"></div>
+                <div id="detail-indicator" class="mb-3"></div>
 
-                        <h3 class="mb-3">Nueva Asignación</h3>
-                        <form id="form-asignacion" class="card p-3">
-                            <div class="form-group">
-                                <label class="form-label">Proceso</label>
-                                <select id="a-proceso" class="form-control" required></select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Máquina (Opcional)</label>
-                                <select id="a-maquina" class="form-control">
-                                    <option value="">Cualquier máquina</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Turno</label>
-                                <select id="a-turno" class="form-control" required>
-                                    <option value="Mañana">Mañana</option>
-                                    <option value="Tarde">Tarde</option>
-                                    <option value="Noche">Noche</option>
-                                </select>
-                            </div>
-                            <label class="form-check-label mb-3">
-                                <input type="checkbox" id="a-permanente"> Es asignación permanente
-                            </label>
-                            <button type="button" id="btn-save-assignment" class="btn btn-primary w-100">Registrar Asignación</button>
-                        </form>
+                <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+                    <!-- Columna Izquierda: Info General -->
+                    <div>
+                        <h3 class="mb-3">Información del Personal</h3>
+                        <div id="staff-info-details" class="card p-3 mb-4" style="background: rgba(0,0,0,0.02); line-height: 1.8;">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+
+                        <h3 class="mb-3">Rol Operativo Actual</h3>
+                        <div id="current-op-role" class="text-center py-2 mb-4">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Columna Derecha: Asignaciones y Grupos -->
+                    <div>
+                        <h3 class="mb-3">Asignaciones Operativas Activas</h3>
+                        <div id="active-assignments-details" class="mb-4">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+
+                        <h3 class="mb-3">Historial de Grupos</h3>
+                        <div class="table-container shadow-sm" style="max-height: 200px; overflow-y: auto; margin-bottom: 20px;">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Grupo</th>
+                                        <th>Desde</th>
+                                        <th>Hasta</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="group-history-list"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-                <hr>
-                <h3 class="my-3">Historial de Roles</h3>
-                <div class="table-container">
-                    <table class="table">
+
+                <hr class="my-4">
+
+                <h3 class="mb-3">Historial de Roles del Sistema</h3>
+                <div class="table-container shadow-sm">
+                    <table class="table table-sm">
                         <thead>
                             <tr>
                                 <th>Rol</th>
-                                <th>Desde</th>
-                                <th>Asignado Por</th>
+                                <th>Fecha Cambio</th>
+                                <th>Autorizado Por</th>
                                 <th>Estado</th>
                             </tr>
                         </thead>
                         <tbody id="role-history-list"></tbody>
                     </table>
                 </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDetailModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Asignación (Separado) -->
+    <div id="modal-asignacion" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>Registrar Nueva Asignación</h2>
+                <button class="btn-close" onclick="document.getElementById('modal-asignacion').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-asignacion">
+                    <div class="form-group">
+                        <label class="form-label">Proceso</label>
+                        <select id="a-proceso" class="form-control" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Máquina (Opcional)</label>
+                        <select id="a-maquina" class="form-control">
+                            <option value="">Cualquier máquina</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Turno</label>
+                        <select id="a-turno" class="form-control" required>
+                            <option value="Mañana">Mañana</option>
+                            <option value="Tarde">Tarde</option>
+                            <option value="Noche">Noche</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Motivo del Cambio</label>
+                        <textarea id="a-motivo" class="form-control" rows="2" placeholder="Ej: Refuerzo por alta producción"></textarea>
+                    </div>
+                    <label class="form-check-label mb-3">
+                        <input type="checkbox" id="a-permanente"> Es asignación permanente
+                    </label>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-asignacion').style.display='none'">Cancelar</button>
+                <button type="button" id="btn-save-assignment" class="btn btn-primary">Registrar Asignación</button>
             </div>
         </div>
     </div>
