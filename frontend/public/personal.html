@@ -58,7 +58,6 @@
                         <a href="/grupos.html" class="nav-item ">Grupos</a>
                         <a href="/personal.html?view=usuarios" class="nav-item ">Usuarios</a>
                         <div class="nav-section-label">Sistema</div>
-                        <a href="/configuracion.html" class="nav-item ">Configuración</a>
                         <a href="/auditoria.html" class="nav-item ">Auditoría</a>
                     </div>
                 </div>
@@ -164,30 +163,27 @@
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group">
-                            <label class="form-label">Área</label>
-                            <select id="p-area" class="form-control" required></select>
+                            <label class="form-label">Área Organizacional</label>
+                            <select id="p-area" class="form-control" required>
+                                <option value="">Seleccione área...</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Rol del Sistema</label>
-                            <select id="p-rol" class="form-control" required></select>
+                            <label class="form-label">Rol / Tipo de Contrato</label>
+                            <select id="p-rol-org" class="form-control" required disabled>
+                                <option value="">Seleccione área primero...</option>
+                            </select>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group">
-                            <label class="form-label">Tipo Colaborador</label>
-                            <select id="p-tipo" class="form-control" required>
-                                <option value="operativo">Operativo</option>
-                                <option value="administrativo">Administrativo</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
                             <label class="form-label">Fecha Ingreso</label>
                             <input type="date" id="p-fecha-ingreso" class="form-control" required>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Teléfono (Opcional)</label>
-                        <input type="text" id="p-telefono" class="form-control">
+                        <div class="form-group">
+                            <label class="form-label">Teléfono (Opcional)</label>
+                            <input type="text" id="p-telefono" class="form-control">
+                        </div>
                     </div>
                     <div id="edit-audit-fields" style="display: none;">
                         <div class="form-group">

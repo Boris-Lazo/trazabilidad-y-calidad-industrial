@@ -49,12 +49,17 @@ class PersonalService {
         created_by: creatorId
       });
 
-      // 4. Crear Usuario (Agregado principal de acceso)
+      // 4. Determinar rol de sistema inicial (Default: Operario para nuevos colaboradores de planta/base)
+      // En esta etapa no se mapean roles dinámicamente según el área para evitar acoplamiento prematuro.
+      const roles = await this.personalRepository.getRoles();
+      const defaultRol = roles.find(r => r.nombre === 'Operario') || roles[0];
+
+      // 5. Crear Usuario (Agregado principal de acceso)
       await this.personalRepository.createUser({
         persona_id: personaId,
         username: data.codigo_interno,
         password_hash: passwordHash,
-        rol_id: data.rol_id,
+        rol_id: defaultRol ? defaultRol.id : null,
         must_change_password: true,
         created_by: creatorId,
         motivo_cambio: 'Registro inicial de personal y usuario'

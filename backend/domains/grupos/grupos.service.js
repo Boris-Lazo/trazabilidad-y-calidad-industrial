@@ -68,10 +68,13 @@ class GruposService {
     }
 
     // Regla: Administrativos no en grupos operativos, y viceversa
-    if (grupo.tipo === 'operativo' && persona.tipo_personal === 'administrativo') {
+    // Un colaborador es administrativo si pertenece al área 'Administración'
+    const isAdministrativo = persona.area_nombre === 'Administración';
+
+    if (grupo.tipo === 'operativo' && isAdministrativo) {
       throw new ValidationError('Un colaborador administrativo no puede pertenecer a un grupo operativo');
     }
-    if (grupo.tipo === 'administrativo' && persona.tipo_personal === 'operativo') {
+    if (grupo.tipo === 'administrativo' && !isAdministrativo) {
       throw new ValidationError('Un colaborador operativo no puede pertenecer al grupo administrativo');
     }
 

@@ -96,7 +96,7 @@ app.get('/bootstrap.html', (req, res) => res.sendFile(path.join(__dirname, '../f
 app.get('/', authMiddleware, (req, res) => res.sendFile(path.join(__dirname, '../frontend/index.html')));
 
 const protectedPages = [
-    'auditoria.html', 'bitacora.html', 'calidad.html', 'configuracion.html',
+    'auditoria.html', 'bitacora.html', 'calidad.html',
     'detalles_orden.html', 'ejecucion.html', 'incidentes.html', 'lotes.html',
     'muestras.html', 'ordenes.html', 'proceso.html', 'trazabilidad.html',
     'telares_resumen.html', 'telares_detalle.html', 'personal.html', 'grupos.html'

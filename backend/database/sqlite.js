@@ -29,6 +29,56 @@ const initDB = () => {
   logger.info("Verificando/Creando esquema de base de datos...");
 
   // --- MIGRACIÓN DE ESQUEMA ROBUSTA ---
+  db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='personas'", (err, row) => {
+    if (row) {
+      db.all("PRAGMA table_info(personas)", (err, columns) => {
+        const hasTipoPersonal = columns.some(c => c.name === 'tipo_personal');
+        const hasRolOrg = columns.some(c => c.name === 'rol_organizacional');
+
+        if (hasTipoPersonal || !hasRolOrg) {
+          logger.info("Migrando tabla personas para rediseño de dominio...");
+          db.serialize(() => {
+            db.run("BEGIN TRANSACTION");
+            db.run(`CREATE TABLE personas_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                apellido TEXT NOT NULL,
+                codigo_interno TEXT UNIQUE NOT NULL,
+                area_id INTEGER NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                telefono TEXT,
+                fecha_ingreso DATE,
+                estado_laboral TEXT CHECK(estado_laboral IN ('Activo', 'Inactivo', 'Baja')) DEFAULT 'Activo',
+                rol_organizacional TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_by TEXT,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_by TEXT,
+                motivo_cambio TEXT,
+                FOREIGN KEY (area_id) REFERENCES areas(id)
+            )`);
+
+            db.run(`INSERT INTO personas_new (
+                id, nombre, apellido, codigo_interno, area_id, email, telefono,
+                fecha_ingreso, estado_laboral, created_at, created_by, updated_at, updated_by, motivo_cambio
+            ) SELECT
+                id, nombre, apellido, codigo_interno, area_id, email, telefono,
+                fecha_ingreso, estado_laboral, created_at, created_by, updated_at, updated_by, motivo_cambio
+            FROM personas`);
+
+            db.run("DROP TABLE personas");
+            db.run("ALTER TABLE personas_new RENAME TO personas");
+
+            db.run("COMMIT", (err) => {
+              if (err) logger.error("Error al finalizar migración de personas:", err.message);
+              else logger.info("Migración de personas completada con éxito.");
+            });
+          });
+        }
+      });
+    }
+  });
+
   db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='usuarios'", (err, row) => {
     if (row) {
       db.all("PRAGMA table_info(usuarios)", (err, columns) => {
@@ -307,7 +357,7 @@ const runFullSchema = () => {
         telefono TEXT,
         fecha_ingreso DATE,
         estado_laboral TEXT CHECK(estado_laboral IN ('Activo', 'Inactivo', 'Baja')) DEFAULT 'Activo',
-        tipo_personal TEXT CHECK(tipo_personal IN ('operativo', 'administrativo')) NOT NULL,
+        rol_organizacional TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         created_by TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -516,7 +566,7 @@ const runFullSchema = () => {
         if (err) return logger.error('Error al verificar áreas:', err.message);
 
         if (row && row.count === 0) {
-          const defaultAreas = ['Producción', 'Calidad', 'Mantenimiento', 'Sistemas', 'Administración'];
+          const defaultAreas = ['Producción', 'Departamento de Calidad', 'Mantenimiento', 'Administración'];
           const stmt = db.prepare("INSERT INTO areas (nombre) VALUES (?)");
           defaultAreas.forEach(a => stmt.run(a));
           stmt.finalize(() => {
@@ -524,7 +574,16 @@ const runFullSchema = () => {
             seedSystemConfig();
           });
         } else {
-          seedSystemConfig();
+          // Ajuste dinámico de áreas para alinearse con el nuevo dominio
+          db.serialize(() => {
+            db.run("UPDATE areas SET nombre = 'Departamento de Calidad' WHERE nombre = 'Calidad'");
+            db.run("DELETE FROM areas WHERE nombre = 'Sistemas'");
+            const requiredAreas = ['Producción', 'Departamento de Calidad', 'Mantenimiento', 'Administración'];
+            const stmt = db.prepare("INSERT OR IGNORE INTO areas (nombre) VALUES (?)");
+            requiredAreas.forEach(a => stmt.run(a));
+            stmt.finalize();
+            seedSystemConfig();
+          });
         }
       });
     };

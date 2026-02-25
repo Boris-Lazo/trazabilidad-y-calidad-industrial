@@ -6,6 +6,26 @@ const PersonalModule = {
     staff: [],
     areas: [],
     roles: [],
+    mappingAreaRoles: {
+        'Administración': [
+            'Gerente General',
+            'Superintendente de Producción',
+            'Jefe de Operaciones',
+            'Supervisor de Seguridad y Salud Ocupacional',
+            'Digitador'
+        ],
+        'Departamento de Calidad': [
+            'Inspector de Calidad'
+        ],
+        'Mantenimiento': [
+            'Mecatrónico',
+            'Auxiliar de Mantenimiento'
+        ],
+        'Producción': [
+            'Técnico Operador',
+            'Auxiliar de Operaciones'
+        ]
+    },
     processes: [],
     machines: [],
     currentStaffId: null,
@@ -35,7 +55,9 @@ const PersonalModule = {
             const res = await fetch('/api/personal/catalogos');
             const result = await res.json();
             if (result.success) {
-                this.areas = result.data.areas;
+                // Filtrar áreas permitidas por el dominio
+                const allowedAreaNames = Object.keys(this.mappingAreaRoles);
+                this.areas = result.data.areas.filter(a => allowedAreaNames.includes(a.nombre));
                 this.roles = result.data.roles;
                 this.renderCatalogSelects();
             }
@@ -56,21 +78,36 @@ const PersonalModule = {
     },
 
     renderCatalogSelects() {
-        const areaSelects = [document.getElementById('p-area'), document.getElementById('filter-area')];
-        const rolSelect = document.getElementById('p-rol');
+        const areaSelect = document.getElementById('p-area');
+        const filterAreaSelect = document.getElementById('filter-area');
 
-        areaSelects.forEach(select => {
-            if (select) {
-                const currentVal = select.value;
-                select.innerHTML = (select.id === 'filter-area' ? '<option value="">Todas</option>' : '') +
-                    this.areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
-                select.value = currentVal;
-            }
-        });
-
-        if (rolSelect) {
-            rolSelect.innerHTML = this.roles.map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
+        if (areaSelect) {
+            areaSelect.innerHTML = '<option value="">Seleccione área...</option>' +
+                this.areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
         }
+
+        if (filterAreaSelect) {
+            filterAreaSelect.innerHTML = '<option value="">Todas</option>' +
+                this.areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
+        }
+    },
+
+    updateOrganizationalRoles(areaId) {
+        const rolSelect = document.getElementById('p-rol-org');
+        if (!rolSelect) return;
+
+        if (!areaId) {
+            rolSelect.innerHTML = '<option value="">Seleccione área primero...</option>';
+            rolSelect.disabled = true;
+            return;
+        }
+
+        const area = this.areas.find(a => a.id == areaId);
+        const areaName = area ? area.nombre : '';
+        const roles = this.mappingAreaRoles[areaName] || [];
+
+        rolSelect.innerHTML = roles.map(r => `<option value="${r}">${r}</option>`).join('');
+        rolSelect.disabled = roles.length === 0;
     },
 
     async loadStaff() {
@@ -135,7 +172,7 @@ const PersonalModule = {
                 </td>
                 <td>${p.nombre} ${p.apellido}</td>
                 <td>${p.area_nombre}</td>
-                <td><span class="badge badge-info">${p.rol_actual || 'Sin Rol'}</span></td>
+                <td><span class="badge badge-info">${p.rol_organizacional || 'Sin Rol'}</span></td>
                 <td>
                     <span class="badge ${p.estado_laboral.toLowerCase() === 'activo' ? 'badge-success' : 'badge-danger'}">
                         ${p.estado_laboral.toUpperCase()}
@@ -175,6 +212,11 @@ const PersonalModule = {
         document.getElementById('search-staff').addEventListener('input', () => this.renderStaffList());
         document.getElementById('filter-area').addEventListener('change', () => this.renderStaffList());
         document.getElementById('btn-save-personal').addEventListener('click', () => this.saveStaff());
+
+        const pArea = document.getElementById('p-area');
+        if (pArea) {
+            pArea.addEventListener('change', (e) => this.updateOrganizationalRoles(e.target.value));
+        }
 
         const btnSaveAsig = document.getElementById('btn-save-assignment');
         if (btnSaveAsig) btnSaveAsig.addEventListener('click', () => this.saveAssignment());
@@ -236,7 +278,10 @@ const PersonalModule = {
             document.getElementById('p-codigo').value = p.codigo_interno;
             document.getElementById('p-email').value = p.email;
             document.getElementById('p-area').value = p.area_id;
-            document.getElementById('p-tipo').value = p.tipo_personal;
+
+            this.updateOrganizationalRoles(p.area_id);
+            document.getElementById('p-rol-org').value = p.rol_organizacional;
+
             document.getElementById('p-fecha-ingreso').value = p.fecha_ingreso;
             document.getElementById('p-telefono').value = p.telefono || '';
             document.getElementById('p-estado').value = p.estado_laboral;
@@ -244,14 +289,11 @@ const PersonalModule = {
 
             codigoInput.disabled = true;
             editFields.style.display = 'block';
-            const rolGroup = document.getElementById('p-rol').closest('.form-group');
-            if (rolGroup) rolGroup.style.display = 'none';
         } else {
             modalTitle.textContent = 'Registrar Nuevo Personal';
             codigoInput.disabled = false;
             editFields.style.display = 'none';
-            const rolGroup = document.getElementById('p-rol').closest('.form-group');
-            if (rolGroup) rolGroup.style.display = 'block';
+            document.getElementById('p-rol-org').disabled = true;
         }
 
         document.getElementById('modal-personal').style.display = 'flex';
@@ -265,8 +307,7 @@ const PersonalModule = {
             codigo_interno: document.getElementById('p-codigo').value,
             email: document.getElementById('p-email').value,
             area_id: parseInt(document.getElementById('p-area').value),
-            rol_id: parseInt(document.getElementById('p-rol').value),
-            tipo_personal: document.getElementById('p-tipo').value,
+            rol_organizacional: document.getElementById('p-rol-org').value,
             fecha_ingreso: document.getElementById('p-fecha-ingreso').value,
             telefono: document.getElementById('p-telefono').value,
         };
@@ -348,6 +389,7 @@ const PersonalModule = {
                     <div><strong>Email:</strong> ${p.email}</div>
                     <div><strong>Teléfono:</strong> ${p.telefono || '-'}</div>
                     <div><strong>Área:</strong> ${p.area_nombre}</div>
+                    <div><strong>Rol Organizacional:</strong> ${p.rol_organizacional || '-'}</div>
                     <div><strong>Ingreso:</strong> ${p.fecha_ingreso}</div>
                     <div><strong>Estado Laboral:</strong> <span class="badge ${p.estado_laboral === 'Activo' ? 'badge-success' : 'badge-danger'}">${p.estado_laboral}</span></div>
                     <div><strong>Estado Usuario:</strong> <span class="badge ${p.estado_usuario === 'Activo' ? 'badge-success' : 'badge-warning'}">${p.estado_usuario || 'SIN USUARIO'}</span></div>
