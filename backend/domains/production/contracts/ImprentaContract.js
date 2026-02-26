@@ -2,7 +2,17 @@ const ProcessContract = require('./ProcessContract');
 
 class ImprentaContract extends ProcessContract {
     constructor() {
-        super(4, 'Imprenta', 'impresiones');
+        super({
+            processId: 4,
+            nombre: 'Imprenta',
+            unidadProduccion: 'impresiones',
+            tiposOrdenPermitidos: ['Órdenes de Impresión (Serie 4XXXXXX)'],
+            maquinasPermitidas: ["Maquinaria estándar del proceso"],
+            metricasObligatorias: [
+                { nombre: 'viscosidad_tinta', unidad: 'seg' },
+                { nombre: 'registro_color', unidad: 'estado' }
+            ]
+        });
     }
 }
 
