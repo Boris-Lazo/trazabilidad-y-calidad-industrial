@@ -7,6 +7,7 @@ class ConversionLinerPEContract extends ProcessContract {
             nombre: 'Conversión de liner',
             unidadProduccion: 'unidades',
             tiposOrdenPermitidos: ['Órdenes de Conversión Liner (Serie 7XXXXXX)'],
+            maquinasPermitidas: ["Maquinaria estándar del proceso"],
             metricasObligatorias: [
                 { nombre: 'calidad_sellado', unidad: 'calificación' }
             ]
