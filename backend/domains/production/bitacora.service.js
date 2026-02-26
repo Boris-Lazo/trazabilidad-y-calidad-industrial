@@ -87,8 +87,8 @@ class BitacoraService {
     const procesos = ProcessRegistry.getAll();
 
     for (const proceso of procesos) {
-        const registros = await this.bitacoraRepository.getRegistrosByProceso(bitacoraId, proceso.id);
-        const muestras = await this.bitacoraRepository.getMuestrasByProceso(bitacoraId, proceso.id);
+        const registros = await this.bitacoraRepository.getRegistrosByProceso(bitacoraId, proceso.processId);
+        const muestras = await this.bitacoraRepository.getMuestrasByProceso(bitacoraId, proceso.processId);
 
         await this._validateProcesoPersonal(proceso, bitacora, registros, muestras);
 
@@ -102,13 +102,13 @@ class BitacoraService {
   }
 
   async _validateProcesoPersonal(proceso, bitacora, registros, muestras) {
-    const status = await this.bitacoraRepository.getProcesoStatus(bitacora.id, proceso.id);
+    const status = await this.bitacoraRepository.getProcesoStatus(bitacora.id, proceso.processId);
     const isOperativo = !(status && status.no_operativo);
     const hasData = registros.length > 0 || muestras.length > 0;
 
     if (isOperativo && hasData) {
         // Verificar personal asignado
-        const hasPersonnel = await this.bitacoraRepository.checkAssignmentsForProcess(proceso.id, bitacora.turno);
+        const hasPersonnel = await this.bitacoraRepository.checkAssignmentsForProcess(proceso.processId, bitacora.turno);
         if (!hasPersonnel) {
             throw new ValidationError(`No se puede cerrar el turno: El proceso '${proceso.nombre}' tiene actividad pero no cuenta con personal asignado para el turno ${bitacora.turno}.`);
         }
@@ -133,9 +133,9 @@ class BitacoraService {
       const resumen = [];
 
       for (const proceso of procesos) {
-          const registros = await this.bitacoraRepository.getRegistrosByProceso(bitacoraId, proceso.id);
-          const muestras = await this.bitacoraRepository.getMuestrasByProceso(bitacoraId, proceso.id);
-          const status = await this.bitacoraRepository.getProcesoStatus(bitacoraId, proceso.id);
+          const registros = await this.bitacoraRepository.getRegistrosByProceso(bitacoraId, proceso.processId);
+          const muestras = await this.bitacoraRepository.getMuestrasByProceso(bitacoraId, proceso.processId);
+          const status = await this.bitacoraRepository.getProcesoStatus(bitacoraId, proceso.processId);
 
           let estado = '⚪ Sin datos';
           let ultimaActualizacion = '—';
@@ -166,7 +166,7 @@ class BitacoraService {
           }
 
           resumen.push({
-              id: proceso.id,
+              id: proceso.processId,
               nombre: proceso.nombre,
               estado,
               ultimaActualizacion,

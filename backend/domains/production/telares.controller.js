@@ -1,5 +1,6 @@
 
 const { sendSuccess } = require('../../shared/response/responseHandler');
+const ValidationError = require('../../shared/errors/ValidationError');
 
 class TelaresController {
   constructor(telaresService) {
@@ -9,7 +10,7 @@ class TelaresController {
   getResumen = async (req, res, next) => {
     try {
       const { bitacora_id } = req.query;
-      if (!bitacora_id) throw new Error('bitacora_id is required');
+      if (!bitacora_id) throw new ValidationError('bitacora_id is required');
       const resumen = await this.telaresService.getResumen(bitacora_id);
       return sendSuccess(res, resumen);
     } catch (error) {
@@ -21,7 +22,7 @@ class TelaresController {
     try {
       const { maquinaId } = req.params;
       const { bitacora_id } = req.query;
-      if (!bitacora_id) throw new Error('bitacora_id is required');
+      if (!bitacora_id) throw new ValidationError('bitacora_id is required');
       const detalle = await this.telaresService.getDetalle(bitacora_id, maquinaId);
       return sendSuccess(res, detalle);
     } catch (error) {
@@ -41,7 +42,7 @@ class TelaresController {
 
   getParoTipos = async (req, res, next) => {
     try {
-        const tipos = await this.telaresService.telaresRepository.getParoTipos();
+        const tipos = await this.telaresService.getParoTipos();
         return sendSuccess(res, tipos);
     } catch (error) {
         next(error);

@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const ValidationError = require('../../shared/errors/ValidationError');
+const AppError = require('../../shared/errors/AppError');
 const { logger } = require('../../shared/logger/logger');
 
 class BootstrapService {
@@ -43,7 +44,7 @@ class BootstrapService {
 
     const adminRoleId = await this.bootstrapRepository.getAdminRoleId();
     if (!adminRoleId) {
-      throw new Error('Error de configuración: Rol Administrador no encontrado.');
+      throw new AppError('Error de configuración: Rol Administrador no encontrado.', 500);
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);

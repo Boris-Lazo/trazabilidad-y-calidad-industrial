@@ -1,4 +1,7 @@
 // Servicio para órdenes de producción
+const ValidationError = require('../../shared/errors/ValidationError');
+const NotFoundError = require('../../shared/errors/NotFoundError');
+
 class OrdenProduccionService {
   /**
    * @param {OrdenProduccionRepository} ordenProduccionRepository
@@ -21,7 +24,7 @@ class OrdenProduccionService {
     // Validar prefijo del código de orden (7 dígitos ya validados por Zod)
     const prefix = parseInt(data.codigo_orden[0]);
     if (prefix < 1 || prefix > 9) {
-        throw new Error('El primer dígito de la orden debe estar entre 1 y 9.');
+        throw new ValidationError('El primer dígito de la orden debe estar entre 1 y 9.');
     }
 
     const id = await this.ordenProduccionRepository.create({
@@ -33,7 +36,7 @@ class OrdenProduccionService {
 
   async update(id, data, usuario = 'SISTEMA') {
     const existing = await this.ordenProduccionRepository.findById(id);
-    if (!existing) throw new Error('Orden no encontrada');
+    if (!existing) throw new NotFoundError('Orden no encontrada');
 
     // Si la orden está liberada o en producción, solo permitir cambios de estado o motivo_cierre
     const restrictedStates = ['Liberada', 'En producción', 'Pausada', 'Cerrada', 'Cancelada'];
@@ -43,13 +46,13 @@ class OrdenProduccionService {
         const hasRestrictedChanges = keys.some(k => !allowedKeys.includes(k));
 
         if (hasRestrictedChanges) {
-            throw new Error(`La orden ya está en estado ${existing.estado} y no permite modificaciones técnicas.`);
+            throw new ValidationError(`La orden ya está en estado ${existing.estado} y no permite modificaciones técnicas.`);
         }
     }
 
     // Validar cambio a Cerrada o Cancelada
     if ((data.estado === 'Cerrada' || data.estado === 'Cancelada') && !data.motivo_cierre) {
-        throw new Error('Es obligatorio proporcionar un motivo para cerrar o cancelar la orden.');
+        throw new ValidationError('Es obligatorio proporcionar un motivo para cerrar o cancelar la orden.');
     }
 
     await this.ordenProduccionRepository.update(id, data);

@@ -34,7 +34,7 @@ class AuthController {
       const { currentPassword, newPassword } = req.body;
       // req.user.usuario_id contiene el ID de la tabla usuarios
       await this.authService.changePassword(req.user.usuario_id, currentPassword, newPassword);
-      return sendSuccess(res, null, 'Contraseña actualizada correctamente');
+      return sendSuccess(res, { message: 'Contraseña actualizada correctamente' });
     } catch (error) {
       next(error);
     }

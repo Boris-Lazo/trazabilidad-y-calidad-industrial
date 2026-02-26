@@ -6,6 +6,8 @@ const ConversionSacosContract = require('./ConversionSacosContract');
 const ExtrusionPEContract = require('./ExtrusionPEContract');
 const ConversionLinerPEContract = require('./ConversionLinerPEContract');
 const PeletizadoContract = require('./PeletizadoContract');
+const ConversionSacosVestidosContract = require('./ConversionSacosVestidosContract');
+const NotFoundError = require('../../../shared/errors/NotFoundError');
 
 class ProcessRegistry {
     constructor() {
@@ -18,6 +20,7 @@ class ProcessRegistry {
         this._register(new ExtrusionPEContract());
         this._register(new ConversionLinerPEContract());
         this._register(new PeletizadoContract());
+        this._register(new ConversionSacosVestidosContract());
     }
 
     _register(contract) {
@@ -34,7 +37,7 @@ class ProcessRegistry {
         const id = Number(processId);
         const contract = this.contracts.get(id);
         if (!contract) {
-            throw new Error(`El proceso con ID ${processId} no está definido en el registro estático.`);
+            throw new NotFoundError(`El proceso con ID ${processId} no está definido en el registro estático.`);
         }
         return contract;
     }

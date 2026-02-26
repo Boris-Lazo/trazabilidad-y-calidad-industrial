@@ -1,6 +1,7 @@
 
 const AppError = require('../../shared/errors/AppError');
 const ValidationError = require('../../shared/errors/ValidationError');
+const NotFoundError = require('../../shared/errors/NotFoundError');
 
 class TelaresService {
   constructor(telaresRepository, lineaEjecucionRepository, registroTrabajoRepository, muestraRepository, incidentesRepository) {
@@ -68,7 +69,7 @@ class TelaresService {
   async getDetalle(bitacoraId, maquinaId) {
     const maquinas = await this.telaresRepository.getAllMaquinas();
     const maquina = maquinas.find(m => m.id == maquinaId);
-    if (!maquina) throw new Error('Máquina no encontrada');
+    if (!maquina) throw new NotFoundError('Máquina no encontrada');
 
     const statusMaquinas = await this.telaresRepository.getStatusMaquinas(bitacoraId);
     const mStatus = statusMaquinas.find(s => s.maquina_id == maquinaId);
@@ -209,6 +210,10 @@ class TelaresService {
       }
       await this.telaresRepository.saveMaquinaStatus(bitacora_id, maquina_id, estadoFinal, observacion_advertencia);
     });
+  }
+
+  async getParoTipos() {
+    return await this.telaresRepository.getParoTipos();
   }
 
 }
