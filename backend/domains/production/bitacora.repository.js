@@ -52,6 +52,13 @@ class BitacoraRepository {
     return await this.db.query('SELECT * FROM muestras WHERE bitacora_id = ? AND proceso_id = ?', [bitacoraId, procesoId]);
   }
 
+  async deleteMuestrasByProceso(bitacoraId, procesoId) {
+    return await this.db.run(
+      'DELETE FROM muestras WHERE bitacora_id = ? AND proceso_id = ?',
+      [bitacoraId, procesoId]
+    );
+  }
+
   async getProcesoStatus(bitacoraId, procesoId) {
     return await this.db.get('SELECT * FROM bitacora_proceso_status WHERE bitacora_id = ? AND proceso_id = ?', [bitacoraId, procesoId]);
   }
