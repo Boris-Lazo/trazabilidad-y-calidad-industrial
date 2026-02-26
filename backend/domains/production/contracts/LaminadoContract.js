@@ -2,7 +2,16 @@ const ProcessContract = require('./ProcessContract');
 
 class LaminadoContract extends ProcessContract {
     constructor() {
-        super(3, 'Laminado', 'metros');
+        super({
+            processId: 3,
+            nombre: 'Laminado',
+            unidadProduccion: 'metros',
+            tiposOrdenPermitidos: ['Órdenes de Laminado (Serie 3XXXXXX)'],
+            metricasObligatorias: [
+                { nombre: 'adherencia', unidad: 'calificación' },
+                { nombre: 'gramaje_lamina', unidad: 'g/m2' }
+            ]
+        });
     }
 }
 
