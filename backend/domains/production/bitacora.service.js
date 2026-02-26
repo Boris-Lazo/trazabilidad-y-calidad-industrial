@@ -314,7 +314,7 @@ class BitacoraService {
           // mantenemos el reemplazo en la tabla pero LO REGISTRAMOS en la auditoría.
           // Una arquitectura superior requeriría IDs para cada muestra.
           if (muestras && muestras.length > 0) {
-              await this.bitacoraRepository.db.run(`DELETE FROM muestras WHERE bitacora_id = ? AND proceso_id = ?`, [bitacora_id, proceso_id]);
+              await this.bitacoraRepository.deleteMuestrasByProceso(bitacora_id, proceso_id);
               for (const m of muestras) {
                   const valParam = contract.validarParametro(m.parametro, m.valor);
                   if (!valParam.valido) {

@@ -18,11 +18,7 @@ const PERMISSIONS = {
 
 const ROLE_PERMISSIONS = {
   'Administrador': Object.values(PERMISSIONS),
-  'Inspector': [
-    PERMISSIONS.VIEW_STAFF,
-    PERMISSIONS.VIEW_PRODUCTION,
-    PERMISSIONS.VIEW_QUALITY
-  ],
+  'Inspector': Object.values(PERMISSIONS),
   'Supervisor': [
     PERMISSIONS.VIEW_STAFF,
     PERMISSIONS.VIEW_PRODUCTION,
