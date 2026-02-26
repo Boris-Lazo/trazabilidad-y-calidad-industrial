@@ -7,6 +7,7 @@ class LaminadoContract extends ProcessContract {
             nombre: 'Laminado',
             unidadProduccion: 'metros',
             tiposOrdenPermitidos: ['Órdenes de Laminado (Serie 3XXXXXX)'],
+            maquinasPermitidas: ["Maquinaria estándar del proceso"],
             metricasObligatorias: [
                 { nombre: 'adherencia', unidad: 'calificación' },
                 { nombre: 'gramaje_lamina', unidad: 'g/m2' }
