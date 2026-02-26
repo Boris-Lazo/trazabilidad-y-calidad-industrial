@@ -7,7 +7,6 @@ class ExtrusionPEContract extends ProcessContract {
             nombre: 'Extrusión PE',
             unidadProduccion: 'kg',
             tiposOrdenPermitidos: ['Órdenes de Extrusión Polietileno (Serie 6XXXXXX)'],
-            maquinasPermitidas: ["Maquinaria estándar del proceso"],
             metricasObligatorias: [
                 { nombre: 'espesor', unidad: 'micras' },
                 { nombre: 'ancho_burbuja', unidad: 'mm' }

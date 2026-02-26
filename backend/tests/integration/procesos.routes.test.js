@@ -1,11 +1,10 @@
 const request = require('supertest');
 const app = require('../../app');
 const { initDB } = require('../../database/sqlite');
+const sqlite = require('../../database/sqlite');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../../config/env');
 const { bootstrapTestSystem } = require('../helpers/testUtils');
-const sqlite = require('../../database/sqlite');
-const bcrypt = require('bcrypt');
 
 describe('Procesos Routes Integration Tests', () => {
     let adminToken;
@@ -17,36 +16,55 @@ describe('Procesos Routes Integration Tests', () => {
     beforeAll(async () => {
         await new Promise((resolve) => {
             initDB();
-            setTimeout(resolve, 500);
+            setTimeout(resolve, 1500);
         });
         await bootstrapTestSystem(app);
 
-        // Crear usuarios adicionales en la DB para que authMiddleware no falle
-        const passwordHash = await bcrypt.hash('password123', 10);
-
-        // El admin ya se creó en bootstrapTestSystem con id 1
-
         // id: 2 - Inspector
-        await sqlite.run(`INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email) VALUES ('Inspector', 'Test', 'inspector', 1, 'inspector@test.com')`);
-        await sqlite.run(`INSERT INTO usuarios (persona_id, username, password_hash, rol_id, estado_usuario) VALUES (2, 'inspector', ?, 1, 'Activo')`, [passwordHash]);
+        await sqlite.run(`
+            INSERT INTO personas (id, nombre, apellido, codigo_interno, area_id, email, rol_organizacional)
+            VALUES (2, 'Inspector', 'Test', 'inspector', 1, 'inspector@test.com', 'Inspector de Calidad')
+        `);
+        await sqlite.run(`
+            INSERT INTO usuarios (id, persona_id, username, password_hash, rol_id, estado_usuario)
+            VALUES (2, 2, 'inspector', 'hash', (SELECT id FROM roles WHERE nombre = 'Inspector'), 'Activo')
+        `);
 
         // id: 3 - Supervisor
-        await sqlite.run(`INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email) VALUES ('Supervisor', 'Test', 'supervisor', 1, 'supervisor@test.com')`);
-        await sqlite.run(`INSERT INTO usuarios (persona_id, username, password_hash, rol_id, estado_usuario) VALUES (3, 'supervisor', ?, 2, 'Activo')`, [passwordHash]);
+        await sqlite.run(`
+            INSERT INTO personas (id, nombre, apellido, codigo_interno, area_id, email, rol_organizacional)
+            VALUES (3, 'Supervisor', 'Test', 'supervisor', 1, 'supervisor@test.com', 'Supervisor de Planta')
+        `);
+        await sqlite.run(`
+            INSERT INTO usuarios (id, persona_id, username, password_hash, rol_id, estado_usuario)
+            VALUES (3, 3, 'supervisor', 'hash', (SELECT id FROM roles WHERE nombre = 'Supervisor'), 'Activo')
+        `);
 
         // id: 4 - Gerencia
-        await sqlite.run(`INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email) VALUES ('Gerencia', 'Test', 'gerencia', 1, 'gerencia@test.com')`);
-        await sqlite.run(`INSERT INTO usuarios (persona_id, username, password_hash, rol_id, estado_usuario) VALUES (4, 'gerencia', ?, 4, 'Activo')`, [passwordHash]);
+        await sqlite.run(`
+            INSERT INTO personas (id, nombre, apellido, codigo_interno, area_id, email, rol_organizacional)
+            VALUES (4, 'Gerencia', 'Test', 'gerencia', 1, 'gerencia@test.com', 'Gerente General')
+        `);
+        await sqlite.run(`
+            INSERT INTO usuarios (id, persona_id, username, password_hash, rol_id, estado_usuario)
+            VALUES (4, 4, 'gerencia', 'hash', (SELECT id FROM roles WHERE nombre = 'Gerencia'), 'Activo')
+        `);
 
         // id: 5 - Operario
-        await sqlite.run(`INSERT INTO personas (nombre, apellido, codigo_interno, area_id, email) VALUES ('Operario', 'Test', 'operario', 1, 'operario@test.com')`);
-        await sqlite.run(`INSERT INTO usuarios (persona_id, username, password_hash, rol_id, estado_usuario) VALUES (5, 'operario', ?, 5, 'Activo')`, [passwordHash]);
+        await sqlite.run(`
+            INSERT INTO personas (id, nombre, apellido, codigo_interno, area_id, email, rol_organizacional)
+            VALUES (5, 'Operario', 'Test', 'operario', 1, 'operario@test.com', 'Operario de Planta')
+        `);
+        await sqlite.run(`
+            INSERT INTO usuarios (id, persona_id, username, password_hash, rol_id, estado_usuario)
+            VALUES (5, 5, 'operario', 'hash', (SELECT id FROM roles WHERE nombre = 'Operario'), 'Activo')
+        `);
 
-        adminToken     = jwt.sign({ usuario_id: 1, username: 'admin',     rol: 'Administrador' }, JWT_SECRET);
-        inspectorToken = jwt.sign({ usuario_id: 2, username: 'inspector', rol: 'Inspector'     }, JWT_SECRET);
-        supervisorToken= jwt.sign({ usuario_id: 3, username: 'supervisor',rol: 'Supervisor'    }, JWT_SECRET);
-        gerenciaToken  = jwt.sign({ usuario_id: 4, username: 'gerencia',  rol: 'Gerencia'      }, JWT_SECRET);
-        operarioToken  = jwt.sign({ usuario_id: 5, username: 'operario',  rol: 'Operario'      }, JWT_SECRET);
+        adminToken      = jwt.sign({ id: 1, usuario_id: 1, username: 'admin',      rol: 'Administrador' }, JWT_SECRET);
+        inspectorToken  = jwt.sign({ id: 2, usuario_id: 2, username: 'inspector',  rol: 'Inspector'     }, JWT_SECRET);
+        supervisorToken = jwt.sign({ id: 3, usuario_id: 3, username: 'supervisor', rol: 'Supervisor'    }, JWT_SECRET);
+        gerenciaToken   = jwt.sign({ id: 4, usuario_id: 4, username: 'gerencia',   rol: 'Gerencia'      }, JWT_SECRET);
+        operarioToken   = jwt.sign({ id: 5, usuario_id: 5, username: 'operario',   rol: 'Operario'      }, JWT_SECRET);
     });
 
     describe('GET /api/procesos', () => {
