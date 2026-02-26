@@ -2,7 +2,17 @@ const ProcessContract = require('./ProcessContract');
 
 class ConversionSacosContract extends ProcessContract {
     constructor() {
-        super(5, 'Conversión de sacos', 'unidades');
+        super({
+            processId: 5,
+            nombre: 'Conversión de sacos',
+            unidadProduccion: 'unidades',
+            tiposOrdenPermitidos: ['Órdenes de Conversión (Serie 5XXXXXX)'],
+            maquinasPermitidas: ["Maquinaria estándar del proceso"],
+            metricasObligatorias: [
+                { nombre: 'resistencia_valvula', unidad: 'kgf' },
+                { nombre: 'dimensiones', unidad: 'mm' }
+            ]
+        });
     }
 }
 

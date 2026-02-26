@@ -1,17 +1,52 @@
 /**
  * Interfaz base para contratos de procesos productivos.
  * Define el comportamiento estático y reglas de validación para cada proceso.
+ * Implementación inmutable y auditada por código.
  */
 const AppError = require('../../../shared/errors/AppError');
 
 class ProcessContract {
-    constructor(processId, nombre, unidadProduccion) {
+    constructor({
+        processId,
+        nombre,
+        unidadProduccion,
+        area = 'Producción',
+        estado = 'Activo',
+        fechaCreacion,
+        responsable = 'Sistema (Despliegue)',
+        version = '1.0.0',
+        motivo = 'Definición inicial del proceso industrial',
+        tiposOrdenPermitidos = [],
+        maquinasPermitidas = [],
+        rolesOperativosPermitidos = ['Inspector de calidad', 'Técnico operador', 'Auxiliar de operaciones'],
+        metricasObligatorias = [],
+        historial = []
+    }) {
         if (this.constructor === ProcessContract) {
             throw new AppError("No se puede instanciar la clase abstracta ProcessContract.", 500);
         }
+
         this.processId = processId;
         this.nombre = nombre;
         this.unidadProduccion = unidadProduccion;
+        this.area = area;
+        this.estado = estado;
+        this.fechaCreacion = fechaCreacion || '2024-01-01';
+        this.responsable = responsable;
+        this.version = version;
+        this.motivo = motivo;
+        this.tiposOrdenPermitidos = tiposOrdenPermitidos;
+        this.maquinasPermitidas = maquinasPermitidas;
+        this.rolesOperativosPermitidos = rolesOperativosPermitidos;
+        this.metricasObligatorias = metricasObligatorias;
+
+        // Historial inmutable de versiones
+        this.historial = historial.length > 0 ? historial : [{
+            version,
+            fecha: this.fechaCreacion,
+            responsable,
+            motivo
+        }];
     }
 
     /**
@@ -28,7 +63,7 @@ class ProcessContract {
      * @returns {string[]}
      */
     parametrosObligatorios() {
-        return [];
+        return this.metricasObligatorias.map(m => m.nombre);
     }
 
     /**
@@ -38,7 +73,33 @@ class ProcessContract {
      * @returns {{valido: boolean, error?: string}}
      */
     validarParametro(nombre, valor) {
+        const metrica = this.metricasObligatorias.find(m => m.nombre === nombre);
+        if (metrica && (valor === null || valor === undefined || valor === '')) {
+            return { valido: false, error: `${nombre} es obligatorio para el proceso ${this.nombre}` };
+        }
         return { valido: true };
+    }
+
+    /**
+     * Serializa el contrato para su exposición en API.
+     */
+    toJSON() {
+        return {
+            processId: this.processId,
+            nombre: this.nombre,
+            unidadProduccion: this.unidadProduccion,
+            area: this.area,
+            estado: this.estado,
+            fechaCreacion: this.fechaCreacion,
+            responsable: this.responsable,
+            version: this.version,
+            motivo: this.motivo,
+            tiposOrdenPermitidos: this.tiposOrdenPermitidos,
+            maquinasPermitidas: this.maquinasPermitidas,
+            rolesOperativosPermitidos: this.rolesOperativosPermitidos,
+            metricasObligatorias: this.metricasObligatorias,
+            historial: this.historial
+        };
     }
 }
 
