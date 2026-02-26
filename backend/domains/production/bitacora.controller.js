@@ -1,6 +1,7 @@
 // Controlador para gestión de bitácoras de turno
 const { sendSuccess } = require('../../shared/response/responseHandler');
 const { getTurnoActual } = require('./turno.utils');
+const ValidationError = require('../../shared/errors/ValidationError');
 
 class BitacoraController {
   /**
@@ -92,7 +93,7 @@ class BitacoraController {
   getProcesoData = async (req, res, next) => {
       try {
           const { bitacora_id, proceso_id } = req.query;
-          if (!bitacora_id || !proceso_id) throw new Error('Faltan parámetros.');
+          if (!bitacora_id || !proceso_id) throw new ValidationError('Faltan parámetros.');
           const data = await this.bitacoraService.getProcesoData(bitacora_id, proceso_id);
           return sendSuccess(res, data);
       } catch (error) {

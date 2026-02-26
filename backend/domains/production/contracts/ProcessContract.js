@@ -2,10 +2,12 @@
  * Interfaz base para contratos de procesos productivos.
  * Define el comportamiento estático y reglas de validación para cada proceso.
  */
+const AppError = require('../../../shared/errors/AppError');
+
 class ProcessContract {
     constructor(processId, nombre, unidadProduccion) {
         if (this.constructor === ProcessContract) {
-            throw new Error("No se puede instanciar la clase abstracta ProcessContract.");
+            throw new AppError("No se puede instanciar la clase abstracta ProcessContract.", 500);
         }
         this.processId = processId;
         this.nombre = nombre;

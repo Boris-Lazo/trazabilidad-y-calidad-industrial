@@ -5,8 +5,8 @@ class DashboardRepository {
 
   async getCounts() {
     const ordenesActivas = await this.db.get("SELECT COUNT(*) as count FROM orden_produccion WHERE estado IN ('Liberada', 'En producción', 'Pausada')");
-    const lineasEjecucion = await this.db.get("SELECT COUNT(*) as count FROM lineas_ejecucion WHERE estado = 'activo'");
-    const registrosAbiertos = await this.db.get("SELECT COUNT(*) as count FROM registros_trabajo WHERE estado = 'abierto'");
+    const lineasEjecucion = await this.db.get("SELECT COUNT(*) as count FROM lineas_ejecucion WHERE estado = 'ACTIVA'");
+    const registrosAbiertos = await this.db.get("SELECT COUNT(*) as count FROM registros_trabajo WHERE estado = 'completado'");
     const incidentesActivos = await this.db.get("SELECT COUNT(*) as count FROM incidentes WHERE estado = 'abierto'");
 
     // Obtener producción total del día (registros de hoy)

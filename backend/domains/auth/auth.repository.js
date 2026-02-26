@@ -4,6 +4,12 @@ class AuthRepository {
     this.db = db;
   }
 
+  async getSystemStatus() {
+    const sql = "SELECT valor FROM sistema_config WHERE clave = 'estado_sistema'";
+    const row = await this.db.get(sql);
+    return row ? row.valor : null;
+  }
+
   async findByUsername(username) {
     const sql = `
       SELECT u.*, p.nombre, p.apellido, r.nombre as rol

@@ -1,8 +1,5 @@
 const AuthService = require('./auth.service');
 const UnauthorizedError = require('../../shared/errors/UnauthorizedError');
-const sqlite = require('../../database/sqlite');
-
-jest.mock('../../database/sqlite');
 
 describe('AuthService', () => {
     let authService;
@@ -10,8 +7,8 @@ describe('AuthService', () => {
     let tokenServiceMock;
 
     beforeEach(() => {
-        sqlite.get.mockResolvedValue({ valor: 'INICIALIZADO' });
         authRepositoryMock = {
+            getSystemStatus: jest.fn().mockResolvedValue('INICIALIZADO'),
             findByUsername: jest.fn(),
             updateLoginAttempts: jest.fn(),
             resetLoginAttempts: jest.fn()

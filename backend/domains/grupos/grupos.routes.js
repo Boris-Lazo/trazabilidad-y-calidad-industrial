@@ -19,13 +19,14 @@ const gruposController = new GruposController(gruposService);
 
 router.get('/', authorize(PERMISSIONS.VIEW_STAFF), (req, res, next) => gruposController.getGrupos(req, res, next));
 router.get('/roles-operativos', authorize(PERMISSIONS.VIEW_STAFF), (req, res, next) => gruposController.getRolesOperativos(req, res, next));
+
+router.get('/persona/:personaId/historial', authorize(PERMISSIONS.VIEW_STAFF), (req, res, next) => gruposController.getHistorialPersona(req, res, next));
+router.post('/persona/:personaId/rol-operativo', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => gruposController.assignRolOperativo(req, res, next));
+
 router.get('/:id', authorize(PERMISSIONS.VIEW_STAFF), (req, res, next) => gruposController.getGrupoDetalle(req, res, next));
 
 router.post('/:id/integrantes', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => gruposController.addIntegrante(req, res, next));
 router.post('/:id/integrantes/:personaId/remove', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => gruposController.removeIntegrante(req, res, next));
 router.put('/:id/turno', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => gruposController.rotarTurno(req, res, next));
-
-router.get('/persona/:personaId/historial', authorize(PERMISSIONS.VIEW_STAFF), (req, res, next) => gruposController.getHistorialPersona(req, res, next));
-router.post('/persona/:personaId/rol-operativo', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => gruposController.assignRolOperativo(req, res, next));
 
 module.exports = router;
