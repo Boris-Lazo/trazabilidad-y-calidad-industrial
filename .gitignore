@@ -25,3 +25,10 @@ yarn-error.log*
 
 # IDE/Editor specific
 .idx/
+
+# Scripts de desarrollo
+create_admin.js
+seed_test_user.js
+verify_*.py
+verification/
+*.png
