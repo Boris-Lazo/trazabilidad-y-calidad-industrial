@@ -14,60 +14,57 @@ describe('Procesos Routes Integration Tests', () => {
     let operarioToken;
 
     beforeAll(async () => {
-        // Inicializar DB y esperar a que terminen las semillas internas
         await new Promise((resolve) => {
             initDB();
             setTimeout(resolve, 1500);
         });
-
-        // El bootstrap crea al admin (usuario_id 1, persona_id 1)
         await bootstrapTestSystem(app);
 
-        // id: 2 - Inspector (rol_id 1)
+        // id: 2 - Inspector
         await sqlite.run(`
             INSERT INTO personas (id, nombre, apellido, codigo_interno, area_id, email, rol_organizacional)
             VALUES (2, 'Inspector', 'Test', 'inspector', 1, 'inspector@test.com', 'Inspector de Calidad')
         `);
         await sqlite.run(`
             INSERT INTO usuarios (id, persona_id, username, password_hash, rol_id, estado_usuario)
-            VALUES (2, 2, 'inspector', 'hash', 1, 'Activo')
+            VALUES (2, 2, 'inspector', 'hash', (SELECT id FROM roles WHERE nombre = 'Inspector'), 'Activo')
         `);
 
-        // id: 3 - Supervisor (rol_id 2)
+        // id: 3 - Supervisor
         await sqlite.run(`
             INSERT INTO personas (id, nombre, apellido, codigo_interno, area_id, email, rol_organizacional)
             VALUES (3, 'Supervisor', 'Test', 'supervisor', 1, 'supervisor@test.com', 'Supervisor de Planta')
         `);
         await sqlite.run(`
             INSERT INTO usuarios (id, persona_id, username, password_hash, rol_id, estado_usuario)
-            VALUES (3, 3, 'supervisor', 'hash', 2, 'Activo')
+            VALUES (3, 3, 'supervisor', 'hash', (SELECT id FROM roles WHERE nombre = 'Supervisor'), 'Activo')
         `);
 
-        // id: 4 - Gerencia (rol_id 4)
+        // id: 4 - Gerencia
         await sqlite.run(`
             INSERT INTO personas (id, nombre, apellido, codigo_interno, area_id, email, rol_organizacional)
             VALUES (4, 'Gerencia', 'Test', 'gerencia', 1, 'gerencia@test.com', 'Gerente General')
         `);
         await sqlite.run(`
             INSERT INTO usuarios (id, persona_id, username, password_hash, rol_id, estado_usuario)
-            VALUES (4, 4, 'gerencia', 'hash', 4, 'Activo')
+            VALUES (4, 4, 'gerencia', 'hash', (SELECT id FROM roles WHERE nombre = 'Gerencia'), 'Activo')
         `);
 
-        // id: 5 - Operario (rol_id 5)
+        // id: 5 - Operario
         await sqlite.run(`
             INSERT INTO personas (id, nombre, apellido, codigo_interno, area_id, email, rol_organizacional)
             VALUES (5, 'Operario', 'Test', 'operario', 1, 'operario@test.com', 'Operario de Planta')
         `);
         await sqlite.run(`
             INSERT INTO usuarios (id, persona_id, username, password_hash, rol_id, estado_usuario)
-            VALUES (5, 5, 'operario', 'hash', 5, 'Activo')
+            VALUES (5, 5, 'operario', 'hash', (SELECT id FROM roles WHERE nombre = 'Operario'), 'Activo')
         `);
 
-        adminToken      = jwt.sign({ usuario_id: 1, username: 'admin',      rol: 'Administrador' }, JWT_SECRET);
-        inspectorToken  = jwt.sign({ usuario_id: 2, username: 'inspector',  rol: 'Inspector'     }, JWT_SECRET);
-        supervisorToken = jwt.sign({ usuario_id: 3, username: 'supervisor', rol: 'Supervisor'    }, JWT_SECRET);
-        gerenciaToken   = jwt.sign({ usuario_id: 4, username: 'gerencia',   rol: 'Gerencia'      }, JWT_SECRET);
-        operarioToken   = jwt.sign({ usuario_id: 5, username: 'operario',   rol: 'Operario'      }, JWT_SECRET);
+        adminToken      = jwt.sign({ id: 1, usuario_id: 1, username: 'admin',      rol: 'Administrador' }, JWT_SECRET);
+        inspectorToken  = jwt.sign({ id: 2, usuario_id: 2, username: 'inspector',  rol: 'Inspector'     }, JWT_SECRET);
+        supervisorToken = jwt.sign({ id: 3, usuario_id: 3, username: 'supervisor', rol: 'Supervisor'    }, JWT_SECRET);
+        gerenciaToken   = jwt.sign({ id: 4, usuario_id: 4, username: 'gerencia',   rol: 'Gerencia'      }, JWT_SECRET);
+        operarioToken   = jwt.sign({ id: 5, usuario_id: 5, username: 'operario',   rol: 'Operario'      }, JWT_SECRET);
     });
 
     describe('GET /api/procesos', () => {
