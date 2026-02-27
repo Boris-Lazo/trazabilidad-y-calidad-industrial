@@ -439,8 +439,9 @@ const GruposModule = {
     },
 
     getNextTurno(turnoActual) {
-        const ciclo = { 'T1': 'T2', 'T2': 'T3', 'T3': 'T1' };
-        return ciclo[turnoActual] || 'T1';
+        // Orden solicitado: T3 -> T2 -> T1 -> T3
+        const ciclo = { 'T3': 'T2', 'T2': 'T1', 'T1': 'T3' };
+        return ciclo[turnoActual] || 'T3';
     },
 
     getTurnoLabel(turno) {
