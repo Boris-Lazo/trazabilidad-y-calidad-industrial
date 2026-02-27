@@ -19,4 +19,18 @@ router.get('/', authorize(PERMISSIONS.VIEW_PROCESSES), (req, res, next) => {
     }
 });
 
+/**
+ * @route GET /api/procesos/:id
+ * @desc Obtiene un contrato de proceso individual por su processId
+ * @access Administrador, Jefe de Operaciones, Inspector, Supervisor, Gerencia
+ */
+router.get('/:id', authorize(PERMISSIONS.VIEW_PROCESSES), (req, res, next) => {
+    try {
+        const proceso = processRegistry.get(parseInt(req.params.id));
+        return sendSuccess(res, proceso.toJSON());
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;

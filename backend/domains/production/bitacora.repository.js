@@ -118,6 +118,19 @@ class BitacoraRepository {
     return await this.db.query(sql);
   }
 
+  async getLastClosedBitacoraWithData(procesoId) {
+    return await this.db.get(`
+        SELECT bt.id
+        FROM bitacora_turno bt
+        INNER JOIN registros_trabajo rt ON rt.bitacora_id = bt.id
+        INNER JOIN lineas_ejecucion le ON rt.linea_ejecucion_id = le.id
+        WHERE bt.estado = 'CERRADA'
+        AND le.proceso_id = ?
+        ORDER BY bt.fecha_operativa DESC, bt.id DESC
+        LIMIT 1
+    `, [procesoId]);
+  }
+
   async checkAssignmentsForProcess(procesoId, shift) {
     const sql = `
       SELECT COUNT(*) as count

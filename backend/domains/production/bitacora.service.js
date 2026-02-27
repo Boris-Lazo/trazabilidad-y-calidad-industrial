@@ -176,7 +176,13 @@ class BitacoraService {
       return resumen;
   }
 
-  async getProcesoData(bitacoraId, procesoId) {
+  async getProcesoData(bitacoraId, procesoId, ultimoTurno = false) {
+      if (ultimoTurno) {
+          const lastBitacora = await this.bitacoraRepository.getLastClosedBitacoraWithData(procesoId);
+          if (!lastBitacora) return { parametros_operativos: null, mezcla: [] };
+          bitacoraId = lastBitacora.id;
+      }
+
       const bitacora = await this.bitacoraRepository.findById(bitacoraId);
       if (!bitacora) throw new NotFoundError('Bitácora no encontrada.');
 
@@ -222,6 +228,13 @@ class BitacoraService {
 
       if (produccion.length === 0 && registros.length > 0) {
           observaciones = registros[0].observaciones;
+      }
+
+      if (ultimoTurno) {
+          return {
+              parametros_operativos,
+              mezcla
+          };
       }
 
       return {
