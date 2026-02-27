@@ -1,81 +1,56 @@
-# PROD-SYS: Trazabilidad y Calidad Industrial
+# PROD-SYS: Gestión de Trazabilidad y Calidad Industrial
 
-Sistema profesional de gestión de producción industrial construido con Node.js, Express y SQLite.
+PROD-SYS es un sistema integral diseñado para el control, monitoreo y auditoría de procesos de producción industrial en tiempo real. Proporciona una plataforma robusta para la gestión de personal, órdenes de producción, control de calidad y registros operativos, asegurando la integridad de los datos y la trazabilidad completa del ciclo de vida industrial.
 
-## Estructura del Proyecto
+---
 
-```
-backend/
-├── app.js            # Configuración de Express
-├── server.js         # Entrada del servidor
-├── config/           # Configuraciones (env, db, security)
-├── database/         # SQLite y conexión
-├── domains/          # Lógica de negocio por dominios
-│   ├── auth/
-│   ├── bootstrap/
-│   ├── dashboard/
-│   ├── grupos/
-│   ├── personal/
-│   ├── production/
-│   ├── quality/
-│   └── resources/
-├── middlewares/      # Middlewares globales (auth, error, etc.)
-├── shared/           # Código compartido transversal
-│   ├── audit/
-│   ├── auth/
-│   ├── errors/
-│   ├── logger/
-│   ├── response/
-│   └── security/
-└── tests/            # Tests unitarios e integración
-    ├── helpers/
-    └── integration/
-frontend/
-├── index.html        # Dashboard principal
-├── public/           # Activos estáticos y páginas HTML
-│   ├── css/
-│   ├── js/
-│   └── [páginas HTML]
-└── src/
-    └── design-system/ # Sistema de diseño centralizado
-```
+## 🚀 Guía de Inicio Rápido
 
-## Requisitos Previos
+### Requisitos Previos
+- **Node.js**: Versión 16 o superior.
+- **npm**: Gestor de paquetes incluido con Node.js.
 
-- Node.js (v16 o superior)
-- npm
-
-## Instalación y Primera Corrida
-
-1. **Configuración Automática:**
-   Ejecuta el script de configuración para instalar dependencias y crear el archivo `.env`:
+### Instalación
+1. **Configurar el Entorno:**
+   Ejecuta el script de automatización para instalar dependencias y generar configuraciones iniciales:
    ```bash
    chmod +x setup.sh
    ./setup.sh
    ```
 
-2. **Inicio del Servidor:**
+2. **Iniciar el Servidor:**
    ```bash
    npm start
    ```
-   El servidor correrá en `http://localhost:3000`.
+   El sistema estará accesible en `http://localhost:3000`.
 
-3. **Credenciales por Defecto:**
-   - **Usuario:** `admin`
-   - **Contraseña:** la definida en `ADMIN_PASSWORD` dentro de `.env` (por defecto `admin_password`).
+3. **Inicialización del Sistema (Bootstrap):**
+   Al acceder por primera vez, el sistema solicitará la creación de un administrador real. Este proceso es único y establece las bases de seguridad del entorno.
 
-## Arquitectura
+---
 
-El proyecto sigue una arquitectura por capas:
-- **Routes:** Define los endpoints.
-- **Controllers:** Maneja las peticiones HTTP.
-- **Services:** Contiene la lógica de negocio.
-- **Repositories:** Gestiona las consultas a la base de datos.
-- **Validation:** Validación de esquemas con Zod.
+## 📂 Documentación Detallada
 
-## Seguridad
+Para comprender a fondo el funcionamiento y diseño de PROD-SYS, consulta las siguientes secciones:
 
-- Autenticación JWT.
-- Protección de cabeceras con Helmet.
-- Limitación de tasa de peticiones (Rate Limiting).
-- Validación estricta de variables de entorno.
+1.  [**Arquitectura del Sistema**](docs/ARCHITECTURE.md): Diseño técnico, capas de software y organización de dominios.
+2.  [**Lógica de Negocio Industrial**](docs/BUSINESS_LOGIC.md): Procesos de producción, turnos, rotaciones y reglas operativas.
+3.  [**Guía de Desarrollo y Seguridad**](docs/DEVELOPMENT_GUIDE.md): Estándares de código, seguridad (JWT, Helmet) y sistema de diseño frontend.
+4.  [**Modelo de Datos**](docs/DATABASE_SCHEMA.md): Esquema de base de datos SQLite, integridad y migraciones.
+5.  [**Manual de Usuario (No Técnico)**](docs/USER_MANUAL.md): Guía paso a paso para el uso diario del sistema sin tecnicismos.
+
+---
+
+## 🛠️ Tecnologías Principales
+
+- **Backend:** Node.js, Express.
+- **Base de Datos:** SQLite (con modo WAL para alto rendimiento).
+- **Seguridad:** JWT (JSON Web Tokens), bcrypt, Helmet, Rate Limiting.
+- **Validación:** Zod para esquemas de datos.
+- **Logging:** Winston (Logs estructurados y rotativos).
+- **Frontend:** Vanilla JS con un sistema de diseño industrial centralizado.
+
+---
+
+## ⚖️ Licencia
+Este proyecto es propiedad privada para uso industrial. Todos los derechos reservados.
