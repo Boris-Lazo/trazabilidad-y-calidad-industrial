@@ -29,6 +29,7 @@ yarn-error.log*
 # Scripts de desarrollo
 create_admin.js
 seed_test_user.js
+mock_db_init.js
 verify_*.py
 verification/
 *.png
