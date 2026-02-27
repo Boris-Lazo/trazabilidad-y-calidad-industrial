@@ -280,6 +280,7 @@ const PersonalModule = {
             document.getElementById('p-area').value = p.area_id;
 
             this.updateOrganizationalRoles(p.area_id);
+            document.getElementById('p-rol-org').disabled = false;
             document.getElementById('p-rol-org').value = p.rol_organizacional;
 
             document.getElementById('p-fecha-ingreso').value = p.fecha_ingreso;
@@ -316,6 +317,7 @@ const PersonalModule = {
             const updateData = {
                 email: data.email,
                 telefono: data.telefono,
+                rol_organizacional: document.getElementById('p-rol-org').value,
                 estado_laboral: document.getElementById('p-estado').value,
                 motivo_cambio: document.getElementById('p-motivo').value,
                 categoria_motivo: document.getElementById('p-categoria').value
