@@ -224,6 +224,15 @@ class PersonalService {
       throw new ValidationError(`Asignación bloqueada: El usuario se encuentra en estado ${user.estado_usuario}. Solo usuarios en estado Activo pueden participar en la operación.`);
     }
 
+    // Validación de Máquina (si aplica)
+    if (assignmentData.maquina_id) {
+        const maquina = await this.personalRepository.db.get("SELECT * FROM MAQUINAS WHERE id = ?", [assignmentData.maquina_id]);
+        if (!maquina) throw new ValidationError('La máquina seleccionada no existe');
+        if (maquina.estado_actual === 'Baja' || maquina.estado_actual === 'Fuera de servicio') {
+            throw new ValidationError(`Asignación bloqueada: La máquina ${maquina.nombre_visible} se encuentra en estado ${maquina.estado_actual}.`);
+        }
+    }
+
     // El admin técnico no tiene Persona, por lo que no llegará aquí vía persona_id,
     // pero reforzamos la validación de seguridad
     if (user.username === 'admin') {
