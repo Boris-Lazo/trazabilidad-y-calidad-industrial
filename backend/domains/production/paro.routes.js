@@ -14,10 +14,10 @@ const paroController = new ParoController(paroService);
 
 const router = express.Router();
 
-router.get('/', paroController.getParosByProceso);
+router.get('/', authorize(PERMISSIONS.VIEW_PRODUCTION), paroController.getParosByProceso);
 router.post('/', authorize(PERMISSIONS.MANAGE_PRODUCTION), paroController.create);
 router.put('/:id', authorize(PERMISSIONS.MANAGE_PRODUCTION), paroController.update);
 router.delete('/:id', authorize(PERMISSIONS.MANAGE_PRODUCTION), paroController.delete);
-router.get('/motivos', paroController.getMotivos);
+router.get('/motivos', authorize(PERMISSIONS.VIEW_PRODUCTION), paroController.getMotivos);
 
 module.exports = router;
