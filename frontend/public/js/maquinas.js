@@ -48,6 +48,11 @@ const MaquinaModule = {
         const searchTerm = document.getElementById('search-machine').value.toLowerCase();
         const procesoFilter = document.getElementById('filter-proceso').value;
         const estadoFilter = document.getElementById('filter-estado').value;
+        const user = Auth.getUser();
+
+        // Reglas de permisos: Solo Administrador, Jefe de Operaciones e Inspector pueden cambiar estado
+        // (Basado en ROLE_PERMISSIONS en backend/shared/auth/permissions.js)
+        const canManage = user && (user.rol === 'Administrador' || user.rol === 'Jefe de Operaciones' || user.rol === 'Inspector');
 
         const filtered = this.machines.filter(m => {
             const matchesSearch = m.nombre_visible.toLowerCase().includes(searchTerm);
@@ -78,9 +83,10 @@ const MaquinaModule = {
                     <td>${new Date(m.updated_at).toLocaleString()}</td>
                     <td>
                         <div style="display: flex; gap: 8px;">
+                            ${canManage && m.estado_actual !== 'Baja' ? `
                             <button class="btn btn-secondary btn-sm" onclick="MaquinaModule.openModal(${m.id})" title="Cambiar Estado">
                                 <i data-lucide="settings-2" style="width:14px; height:14px;"></i>
-                            </button>
+                            </button>` : ''}
                             <button class="btn btn-secondary btn-sm" onclick="MaquinaModule.viewHistory(${m.id})" title="Ver Historial">
                                 <i data-lucide="history" style="width:14px; height:14px;"></i>
                             </button>

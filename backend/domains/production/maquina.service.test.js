@@ -13,10 +13,8 @@ describe('MaquinaService', () => {
             findById: jest.fn(),
             updateEstado: jest.fn(),
             getHistorialEstados: jest.fn(),
-            db: {
-                get: jest.fn(),
-                withTransaction: jest.fn(fn => fn())
-            }
+            hasActiveOrders: jest.fn(),
+            withTransaction: jest.fn(fn => fn())
         };
         mockAudit = {
             logStatusChange: jest.fn()
@@ -49,7 +47,7 @@ describe('MaquinaService', () => {
 
     test('updateMachineStatus lanza error si tiene órdenes activas al pasar a no operativo', async () => {
         mockRepo.findById.mockResolvedValue({ id: 1, estado_actual: 'Operativa' });
-        mockRepo.db.get.mockResolvedValue({ count: 1 }); // Órdenes activas
+        mockRepo.hasActiveOrders.mockResolvedValue(true); // Órdenes activas
 
         await expect(maquinaService.updateMachineStatus(1, { nuevoEstado: 'Fuera de servicio' }))
             .rejects.toThrow('No se puede cambiar el estado a uno no operativo mientras existan órdenes de producción activas');
@@ -57,7 +55,7 @@ describe('MaquinaService', () => {
 
     test('updateMachineStatus actualiza y audita correctamente', async () => {
         mockRepo.findById.mockResolvedValue({ id: 1, estado_actual: 'Disponible', nombre_visible: 'T-01' });
-        mockRepo.db.get.mockResolvedValue({ count: 0 });
+        mockRepo.hasActiveOrders.mockResolvedValue(false);
 
         await maquinaService.updateMachineStatus(1, {
             nuevoEstado: 'En mantenimiento',
@@ -66,7 +64,7 @@ describe('MaquinaService', () => {
             usuario: 'admin'
         });
 
-        expect(mockRepo.updateEstado).toHaveBeenCalledWith(1, 'En mantenimiento', 'Cambio de aceite', 'MANTENIMIENTO_PREVENTIVO', 'admin', expect.any(Object));
+        expect(mockRepo.updateEstado).toHaveBeenCalledWith(1, 'En mantenimiento', 'Cambio de aceite', 'MANTENIMIENTO_PREVENTIVO', 'admin', { estadoAnterior: 'Disponible' });
         expect(mockAudit.logStatusChange).toHaveBeenCalled();
     });
 });
