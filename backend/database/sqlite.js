@@ -338,13 +338,74 @@ const migrateProcesoTipo = () => {
         db.run("COMMIT", (err) => {
           if (err) logger.error("Error al finalizar migración de procesos:", err.message);
           else logger.info("Migración de procesos a modelo estático completada.");
-          runFullSchema();
+          migrateParoSchema();
         });
       });
     } else {
-      runFullSchema();
+      migrateParoSchema();
     }
   });
+};
+
+const migrateParoSchema = () => {
+    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='PARO_TIPO'", (err, row) => {
+        if (row) {
+            db.all("PRAGMA table_info(PARO_TIPO)", (err, columns) => {
+                const hasActivo = columns.some(c => c.name === 'activo');
+                // Si la tabla se llama PARO_TIPO, la renombramos
+                logger.info("Migrando esquema de paros: Renombrando PARO_TIPO a CATALOGO_MOTIVO_PARO...");
+                db.serialize(() => {
+                    db.run("BEGIN TRANSACTION");
+                    db.run("ALTER TABLE PARO_TIPO RENAME TO CATALOGO_MOTIVO_PARO");
+                    db.run("COMMIT", (err) => {
+                        if (err) logger.error("Error al renombrar PARO_TIPO:", err.message);
+                        else logger.info("CATALOGO_MOTIVO_PARO listo.");
+                        migrateBitacoraProceso();
+                    });
+                });
+            });
+        } else {
+            migrateBitacoraProceso();
+        }
+    });
+};
+
+const migrateBitacoraProceso = () => {
+    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='bitacora_proceso_status'", (err, row) => {
+        if (row) {
+            db.all("PRAGMA table_info(bitacora_proceso_status)", (err, columns) => {
+                const hasTiempoProg = columns.some(c => c.name === 'tiempo_programado_minutos');
+                if (!hasTiempoProg) {
+                    logger.info("Migrando bitacora_proceso_status a BITACORA_PROCESO con blindaje de tiempos...");
+                    db.serialize(() => {
+                        db.run("BEGIN TRANSACTION");
+                        db.run(`CREATE TABLE BITACORA_PROCESO_new (
+                            bitacora_id INTEGER,
+                            proceso_id INTEGER,
+                            no_operativo BOOLEAN DEFAULT 0,
+                            motivo_no_operativo TEXT,
+                            tiempo_programado_minutos INTEGER DEFAULT 480,
+                            PRIMARY KEY (bitacora_id, proceso_id),
+                            FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id)
+                        )`);
+                        db.run(`INSERT INTO BITACORA_PROCESO_new (bitacora_id, proceso_id, no_operativo, motivo_no_operativo)
+                                SELECT bitacora_id, proceso_id, no_operativo, motivo_no_operativo FROM bitacora_proceso_status`);
+                        db.run("DROP TABLE bitacora_proceso_status");
+                        db.run("ALTER TABLE BITACORA_PROCESO_new RENAME TO BITACORA_PROCESO");
+                        db.run("COMMIT", (err) => {
+                            if (err) logger.error("Error al migrar BITACORA_PROCESO:", err.message);
+                            else logger.info("BITACORA_PROCESO configurada.");
+                            runFullSchema();
+                        });
+                    });
+                } else {
+                    runFullSchema();
+                }
+            });
+        } else {
+            runFullSchema();
+        }
+    });
 };
 
 const runFullSchema = () => {
@@ -415,10 +476,22 @@ const runFullSchema = () => {
         UNIQUE(maquina_id, parametro)
     );`);
 
-    db.run(`CREATE TABLE IF NOT EXISTS PARO_TIPO (
+    db.run(`CREATE TABLE IF NOT EXISTS CATALOGO_MOTIVO_PARO (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nombre TEXT UNIQUE,
         activo BOOLEAN DEFAULT 1
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS PARO_PROCESO (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id INTEGER NOT NULL,
+        proceso_id INTEGER NOT NULL,
+        motivo_id INTEGER NOT NULL,
+        minutos_perdidos INTEGER NOT NULL,
+        observacion TEXT,
+        fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (motivo_id) REFERENCES CATALOGO_MOTIVO_PARO(id)
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS lineas_ejecucion (
@@ -539,11 +612,12 @@ const runFullSchema = () => {
         FOREIGN KEY (recurso_id) REFERENCES RECURSO(id)
     );`);
 
-    db.run(`CREATE TABLE IF NOT EXISTS bitacora_proceso_status (
+    db.run(`CREATE TABLE IF NOT EXISTS BITACORA_PROCESO (
         bitacora_id INTEGER,
         proceso_id INTEGER,
         no_operativo BOOLEAN DEFAULT 0,
         motivo_no_operativo TEXT,
+        tiempo_programado_minutos INTEGER DEFAULT 480,
         PRIMARY KEY (bitacora_id, proceso_id),
         FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id)
     );`);
@@ -855,14 +929,14 @@ const runFullSchema = () => {
         }
     });
 
-    // Semilla de Tipos de Paro
-    db.get("SELECT COUNT(*) as count FROM PARO_TIPO", (err, row) => {
+    // Semilla de Motivos de Paro
+    db.get("SELECT COUNT(*) as count FROM CATALOGO_MOTIVO_PARO", (err, row) => {
         if (row && row.count === 0) {
             const paros = ['Mecánico', 'Eléctrico', 'Operativo', 'Calidad', 'Falta de material', 'Cambio de orden', 'Limpieza', 'Mantenimiento'];
-            const stmtP = db.prepare("INSERT INTO PARO_TIPO (nombre) VALUES (?)");
+            const stmtP = db.prepare("INSERT INTO CATALOGO_MOTIVO_PARO (nombre) VALUES (?)");
             paros.forEach(p => stmtP.run(p));
             stmtP.finalize();
-            logger.info('Tipos de paro inicializados.');
+            logger.info('Catálogo de motivos de paro inicializado.');
         }
     });
 

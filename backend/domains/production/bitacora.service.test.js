@@ -9,6 +9,7 @@ describe('BitacoraService', () => {
     let registroTrabajoRepositoryMock;
     let muestraRepositoryMock;
     let auditServiceMock;
+    let paroRepositoryMock;
 
     beforeEach(() => {
         bitacoraRepositoryMock = {
@@ -26,6 +27,9 @@ describe('BitacoraService', () => {
         lineaEjecucionRepositoryMock = {};
         registroTrabajoRepositoryMock = {};
         muestraRepositoryMock = {};
+        paroRepositoryMock = {
+            sumMinutosByBitacoraAndProceso: jest.fn()
+        };
         auditServiceMock = {
             logStatusChange: jest.fn(),
             logUpdate: jest.fn()
@@ -36,7 +40,8 @@ describe('BitacoraService', () => {
             lineaEjecucionRepositoryMock,
             registroTrabajoRepositoryMock,
             muestraRepositoryMock,
-            auditServiceMock
+            auditServiceMock,
+            paroRepositoryMock
         );
     });
 
@@ -61,6 +66,7 @@ describe('BitacoraService', () => {
         bitacoraRepositoryMock.getMuestrasByProceso.mockResolvedValue([{ resultado: 'Rechazo' }]);
         bitacoraRepositoryMock.getProcesoStatus.mockResolvedValue({ no_operativo: 0 });
         bitacoraRepositoryMock.checkAssignmentsForProcess.mockResolvedValue(true);
+        paroRepositoryMock.sumMinutosByBitacoraAndProceso.mockResolvedValue(0);
 
         await expect(bitacoraService.closeBitacora(1, 'yo', 'Inspector'))
             .rejects.toThrow(ValidationError);
@@ -73,6 +79,7 @@ describe('BitacoraService', () => {
         bitacoraRepositoryMock.getMuestrasByProceso.mockResolvedValue([]);
         bitacoraRepositoryMock.getProcesoStatus.mockResolvedValue({ no_operativo: 0 });
         bitacoraRepositoryMock.checkAssignmentsForProcess.mockResolvedValue(false);
+        paroRepositoryMock.sumMinutosByBitacoraAndProceso.mockResolvedValue(0);
 
         await expect(bitacoraService.closeBitacora(1, 'yo', 'Inspector'))
             .rejects.toThrow(/personal asignado/);
@@ -119,5 +126,17 @@ describe('BitacoraService', () => {
         const muestras = [{ resultado: 'Aprobado' }];
         const registros = [{ observaciones: 'Todo normal' }];
         expect(bitacoraService._checkNeedsRevision(muestras, registros)).toBe(false);
+    });
+
+    test('calcularResumenTiempo retorna valores correctos', async () => {
+        bitacoraRepositoryMock.getProcesoStatus.mockResolvedValue({ tiempo_programado_minutos: 480 });
+        paroRepositoryMock.sumMinutosByBitacoraAndProceso.mockResolvedValue(120);
+
+        const resumen = await bitacoraService.calcularResumenTiempo(1, 1);
+        expect(resumen).toEqual({
+            tiempo_programado: 480,
+            total_paros: 120,
+            tiempo_efectivo: 360
+        });
     });
 });
