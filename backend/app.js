@@ -102,7 +102,7 @@ const protectedPages = [
     'detalles_orden.html', 'ejecucion.html', 'incidentes.html', 'lotes.html',
     'muestras.html', 'ordenes.html', 'trazabilidad.html',
     'telares_resumen.html', 'telares_detalle.html', 'personal.html', 'grupos.html',
-    'procesos.html', 'maquinas.html'
+    'procesos.html', 'maquinas.html', 'proceso.html'
 ];
 
 protectedPages.forEach(page => {

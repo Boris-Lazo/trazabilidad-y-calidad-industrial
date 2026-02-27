@@ -193,52 +193,6 @@ const migrateMaquinas = () => {
             });
           });
         } else {
-          migrateMaquinas();
-        }
-      });
-    } else {
-      migrateMaquinas();
-    }
-  });
-};
-
-const migrateMaquinas = () => {
-  db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='MAQUINAS'", (err, row) => {
-    if (row) {
-      db.all("PRAGMA table_info(MAQUINAS)", (err, columns) => {
-        const hasNombreVisible = columns.some(c => c.name === 'nombre_visible');
-        if (!hasNombreVisible) {
-          logger.info("Migrando tabla MAQUINAS al nuevo esquema de trazabilidad...");
-          db.serialize(() => {
-            db.run("BEGIN TRANSACTION");
-            db.run(`CREATE TABLE MAQUINAS_new (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre_visible TEXT UNIQUE NOT NULL,
-                proceso_id INTEGER NOT NULL,
-                estado_actual TEXT CHECK(estado_actual IN ('Operativa', 'En mantenimiento', 'Fuera de servicio', 'Disponible', 'Baja')) DEFAULT 'Disponible',
-                descripcion TEXT,
-                fecha_baja DATETIME,
-                motivo_baja TEXT,
-                activo BOOLEAN DEFAULT 1,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )`);
-
-            // Mapear 'codigo' a 'nombre_visible' y 'activo' para inferir 'estado_actual'
-            db.run(`INSERT INTO MAQUINAS_new (id, nombre_visible, proceso_id, activo, estado_actual)
-                    SELECT id, codigo, proceso_id, activo,
-                    CASE WHEN activo = 1 THEN 'Disponible' ELSE 'Fuera de servicio' END
-                    FROM MAQUINAS`);
-
-            db.run("DROP TABLE MAQUINAS");
-            db.run("ALTER TABLE MAQUINAS_new RENAME TO MAQUINAS");
-            db.run("COMMIT", (err) => {
-              if (err) logger.error("Error al migrar MAQUINAS:", err.message);
-              else logger.info("Migración de MAQUINAS completada.");
-              migrateProcesoTipo();
-            });
-          });
-        } else {
           migrateProcesoTipo();
         }
       });

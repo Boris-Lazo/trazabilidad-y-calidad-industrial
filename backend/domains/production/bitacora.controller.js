@@ -92,9 +92,11 @@ class BitacoraController {
 
   getProcesoData = async (req, res, next) => {
       try {
-          const { bitacora_id, proceso_id } = req.query;
-          if (!bitacora_id || !proceso_id) throw new ValidationError('Faltan parámetros.');
-          const data = await this.bitacoraService.getProcesoData(bitacora_id, proceso_id);
+          const { bitacora_id, proceso_id, ultimo_turno } = req.query;
+          if (!ultimo_turno && (!bitacora_id || !proceso_id)) throw new ValidationError('Faltan parámetros.');
+          if (ultimo_turno && !proceso_id) throw new ValidationError('Falta proceso_id para obtener último turno.');
+
+          const data = await this.bitacoraService.getProcesoData(bitacora_id, proceso_id, ultimo_turno === 'true');
           return sendSuccess(res, data);
       } catch (error) {
           next(error);
