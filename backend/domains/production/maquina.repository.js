@@ -66,6 +66,10 @@ class MaquinaRepository {
         const result = await this.db.get(sql, [maquinaId]);
         return result.count > 0;
     }
+
+    async withTransaction(fn) {
+        return await this.db.withTransaction(fn);
+    }
 }
 
 module.exports = MaquinaRepository;

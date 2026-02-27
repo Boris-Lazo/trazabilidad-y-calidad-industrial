@@ -43,7 +43,7 @@ class MaquinaService {
             dataAdicional.motivo_baja = motivo;
         }
 
-        await this.maquinaRepository.db.withTransaction(async () => {
+        await this.maquinaRepository.withTransaction(async () => {
             await this.maquinaRepository.updateEstado(id, nuevoEstado, motivo, categoria, usuario, dataAdicional);
 
             await this.auditService.logStatusChange(

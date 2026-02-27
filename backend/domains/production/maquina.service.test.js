@@ -14,10 +14,7 @@ describe('MaquinaService', () => {
             updateEstado: jest.fn(),
             getHistorialEstados: jest.fn(),
             hasActiveOrders: jest.fn(),
-            db: {
-                get: jest.fn(),
-                withTransaction: jest.fn(fn => fn())
-            }
+            withTransaction: jest.fn(fn => fn())
         };
         mockAudit = {
             logStatusChange: jest.fn()
