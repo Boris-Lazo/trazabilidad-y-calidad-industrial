@@ -6,25 +6,27 @@
 const AppError = require('../../../shared/errors/AppError');
 
 class ProcessContract {
-    constructor({
-        processId,
-        nombre,
-        unidadProduccion,
-        area = 'Producción',
-        estado = 'Activo',
-        fechaCreacion,
-        responsable = 'Sistema (Despliegue)',
-        version = '1.0.0',
-        motivo = 'Definición inicial del proceso industrial',
-        tiposOrdenPermitidos = [],
-        maquinasPermitidas = [],
-        rolesOperativosPermitidos = ['Inspector de calidad', 'Técnico operador', 'Auxiliar de operaciones'],
-        metricasObligatorias = [],
-        historial = []
-    }) {
+    constructor(data) {
         if (this.constructor === ProcessContract) {
             throw new AppError("No se puede instanciar la clase abstracta ProcessContract.", 500);
         }
+
+        const {
+            processId,
+            nombre,
+            unidadProduccion,
+            area = 'Producción',
+            estado = 'Activo',
+            fechaCreacion,
+            responsable = 'Sistema (Despliegue)',
+            version = '1.0.0',
+            motivo = 'Definición inicial del proceso industrial',
+            tiposOrdenPermitidos = [],
+            maquinasPermitidas = [],
+            rolesOperativosPermitidos = ['Inspector de calidad', 'Técnico operador', 'Auxiliar de operaciones'],
+            metricasObligatorias = [],
+            historial = []
+        } = data;
 
         this.processId = processId;
         this.nombre = nombre;
@@ -39,6 +41,18 @@ class ProcessContract {
         this.maquinasPermitidas = maquinasPermitidas;
         this.rolesOperativosPermitidos = rolesOperativosPermitidos;
         this.metricasObligatorias = metricasObligatorias;
+
+        // Nuevos campos del contrato
+        this.nombreCorto = data.nombreCorto || this.nombre;
+        this.descripcionProducto = data.descripcionProducto || '';
+        this.patronCodigoOrden = data.patronCodigoOrden || null;
+        this.origenesOrden = data.origenesOrden || ['manual'];
+        this.restriccionesInicio = data.restriccionesInicio || [];
+        this.parametrosCalidad = data.parametrosCalidad || [];
+        this.parametrosInformativos = data.parametrosInformativos || [];
+        this.frecuenciaMuestreo = data.frecuenciaMuestreo || null;
+        this['procesosAguas abajo'] = data['procesosAguas abajo'] || [];
+        this.esInicioCADena = data.esInicioCADena || false;
 
         // Historial inmutable de versiones
         this.historial = historial.length > 0 ? historial : [{
@@ -98,6 +112,16 @@ class ProcessContract {
             maquinasPermitidas: this.maquinasPermitidas,
             rolesOperativosPermitidos: this.rolesOperativosPermitidos,
             metricasObligatorias: this.metricasObligatorias,
+            nombreCorto: this.nombreCorto,
+            descripcionProducto: this.descripcionProducto,
+            patronCodigoOrden: this.patronCodigoOrden,
+            origenesOrden: this.origenesOrden,
+            restriccionesInicio: this.restriccionesInicio,
+            parametrosCalidad: this.parametrosCalidad,
+            parametrosInformativos: this.parametrosInformativos,
+            frecuenciaMuestreo: this.frecuenciaMuestreo,
+            'procesosAguas abajo': this['procesosAguas abajo'],
+            esInicioCADena: this.esInicioCADena,
             historial: this.historial
         };
     }
