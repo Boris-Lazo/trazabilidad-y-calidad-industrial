@@ -21,7 +21,7 @@ class MaquinaRepository {
     }
 
     async updateEstado(id, nuevoEstado, motivo, categoria, usuario, dataAdicional = {}) {
-        const { fecha_baja, motivo_baja } = dataAdicional;
+        const { fecha_baja, motivo_baja, estadoAnterior } = dataAdicional;
 
         // Actualizar máquina
         let sql = "UPDATE MAQUINAS SET estado_actual = ?, updated_at = CURRENT_TIMESTAMP";
@@ -45,8 +45,8 @@ class MaquinaRepository {
         await this.db.run(`
             INSERT INTO maquina_estados_historial
             (maquina_id, estado_anterior, estado_nuevo, motivo, categoria_motivo, usuario)
-            VALUES (?, (SELECT estado_actual FROM MAQUINAS WHERE id = ?), ?, ?, ?, ?)
-        `, [id, id, nuevoEstado, motivo, categoria, usuario]);
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [id, estadoAnterior, nuevoEstado, motivo, categoria, usuario]);
     }
 
     async getHistorialEstados(maquinaId) {
@@ -59,6 +59,12 @@ class MaquinaRepository {
 
     async getParametros(maquinaId) {
         return await this.db.query("SELECT * FROM maquina_parametros_config WHERE maquina_id = ?", [maquinaId]);
+    }
+
+    async hasActiveOrders(maquinaId) {
+        const sql = "SELECT COUNT(*) as count FROM lineas_ejecucion WHERE maquina_id = ? AND estado = 'ACTIVA'";
+        const result = await this.db.get(sql, [maquinaId]);
+        return result.count > 0;
     }
 }
 

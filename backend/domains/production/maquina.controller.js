@@ -33,7 +33,7 @@ class MaquinaController {
                 categoria,
                 usuario
             });
-            sendSuccess(res, result, 'Estado de máquina actualizado con éxito');
+            sendSuccess(res, result);
         } catch (error) {
             next(error);
         }

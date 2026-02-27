@@ -37,7 +37,7 @@ class MaquinaService {
             }
         }
 
-        const dataAdicional = {};
+        const dataAdicional = { estadoAnterior };
         if (nuevoEstado === 'Baja') {
             dataAdicional.fecha_baja = new Date().toISOString();
             dataAdicional.motivo_baja = motivo;
@@ -66,9 +66,7 @@ class MaquinaService {
     }
 
     async _checkActiveOrders(maquinaId) {
-        const sql = "SELECT COUNT(*) as count FROM lineas_ejecucion WHERE maquina_id = ? AND estado = 'ACTIVA'";
-        const result = await this.maquinaRepository.db.get(sql, [maquinaId]);
-        return result.count > 0;
+        return await this.maquinaRepository.hasActiveOrders(maquinaId);
     }
 }
 
