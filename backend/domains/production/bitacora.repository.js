@@ -60,7 +60,7 @@ class BitacoraRepository {
   }
 
   async getProcesoStatus(bitacoraId, procesoId) {
-    return await this.db.get('SELECT * FROM bitacora_proceso_status WHERE bitacora_id = ? AND proceso_id = ?', [bitacoraId, procesoId]);
+    return await this.db.get('SELECT * FROM BITACORA_PROCESO WHERE bitacora_id = ? AND proceso_id = ?', [bitacoraId, procesoId]);
   }
 
   async deleteProcesoData(bitacoraId, procesoId) {
@@ -70,7 +70,7 @@ class BitacoraRepository {
         AND (linea_ejecucion_id IN (SELECT id FROM lineas_ejecucion WHERE proceso_id = ?) OR linea_ejecucion_id IS NULL)
     `, [bitacoraId, procesoId]);
     await this.db.run('DELETE FROM muestras WHERE bitacora_id = ? AND proceso_id = ?', [bitacoraId, procesoId]);
-    await this.db.run('DELETE FROM bitacora_proceso_status WHERE bitacora_id = ? AND proceso_id = ?', [bitacoraId, procesoId]);
+    await this.db.run('DELETE FROM BITACORA_PROCESO WHERE bitacora_id = ? AND proceso_id = ?', [bitacoraId, procesoId]);
   }
 
   async getRegistroByLineaYBitacora(lineaId, bitacoraId, maquinaId) {
@@ -82,7 +82,7 @@ class BitacoraRepository {
 
   async updateProcesoStatus(bitacoraId, procesoId, no_operativo, motivo) {
       await this.db.run(`
-          INSERT INTO bitacora_proceso_status (bitacora_id, proceso_id, no_operativo, motivo_no_operativo)
+          INSERT INTO BITACORA_PROCESO (bitacora_id, proceso_id, no_operativo, motivo_no_operativo)
           VALUES (?, ?, ?, ?)
           ON CONFLICT(bitacora_id, proceso_id) DO UPDATE SET
             no_operativo = excluded.no_operativo,
@@ -92,7 +92,7 @@ class BitacoraRepository {
 
   async saveProcesoStatus(bitacoraId, procesoId, no_operativo, motivo) {
     await this.db.run(`
-        INSERT INTO bitacora_proceso_status (bitacora_id, proceso_id, no_operativo, motivo_no_operativo)
+        INSERT INTO BITACORA_PROCESO (bitacora_id, proceso_id, no_operativo, motivo_no_operativo)
         VALUES (?, ?, ?, ?)
     `, [bitacoraId, procesoId, no_operativo ? 1 : 0, motivo]);
   }

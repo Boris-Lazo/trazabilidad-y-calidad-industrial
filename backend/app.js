@@ -28,6 +28,7 @@ const personalRoutes = require('./domains/personal/personal.routes');
 const gruposRoutes = require('./domains/grupos/grupos.routes');
 const procesosRoutes = require('./domains/production/procesos.routes');
 const maquinaRoutes = require('./domains/production/maquina.routes');
+const paroRoutes = require('./domains/production/paro.routes');
 
 const app = express();
 
@@ -90,6 +91,7 @@ app.use('/api/personal', authMiddleware, personalRoutes);
 app.use('/api/grupos', authMiddleware, gruposRoutes);
 app.use('/api/procesos', authMiddleware, procesosRoutes);
 app.use('/api/maquinas', authMiddleware, maquinaRoutes);
+app.use('/api/paros', authMiddleware, paroRoutes);
 
 // --- FRONTEND (PÁGINAS HTML) ---
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, '../frontend/public/login.html')));

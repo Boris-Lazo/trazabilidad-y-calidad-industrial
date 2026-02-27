@@ -12,13 +12,15 @@ class BitacoraService {
    * @param {RegistroTrabajoRepository} registroTrabajoRepository
    * @param {MuestraRepository} muestraRepository
    * @param {AuditService} auditService
+   * @param {ParoRepository} paroRepository
    */
-  constructor(bitacoraRepository, lineaEjecucionRepository, registroTrabajoRepository, muestraRepository, auditService) {
+  constructor(bitacoraRepository, lineaEjecucionRepository, registroTrabajoRepository, muestraRepository, auditService, paroRepository) {
     this.bitacoraRepository = bitacoraRepository;
     this.lineaEjecucionRepository = lineaEjecucionRepository;
     this.registroTrabajoRepository = registroTrabajoRepository;
     this.muestraRepository = muestraRepository;
     this.auditService = auditService;
+    this.paroRepository = paroRepository;
   }
 
   async getActiveBitacora() {
@@ -32,6 +34,19 @@ class BitacoraService {
     }
     const id = await this.bitacoraRepository.create(data);
     return await this.bitacoraRepository.findById(id);
+  }
+
+  async calcularResumenTiempo(bitacoraId, procesoId) {
+    const status = await this.bitacoraRepository.getProcesoStatus(bitacoraId, procesoId);
+    const tiempoProgramado = status ? status.tiempo_programado_minutos : 480;
+    const totalParos = await this.paroRepository.sumMinutosByBitacoraAndProceso(bitacoraId, procesoId);
+    const tiempoEfectivo = tiempoProgramado - totalParos;
+
+    return {
+      tiempo_programado: tiempoProgramado,
+      total_paros: totalParos,
+      tiempo_efectivo: tiempoEfectivo
+    };
   }
 
   async closeBitacora(id, currentUser, userRol) {
@@ -91,6 +106,15 @@ class BitacoraService {
         const muestras = await this.bitacoraRepository.getMuestrasByProceso(bitacoraId, proceso.processId);
 
         await this._validateProcesoPersonal(proceso, bitacora, registros, muestras);
+
+        // Validar tiempos de paro antes de cerrar
+        const resumenTiempos = await this.calcularResumenTiempo(bitacoraId, proceso.processId);
+        if (resumenTiempos.total_paros > resumenTiempos.tiempo_programado) {
+            throw new ValidationError(`El proceso '${proceso.nombre}' tiene un exceso de tiempo de paro (${resumenTiempos.total_paros} min) sobre el programado (${resumenTiempos.tiempo_programado} min).`);
+        }
+        if (resumenTiempos.tiempo_efectivo < 0) {
+            throw new ValidationError(`El proceso '${proceso.nombre}' tiene un tiempo efectivo negativo.`);
+        }
 
         const processNeedsRevision = this._checkNeedsRevision(muestras, registros);
         if (processNeedsRevision) {

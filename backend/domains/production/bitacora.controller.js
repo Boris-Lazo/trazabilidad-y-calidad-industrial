@@ -123,6 +123,17 @@ class BitacoraController {
           next(error);
       }
   };
+
+  getResumenTiempo = async (req, res, next) => {
+      try {
+          const { bitacora_id, proceso_id } = req.query;
+          if (!bitacora_id || !proceso_id) throw new ValidationError('Faltan parámetros bitacora_id y proceso_id.');
+          const resumen = await this.bitacoraService.calcularResumenTiempo(bitacora_id, proceso_id);
+          return sendSuccess(res, resumen);
+      } catch (error) {
+          next(error);
+      }
+  };
 }
 
 module.exports = BitacoraController;
