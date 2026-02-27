@@ -51,8 +51,10 @@ class ProcessContract {
         this.parametrosCalidad = data.parametrosCalidad || [];
         this.parametrosInformativos = data.parametrosInformativos || [];
         this.frecuenciaMuestreo = data.frecuenciaMuestreo || null;
-        this['procesosAguas abajo'] = data['procesosAguas abajo'] || [];
-        this.esInicioCADena = data.esInicioCADena || false;
+        this.procesosAguasAbajo = data.procesosAguasAbajo || data['procesosAguas abajo'] || [];
+        this.esInicioCadena = data.esInicioCadena || data.esInicioCADena || false;
+        this.turnosPermitidos = data.turnosPermitidos || [1, 2, 3];
+        this.origenOperario = 'modulo_planificacion';
 
         // Historial inmutable de versiones
         this.historial = historial.length > 0 ? historial : [{
@@ -120,8 +122,10 @@ class ProcessContract {
             parametrosCalidad: this.parametrosCalidad,
             parametrosInformativos: this.parametrosInformativos,
             frecuenciaMuestreo: this.frecuenciaMuestreo,
-            'procesosAguas abajo': this['procesosAguas abajo'],
-            esInicioCADena: this.esInicioCADena,
+            procesosAguasAbajo: this.procesosAguasAbajo,
+            esInicioCadena: this.esInicioCadena,
+            turnosPermitidos: this.turnosPermitidos,
+            origenOperario: this.origenOperario,
             historial: this.historial
         };
     }

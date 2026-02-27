@@ -11,8 +11,8 @@ class ExtrusorPPContract extends ProcessContract {
             patronCodigoOrden: '1\\d{6}',
             origenesOrden: ['masivo_excel', 'manual'],
             maquinasPermitidas: [],
-            esInicioCADena: true,
-            'procesosAguas abajo': [2],
+            esInicioCadena: true,
+            procesosAguasAbajo: [2],
             restriccionesInicio: [
                 'Máquina en mantenimiento',
                 'Falta de materia prima',
@@ -136,9 +136,19 @@ class ExtrusorPPContract extends ProcessContract {
                 ],
                 omisionRequiereMotivo: true,
                 permiteCopiarMuestraAnterior: true,
-                copiarCampos: 'solo_informativos'
+                // Los parámetros de calidad NUNCA son copiables.
+                copiarCampos: {
+                    modo: 'por_grupo',
+                    grupos: [
+                        { grupo: 'temperaturas', etiqueta: 'Temperaturas', copiable: true },
+                        { grupo: 'ratios', etiqueta: 'Ratios de Estiraje', copiable: true },
+                        { grupo: 'maquina', etiqueta: 'Parámetros de Máquina', copiable: true },
+                        { grupo: 'materias_primas', etiqueta: 'Materias Primas', copiable: true }
+                    ],
+                    nota: 'El operario selecciona qué grupos copiar del turno anterior. Los parámetros de calidad nunca se copian, siempre se ingresan manualmente.'
+                }
             },
-            motivo: 'Contrato definitivo basado en el proceso real de Extrusor PP'
+            motivo: 'Contrato actualizado con correcciones de nombres y esquema de copia por grupo'
         });
     }
 }
