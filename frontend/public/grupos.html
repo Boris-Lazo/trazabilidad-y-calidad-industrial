@@ -56,8 +56,8 @@
                         <div class="nav-section-label">Colaboradores</div>
                         <a href="/personal.html" class="nav-item ">Lista</a>
                         <a href="/grupos.html" class="nav-item active">Grupos</a>
-                        <a href="/personal.html?view=usuarios" class="nav-item ">Usuarios</a>
                         <div class="nav-section-label">Sistema</div>
+                        <a href="/maquinas.html" class="nav-item">Máquinas</a>
                         <a href="/auditoria.html" class="nav-item ">Auditoría</a>
                         <a href="/procesos.html" class="nav-item ">Procesos</a>
                     </div>
@@ -219,18 +219,15 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">Nuevo Turno</label>
-                    <select id="select-turno" class="form-control">
-                        <option value="T1">Turno 1 (Mañana)</option>
-                        <option value="T2">Turno 2 (Tarde)</option>
-                        <option value="T3">Turno 3 (Noche)</option>
-                    </select>
+                    <label class="form-label">Turno siguiente (automático)</label>
+                    <div id="turno-siguiente-display" style="font-size: 1.1rem; font-weight: 600; padding: 10px 12px; background: var(--bg-secondary); border-radius: 6px; border: 1px solid var(--border);">—</div>
+                    <input type="hidden" id="turno-siguiente-value" value="">
                 </div>
-                <p class="text-secondary" style="font-size: 13px;">Esta acción cambiará el turno operativo para todos los integrantes del grupo.</p>
+                <p class="text-secondary" style="font-size: 13px; margin-top: 8px;">La rotación sigue el ciclo fijo T1 → T3→ T2 → T1. Esta acción cambiará el turno operativo para todos los integrantes del grupo.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-close="modal-turno">Cancelar</button>
-                <button type="button" id="btn-confirm-turno" class="btn btn-primary">Guardar Cambio</button>
+                <button type="button" id="btn-confirm-turno" class="btn btn-primary">Confirmar Rotación</button>
             </div>
         </div>
     </div>

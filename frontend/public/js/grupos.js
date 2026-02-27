@@ -194,7 +194,13 @@ const GruposModule = {
         if (btnAdd) btnAdd.addEventListener('click', () => this.openModal('modal-integrante'));
 
         const btnRotar = document.getElementById('btn-rotar-turno');
-        if (btnRotar) btnRotar.addEventListener('click', () => this.openModal('modal-turno'));
+        if (btnRotar) btnRotar.addEventListener('click', () => {
+            const turnoActual = document.getElementById('grupo-turno-actual').textContent.trim();
+            const siguiente = this.getNextTurno(turnoActual);
+            document.getElementById('turno-siguiente-display').textContent = this.getTurnoLabel(siguiente);
+            document.getElementById('turno-siguiente-value').value = siguiente;
+            this.openModal('modal-turno');
+        });
 
         const btnNuevo = document.getElementById('btn-nuevo-grupo');
         if (btnNuevo) {
@@ -315,7 +321,11 @@ const GruposModule = {
     },
 
     async saveTurno() {
-        const nuevoTurno = document.getElementById('select-turno').value;
+        const nuevoTurno = document.getElementById('turno-siguiente-value').value;
+        if (!nuevoTurno) {
+            DesignSystem.showToast('No se pudo determinar el turno siguiente', 'error');
+            return;
+        }
         try {
             const res = await fetch(`/api/grupos/${this.currentGrupoId}/turno`, {
                 method: 'PUT',
@@ -327,7 +337,7 @@ const GruposModule = {
                 DesignSystem.showToast('Turno rotado con éxito');
                 this.closeModal('modal-turno');
                 this.selectGrupo(this.currentGrupoId);
-                this.loadGrupos(); // Actualizar lista lateral
+                this.loadGrupos();
             } else {
                 DesignSystem.showToast(result.error, 'error');
             }
@@ -426,7 +436,17 @@ const GruposModule = {
         } finally {
             DesignSystem.setBtnLoading('btn-confirm-nuevo-grupo', false);
         }
-    }
+    },
+
+    getNextTurno(turnoActual) {
+        const ciclo = { 'T1': 'T2', 'T2': 'T3', 'T3': 'T1' };
+        return ciclo[turnoActual] || 'T1';
+    },
+
+    getTurnoLabel(turno) {
+        const labels = { 'T1': 'Turno 1 (Mañana)', 'T2': 'Turno 2 (Tarde)', 'T3': 'Turno 3 (Noche)' };
+        return labels[turno] || turno;
+    },
 };
 
 

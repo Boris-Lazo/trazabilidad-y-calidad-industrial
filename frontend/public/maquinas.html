@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="/design-system/theme/index.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Máquinas | PROD-SYS</title>
+    <link rel="stylesheet" href="/design-system/index.css">
+    <script src="js/auth.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/design-system/index.js" defer></script>
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">PROD-SYS</div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item nav-item-single">
+                    <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-group">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="clipboard-list" class="nav-icon"></i>
+                        <span>Producción</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/bitacora.html" class="nav-item">Bitácora de Turno</a>
+                        <a href="/ordenes.html" class="nav-item">Órdenes</a>
+                        <a href="/ejecucion.html" class="nav-item">Ejecución</a>
+                        <a href="/incidentes.html" class="nav-item">Incidentes</a>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="shield-check" class="nav-icon"></i>
+                        <span>Control</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/calidad.html" class="nav-item">Calidad</a>
+                        <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
+                    </div>
+                </div>
+
+                <div class="nav-group open" id="nav-group-admin">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="settings" class="nav-icon"></i>
+                        <span>Administración</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <div class="nav-section-label">Colaboradores</div>
+                        <a href="/personal.html" class="nav-item">Lista</a>
+                        <a href="/grupos.html" class="nav-item">Grupos</a>
+                        <div class="nav-section-label">Sistema</div>
+                        <a href="/maquinas.html" class="nav-item active">Máquinas</a>
+                        <a href="/auditoria.html" class="nav-item">Auditoría</a>
+                        <a href="/procesos.html" class="nav-item">Procesos</a>
+                    </div>
+                </div>
+            </nav>
+            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
+                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+                    <span id="user-name-label">Usuario: -</span>
+                </div>
+                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
+                    <i data-lucide="log-out" class="nav-icon"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </aside>
+
+        <div class="main-container">
+            <header class="topbar">
+                <h1>Gestión de Máquinas</h1>
+                <div class="topbar-actions">
+                    <button id="theme-toggle" class="btn btn-secondary">
+                        <i data-lucide="sun" class="sun-icon"></i>
+                        <i data-lucide="moon" class="moon-icon"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <!-- Filtros -->
+                <div class="card mb-4">
+                    <div class="card-body" style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
+                        <div class="form-group mb-0" style="flex: 1; min-width: 200px;">
+                            <label class="form-label">Buscar máquina</label>
+                            <input type="text" id="search-machine" class="form-control" placeholder="Ej: EXT-01 o T-05">
+                        </div>
+                        <div class="form-group mb-0" style="width: 200px;">
+                            <label class="form-label">Proceso</label>
+                            <select id="filter-proceso" class="form-control">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="form-group mb-0" style="width: 200px;">
+                            <label class="form-label">Estado</label>
+                            <select id="filter-estado" class="form-control">
+                                <option value="">Todos</option>
+                                <option value="Operativa">Operativa</option>
+                                <option value="Disponible">Disponible</option>
+                                <option value="En mantenimiento">En mantenimiento</option>
+                                <option value="Fuera de servicio">Fuera de servicio</option>
+                                <option value="Baja">Baja</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Máquinas -->
+                <div class="card">
+                    <div class="table-container">
+                        <table class="table" id="tabla-maquinas">
+                            <thead>
+                                <tr>
+                                    <th>Nombre Visible</th>
+                                    <th>Proceso</th>
+                                    <th>Estado Actual</th>
+                                    <th>Órdenes Activas</th>
+                                    <th>Última Actualización</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-maquinas">
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-secondary">Cargando máquinas...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cambio de Estado -->
+    <div id="modal-estado-maquina" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>Actualizar Estado de Máquina</h2>
+                <button class="btn-close" onclick="MaquinaModule.closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="machine-target-name" style="font-weight: 600; margin-bottom: 12px;"></p>
+                <div class="form-group">
+                    <label class="form-label">Nuevo Estado</label>
+                    <select id="m-estado" class="form-control">
+                        <option value="Operativa">Operativa</option>
+                        <option value="Disponible">Disponible</option>
+                        <option value="En mantenimiento">En mantenimiento</option>
+                        <option value="Fuera de servicio">Fuera de servicio</option>
+                        <option value="Baja">Baja (Retiro físico)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Categoría de Motivo</label>
+                    <select id="m-categoria" class="form-control" required>
+                        <option value="">Seleccione una categoría...</option>
+                        <option value="AJUSTE_OPERATIVO">Ajuste Operativo</option>
+                        <option value="MANTENIMIENTO_PREVENTIVO">Mantenimiento Preventivo</option>
+                        <option value="FALLA_TECNICA">Falla Técnica</option>
+                        <option value="RETIRO_ACTIVO">Retiro de Activo</option>
+                        <option value="ERROR_CAPTURA">Error de Captura</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Motivo Descriptivo (Obligatorio)</label>
+                    <textarea id="m-motivo" class="form-control" rows="3" placeholder="Justificación técnica del cambio..."></textarea>
+                </div>
+                <div id="active-orders-warning" class="badge badge-danger w-100 mb-3" style="display: none; white-space: normal; text-align: left; padding: 10px;">
+                    <strong>Atención:</strong> Esta máquina tiene órdenes de producción activas. No se recomienda cambiar a un estado no operativo.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="MaquinaModule.closeModal()">Cancelar</button>
+                <button type="button" id="btn-confirm-estado" class="btn btn-primary">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Historial -->
+    <div id="modal-historial" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 id="historial-title">Historial de Estados</h2>
+                <button class="btn-close" onclick="document.getElementById('modal-historial').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="table-container shadow-sm">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Anterior</th>
+                                <th>Nuevo</th>
+                                <th>Motivo</th>
+                                <th>Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historial-list"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-historial').style.display='none'">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/maquinas.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

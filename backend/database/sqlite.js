@@ -147,6 +147,98 @@ const initDB = () => {
           });
         }
         else {
+          migrateMaquinas();
+        }
+      });
+    } else {
+      migrateMaquinas();
+    }
+  });
+};
+
+const migrateMaquinas = () => {
+  db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='MAQUINAS'", (err, row) => {
+    if (row) {
+      db.all("PRAGMA table_info(MAQUINAS)", (err, columns) => {
+        const hasNombreVisible = columns.some(c => c.name === 'nombre_visible');
+        if (!hasNombreVisible) {
+          logger.info("Migrando tabla MAQUINAS al nuevo esquema de trazabilidad...");
+          db.serialize(() => {
+            db.run("BEGIN TRANSACTION");
+            db.run(`CREATE TABLE MAQUINAS_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre_visible TEXT UNIQUE NOT NULL,
+                proceso_id INTEGER NOT NULL,
+                estado_actual TEXT CHECK(estado_actual IN ('Operativa', 'En mantenimiento', 'Fuera de servicio', 'Disponible', 'Baja')) DEFAULT 'Disponible',
+                descripcion TEXT,
+                fecha_baja DATETIME,
+                motivo_baja TEXT,
+                activo BOOLEAN DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Mapear 'codigo' a 'nombre_visible' y 'activo' para inferir 'estado_actual'
+            db.run(`INSERT INTO MAQUINAS_new (id, nombre_visible, proceso_id, activo, estado_actual)
+                    SELECT id, codigo, proceso_id, activo,
+                    CASE WHEN activo = 1 THEN 'Disponible' ELSE 'Fuera de servicio' END
+                    FROM MAQUINAS`);
+
+            db.run("DROP TABLE MAQUINAS");
+            db.run("ALTER TABLE MAQUINAS_new RENAME TO MAQUINAS");
+            db.run("COMMIT", (err) => {
+              if (err) logger.error("Error al migrar MAQUINAS:", err.message);
+              else logger.info("Migración de MAQUINAS completada.");
+              migrateProcesoTipo();
+            });
+          });
+        } else {
+          migrateMaquinas();
+        }
+      });
+    } else {
+      migrateMaquinas();
+    }
+  });
+};
+
+const migrateMaquinas = () => {
+  db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='MAQUINAS'", (err, row) => {
+    if (row) {
+      db.all("PRAGMA table_info(MAQUINAS)", (err, columns) => {
+        const hasNombreVisible = columns.some(c => c.name === 'nombre_visible');
+        if (!hasNombreVisible) {
+          logger.info("Migrando tabla MAQUINAS al nuevo esquema de trazabilidad...");
+          db.serialize(() => {
+            db.run("BEGIN TRANSACTION");
+            db.run(`CREATE TABLE MAQUINAS_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre_visible TEXT UNIQUE NOT NULL,
+                proceso_id INTEGER NOT NULL,
+                estado_actual TEXT CHECK(estado_actual IN ('Operativa', 'En mantenimiento', 'Fuera de servicio', 'Disponible', 'Baja')) DEFAULT 'Disponible',
+                descripcion TEXT,
+                fecha_baja DATETIME,
+                motivo_baja TEXT,
+                activo BOOLEAN DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Mapear 'codigo' a 'nombre_visible' y 'activo' para inferir 'estado_actual'
+            db.run(`INSERT INTO MAQUINAS_new (id, nombre_visible, proceso_id, activo, estado_actual)
+                    SELECT id, codigo, proceso_id, activo,
+                    CASE WHEN activo = 1 THEN 'Disponible' ELSE 'Fuera de servicio' END
+                    FROM MAQUINAS`);
+
+            db.run("DROP TABLE MAQUINAS");
+            db.run("ALTER TABLE MAQUINAS_new RENAME TO MAQUINAS");
+            db.run("COMMIT", (err) => {
+              if (err) logger.error("Error al migrar MAQUINAS:", err.message);
+              else logger.info("Migración de MAQUINAS completada.");
+              migrateProcesoTipo();
+            });
+          });
+        } else {
           migrateProcesoTipo();
         }
       });
@@ -163,14 +255,21 @@ const migrateProcesoTipo = () => {
       db.serialize(() => {
         db.run("BEGIN TRANSACTION");
 
-        // 1. Migrar MAQUINAS
+        // 1. Migrar MAQUINAS (Legacy a ProcesoID con nuevo esquema)
         db.run(`CREATE TABLE MAQUINAS_new (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            codigo TEXT UNIQUE,
-            proceso_id INTEGER,
-            activo BOOLEAN DEFAULT 1
+            nombre_visible TEXT UNIQUE NOT NULL,
+            proceso_id INTEGER NOT NULL,
+            estado_actual TEXT CHECK(estado_actual IN ('Operativa', 'En mantenimiento', 'Fuera de servicio', 'Disponible', 'Baja')) DEFAULT 'Disponible',
+            descripcion TEXT,
+            fecha_baja DATETIME,
+            motivo_baja TEXT,
+            activo BOOLEAN DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
-        db.run(`INSERT INTO MAQUINAS_new (id, codigo, proceso_id, activo) SELECT id, codigo, proceso_tipo_id, activo FROM MAQUINAS`);
+        db.run(`INSERT INTO MAQUINAS_new (id, nombre_visible, proceso_id, activo)
+                SELECT id, codigo, proceso_tipo_id, activo FROM MAQUINAS`);
         db.run("DROP TABLE MAQUINAS");
         db.run("ALTER TABLE MAQUINAS_new RENAME TO MAQUINAS");
 
@@ -325,9 +424,41 @@ const runFullSchema = () => {
 
     db.run(`CREATE TABLE IF NOT EXISTS MAQUINAS (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        codigo TEXT UNIQUE,
-        proceso_id INTEGER,
-        activo BOOLEAN DEFAULT 1
+        nombre_visible TEXT UNIQUE NOT NULL,
+        proceso_id INTEGER NOT NULL,
+        estado_actual TEXT CHECK(estado_actual IN ('Operativa', 'En mantenimiento', 'Fuera de servicio', 'Disponible', 'Baja')) DEFAULT 'Disponible',
+        descripcion TEXT,
+        fecha_baja DATETIME,
+        motivo_baja TEXT,
+        activo BOOLEAN DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS maquina_estados_historial (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        maquina_id INTEGER NOT NULL,
+        estado_anterior TEXT,
+        estado_nuevo TEXT NOT NULL,
+        motivo TEXT NOT NULL,
+        categoria_motivo TEXT,
+        usuario TEXT NOT NULL,
+        fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS maquina_parametros_config (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        maquina_id INTEGER NOT NULL,
+        parametro TEXT NOT NULL,
+        unidad TEXT,
+        valor_nominal REAL,
+        min_tolerancia REAL,
+        max_tolerancia REAL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        UNIQUE(maquina_id, parametro)
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS PARO_TIPO (
@@ -727,15 +858,46 @@ const runFullSchema = () => {
 
     // Semilla de procesos eliminada (ahora en contratos estáticos)
 
-    // Semilla de Máquinas (Telares)
-    db.get("SELECT COUNT(*) as count FROM MAQUINAS WHERE proceso_id = 2", (err, row) => {
+    // Semilla de Máquinas (Hardened)
+    db.get("SELECT COUNT(*) as count FROM MAQUINAS", (err, row) => {
         if (row && row.count === 0) {
-            const stmtM = db.prepare("INSERT INTO MAQUINAS (codigo, proceso_id) VALUES (?, 2)");
+            const stmtM = db.prepare("INSERT INTO MAQUINAS (nombre_visible, proceso_id, estado_actual) VALUES (?, ?, 'Disponible')");
+
+            // 1: Extrusor PP
+            stmtM.run(['EXT-01', 1]);
+            stmtM.run(['EXT-02', 1]);
+
+            // 2: Telares
             for (let i = 1; i <= 13; i++) {
-                stmtM.run([`T-${i.toString().padStart(2, '0')}`]);
+                stmtM.run([`T-${i.toString().padStart(2, '0')}`, 2]);
             }
+
+            // 3: Laminado
+            stmtM.run(['LAM-01', 3]);
+
+            // 4: Imprenta
+            stmtM.run(['IMP-01', 4]);
+            stmtM.run(['IMP-02', 4]);
+
+            // 5: Conversión
+            stmtM.run(['CONV-01', 5]);
+            stmtM.run(['CONV-02', 5]);
+            stmtM.run(['CONV-03', 5]);
+
+            // 6: Extrusión PE
+            stmtM.run(['EXT-PE-01', 6]);
+
+            // 7: Conv. Liner
+            stmtM.run(['LIN-01', 7]);
+
+            // 8: Peletizado
+            stmtM.run(['PEL-01', 8]);
+
+            // 9: Sacos Vestidos
+            stmtM.run(['VEST-01', 9]);
+
             stmtM.finalize();
-            logger.info('Máquinas de Telares inicializadas.');
+            logger.info('Catálogo inicial de máquinas cargado.');
         }
     });
 
