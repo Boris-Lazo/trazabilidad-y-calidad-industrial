@@ -295,24 +295,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         const alertDiv = document.getElementById('proceso-blocking-alert');
         const reasonsList = document.getElementById('proceso-blocking-reasons');
 
+        // Tarjetas y formularios
+        const cardCalidad = document.getElementById('seccion-calidad-dinamica').closest('.card');
+        const cardProduccion = document.getElementById('tbody-produccion').closest('.card');
+        const cardDesperdicio = document.getElementById('tbody-desperdicio').closest('.card');
+        const cardParos = document.getElementById('seccion-incidentes').closest('.card');
+        const cardParamOperativos = document.getElementById('card-parametros-operativos');
+        const cardMateriasPrimas = document.getElementById('card-materias-primas');
+
         if (state.bloqueos && state.bloqueos.length > 0) {
             alertDiv.style.display = 'block';
             reasonsList.innerHTML = state.razonesBloqueo.map(r => `<li>${r}</li>`).join('');
-
-            if (state.bloqueos.includes('PRODUCCION')) {
-                const prodCard = document.getElementById('tbody-produccion').closest('.card');
-                prodCard.style.opacity = '0.5';
-                prodCard.style.pointerEvents = 'none';
-                prodCard.querySelector('.card-header').innerHTML += ' <span class="badge badge-error">BLOQUEADO</span>';
-                document.getElementById('tbody-desperdicio').closest('.card').style.opacity = '0.5';
-                document.getElementById('tbody-desperdicio').closest('.card').style.pointerEvents = 'none';
-            }
         } else {
             alertDiv.style.display = 'none';
         }
 
-        // Si el estado operativo es COMPLETO, avisar pero dejar editar.
-        // Si el estado operativo es REVISION, resaltar.
+        // REGLA FUNDAMENTAL: ELIMINAR MENÚS DE ACCIÓN OPCIONALES
+        // Solo mostramos el formulario que corresponde a la siguiente acción.
+
+        // Reset visibilidad base
+        cardCalidad.style.display = 'none';
+        cardProduccion.style.display = 'none';
+        cardDesperdicio.style.display = 'none';
+        cardParos.style.display = 'none';
+
+        if (state.siguienteAccion === 'REGISTRAR_CALIDAD') {
+            cardCalidad.style.display = 'block';
+            cardParamOperativos.style.display = 'block';
+            cardMateriasPrimas.style.display = 'block';
+        } else if (state.siguienteAccion === 'REGISTRAR_PRODUCCION' || state.siguienteAccion === 'COMPLETAR_DATOS' || state.siguienteAccion === 'CORREGIR_O_JUSTIFICAR') {
+            cardProduccion.style.display = 'block';
+            cardDesperdicio.style.display = 'block';
+            cardParos.style.display = 'block';
+            // Calidad visible pero lectura o corregible si es necesario
+            cardCalidad.style.display = 'block';
+        } else if (state.siguienteAccion === 'NINGUNA' || state.siguienteAccion === 'LECTURA') {
+            cardCalidad.style.display = 'block';
+            cardProduccion.style.display = 'block';
+            cardDesperdicio.style.display = 'block';
+            cardParos.style.display = 'block';
+        }
+
+        // Resaltar estado
         if (state.estadoOperativo === 'REVISION') {
             document.getElementById('proceso-estado-badge').innerHTML = '<span class="badge badge-error">REVISIÓN REQUERIDA</span>';
         }

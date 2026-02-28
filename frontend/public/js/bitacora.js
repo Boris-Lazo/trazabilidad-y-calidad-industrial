@@ -180,11 +180,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- CIERRE (EVENTO IRREVERSIBLE) ---
-    btnCerrar.addEventListener('click', () => {
+    btnCerrar.addEventListener('click', async () => {
         if (btnCerrar.disabled) return;
+
+        // Obtener estado completo para el resumen
+        const res = await fetch('/api/bitacora/estado');
+        const state = (await res.json()).data;
+        const resumenCierre = state.resumenCierre || [];
 
         document.getElementById('modal-turno-text').textContent = currentBitacora.turno;
         document.getElementById('modal-fecha-text').textContent = currentBitacora.fecha_operativa;
+
+        const resumenContainer = document.getElementById('resumen-cierre-container');
+        resumenContainer.innerHTML = resumenCierre.map(p => `
+            <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem;">
+                <span>${p.nombre}:</span>
+                <span style="font-weight: bold;">
+                    ${p.produccion} ${p.unidad}
+                    <i data-lucide="${p.calidadValidada ? 'shield-check' : 'shield-alert'}"
+                       style="width: 14px; height: 14px; vertical-align: middle; color: ${p.calidadValidada ? 'var(--success)' : 'var(--danger)'};"></i>
+                </span>
+            </div>
+        `).join('');
 
         checklistProcesos.innerHTML = '';
         let hasRevision = false;

@@ -90,10 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleAction(action, state) {
-        if (action === 'ABRIR_TURNO' || action === 'CERRAR_TURNO' || action === 'COMPLETAR_PROCESOS') {
+        if (action === 'ABRIR_TURNO' || action === 'CERRAR_TURNO') {
             window.location.href = '/bitacora.html';
-        } else if (action.startsWith('IR_A_')) {
-            window.location.href = '/bitacora.html';
+        } else if (action === 'IR_A_PROCESO' && state.actionPayload) {
+            const p = state.actionPayload;
+            window.location.href = `/proceso.html?id=${p.proceso_id}&nombre=${encodeURIComponent(p.proceso_nombre)}`;
         }
     }
 

@@ -36,6 +36,14 @@ class BitacoraController {
         p.estadoOperativo === 'COMPLETO' || p.estadoOperativo === 'REVISION'
       );
 
+      const resumenCierre = procesos.map(p => ({
+          nombre: p.nombre,
+          produccion: p.produccionTotal,
+          unidad: p.unidad,
+          calidadValidada: p.calidadValidada,
+          estado: p.estadoOperativo
+      }));
+
       if (bitacora.estado === 'CERRADA') {
         estadoOperativo = 'CERRADO';
         siguienteAccion = 'NINGUNA';
@@ -46,8 +54,23 @@ class BitacoraController {
         siguienteAccion = 'CERRAR_TURNO';
       } else {
         const pendiente = procesos.find(p => p.estadoOperativo !== 'COMPLETO' && p.estadoOperativo !== 'REVISION');
-        siguienteAccion = `IR_A_${pendiente.nombre.toUpperCase()}`;
+        estadoOperativo = 'EN_CURSO';
+        siguienteAccion = `IR_A_PROCESO`;
+        const actionPayload = {
+            proceso_id: pendiente.id,
+            proceso_nombre: pendiente.nombre
+        };
         razonesBloqueo = [`Existen procesos pendientes: ${pendiente.nombre}`];
+        return sendSuccess(res, {
+          abierta: true,
+          bitacora,
+          procesos,
+          estadoOperativo,
+          siguienteAccion,
+          actionPayload,
+          bloqueos,
+          razonesBloqueo
+        });
       }
 
       return sendSuccess(res, {
@@ -56,6 +79,7 @@ class BitacoraController {
         procesos,
         estadoOperativo,
         siguienteAccion,
+        resumenCierre,
         bloqueos,
         razonesBloqueo
       });

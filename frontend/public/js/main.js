@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const navProduccion = document.querySelector('.nav-group');
         const navControl = document.querySelectorAll('.nav-group')[1];
 
-        if (state.estadoOperativo === 'SIN_TURNO' || state.estadoOperativo === 'CERRADO') {
+        if (state.bloqueos && (state.bloqueos.includes('TODO') || state.bloqueos.includes('PRODUCCION'))) {
             if (navProduccion) {
                 navProduccion.querySelectorAll('a').forEach(a => {
                     if (!a.href.includes('bitacora.html')) {
@@ -44,9 +44,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 });
             }
+        }
+
+        if (state.bloqueos && (state.bloqueos.includes('TODO') || state.bloqueos.includes('CALIDAD'))) {
             if (navControl) {
                 navControl.style.pointerEvents = 'none';
                 navControl.style.opacity = '0.5';
+            }
+        }
+
+        // Redirección forzada desde el dashboard si hay procesos pendientes
+        if (path === '/' || path === '/index.html') {
+            if (state.siguienteAccion === 'IR_A_PROCESO' && state.actionPayload) {
+                const p = state.actionPayload;
+                window.location.href = `/proceso.html?id=${p.proceso_id}&nombre=${encodeURIComponent(p.proceso_nombre)}`;
             }
         }
 

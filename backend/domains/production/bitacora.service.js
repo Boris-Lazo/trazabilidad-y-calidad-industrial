@@ -170,9 +170,9 @@ class BitacoraService {
       let bloqueos = [];
       let razonesBloqueo = [];
 
+      const produccionTotal = registros.reduce((sum, r) => sum + (r.cantidad_producida || 0), 0);
       const hasRegistros = registros.length > 0;
       const hasMuestras = muestras.length >= muestrasMinimas;
-      const hasAlgunaMuestra = muestras.length > 0;
       const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
       const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
 
@@ -188,11 +188,13 @@ class BitacoraService {
       } else if (!hasMuestras) {
         estadoOperativo = 'ESPERANDO_CALIDAD';
         siguienteAccion = 'REGISTRAR_CALIDAD';
-        bloqueos = ['PRODUCCION'];
+        bloqueos = ['PRODUCCION', 'CIERRE'];
         razonesBloqueo = [`Se requieren al menos ${muestrasMinimas} muestras de calidad para habilitar producción.`];
       } else if (!hasRegistros) {
         estadoOperativo = 'ESPERANDO_PRODUCCION';
         siguienteAccion = 'REGISTRAR_PRODUCCION';
+        bloqueos = ['CIERRE'];
+        razonesBloqueo = ['Debe registrar producción antes de completar el proceso.'];
       } else {
         estadoOperativo = 'PARCIAL';
         siguienteAccion = 'COMPLETAR_DATOS';
@@ -225,6 +227,9 @@ class BitacoraService {
         bloqueos,
         razonesBloqueo,
         ultimaActualizacion,
+        produccionTotal,
+        calidadValidada: hasMuestras && !hasRechazo,
+        unidad: contract.unidadProduccion,
         accion: estadoOperativo === 'SIN_DATOS' ? 'Registrar' : 'Continuar'
       });
     }
