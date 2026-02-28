@@ -61,20 +61,25 @@ class LoteRepository {
     return result.lastID;
   }
 
-  async updateEstado(id, estado, updatedBy, motivoCambio) {
+  async updateEstado(id, nuevoEstado, comentario, updatedBy) {
     const sql = `
-      UPDATE lotes SET estado = ?, updated_at = CURRENT_TIMESTAMP,
-      updated_by = ?, motivo_cambio = ? WHERE id = ?
+      UPDATE lotes SET
+        estado = ?,
+        comentario_estado = ?,
+        updated_at = CURRENT_TIMESTAMP,
+        updated_by = ?,
+        motivo_cambio = ?
+      WHERE id = ?
     `;
-    return await this.db.run(sql, [estado, updatedBy, motivoCambio, id]);
+    return await this.db.run(sql, [nuevoEstado, comentario, updatedBy, comentario, id]);
   }
 
-  async findActivos() {
+  async findDisponibles() {
     const sql = `
       SELECT l.*, op.codigo_orden
       FROM lotes l
       JOIN orden_produccion op ON l.orden_produccion_id = op.id
-      WHERE l.estado = 'activo'
+      WHERE l.estado IN ('activo', 'pausado')
       ORDER BY l.fecha_produccion DESC, l.created_at DESC
     `;
     return await this.db.query(sql);
@@ -112,6 +117,38 @@ class LoteRepository {
       ORDER BY tcl.created_at ASC
     `;
     return await this.db.query(sql, [maquinaId, bitacoraId]);
+  }
+
+  async saveHistorialEstado(data) {
+    const { lote_id, estado_anterior, estado_nuevo, comentario, changed_by } = data;
+    const sql = `
+      INSERT INTO lote_historial_estado
+      (lote_id, estado_anterior, estado_nuevo, comentario, changed_by, changed_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `;
+    return await this.db.run(sql, [lote_id, estado_anterior, estado_nuevo, comentario || null, changed_by]);
+  }
+
+  async getHistorialEstado(loteId) {
+    const sql = `
+      SELECT * FROM lote_historial_estado
+      WHERE lote_id = ?
+      ORDER BY changed_at DESC
+    `;
+    return await this.db.query(sql, [loteId]);
+  }
+
+  async getConsumoByLoteId(loteId) {
+    const sql = `
+      SELECT tcl.*, m.nombre_visible as codigo_telar,
+        bt.fecha_operativa, bt.turno
+      FROM telar_consumo_lote tcl
+      JOIN MAQUINAS m ON tcl.maquina_id = m.id
+      JOIN bitacora_turno bt ON tcl.bitacora_id = bt.id
+      WHERE tcl.lote_id = ?
+      ORDER BY tcl.created_at ASC
+    `;
+    return await this.db.query(sql, [loteId]);
   }
 }
 

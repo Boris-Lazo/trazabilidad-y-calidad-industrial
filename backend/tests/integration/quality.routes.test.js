@@ -44,9 +44,9 @@ describe('Quality Routes Integration Tests', () => {
         loteId = loteRes.lastID;
     });
 
-    test('GET /api/lotes/activos retorna array de lotes', async () => {
+    test('GET /api/lotes/disponibles retorna array de lotes', async () => {
         const response = await request(app)
-            .get('/api/lotes/activos')
+            .get('/api/lotes/disponibles')
             .set('Cookie', [`token=${token}`]);
 
         expect(response.status).toBe(200);

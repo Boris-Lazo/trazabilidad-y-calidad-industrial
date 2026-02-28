@@ -15,9 +15,9 @@ class LoteController {
     }
   };
 
-  getActivos = async (req, res, next) => {
+  getDisponibles = async (req, res, next) => {
     try {
-      const lotes = await this.loteService.getActivos();
+      const lotes = await this.loteService.getDisponibles();
       return sendSuccess(res, lotes);
     } catch (error) {
       next(error);
@@ -32,6 +32,37 @@ class LoteController {
       }
       const consumos = await this.loteService.getConsumoTelar(maquina_id, bitacora_id);
       return sendSuccess(res, consumos);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  cambiarEstado = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { estado, comentario } = req.body;
+      if (!estado) throw new ValidationError('El campo estado es obligatorio.');
+      const usuario = req.user.nombre || req.user.username;
+      const lote = await this.loteService.cambiarEstado(id, estado, comentario, usuario);
+      return sendSuccess(res, lote);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getHistorialEstado = async (req, res, next) => {
+    try {
+      const historial = await this.loteService.getHistorialEstado(req.params.id);
+      return sendSuccess(res, historial);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getTrazabilidad = async (req, res, next) => {
+    try {
+      const data = await this.loteService.getTrazabilidad(req.params.id);
+      return sendSuccess(res, data);
     } catch (error) {
       next(error);
     }
