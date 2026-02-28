@@ -12,7 +12,11 @@ PROD-SYS es un sistema integral diseñado para el control, monitoreo y auditorí
 
 ### Instalación
 1. **Configurar el Entorno:**
-   Ejecuta el script de automatización para instalar dependencias y generar configuraciones iniciales:
+   Copia el archivo de ejemplo y completa las variables obligatorias:
+   ```bash
+   cp .env.example .env
+   ```
+   O usa el script de automatización que instala dependencias y genera configuraciones iniciales (incluyendo `JWT_SECRET` automático):
    ```bash
    chmod +x setup.sh
    ./setup.sh
@@ -35,7 +39,7 @@ Para comprender a fondo el funcionamiento y diseño de PROD-SYS, consulta las si
 
 1.  [**Arquitectura del Sistema**](docs/ARCHITECTURE.md): Diseño técnico, capas de software y organización de dominios.
 2.  [**Lógica de Negocio Industrial**](docs/BUSINESS_LOGIC.md): Procesos de producción, turnos, rotaciones y reglas operativas.
-3.  [**Guía de Desarrollo y Seguridad**](docs/DEVELOPMENT_GUIDE.md): Estándares de código, seguridad (JWT, Helmet) y sistema de diseño frontend.
+3.  [**Guía de Desarrollo y Seguridad**](docs/DEVELOPMENT_GUIDE.md): Estándares de código, seguridad (JWT, CSP con Nonces, Helmet) y sistema de diseño frontend.
 4.  [**Modelo de Datos**](docs/DATABASE_SCHEMA.md): Esquema de base de datos SQLite, integridad y migraciones.
 5.  [**Manual de Usuario (No Técnico)**](docs/USER_MANUAL.md): Guía paso a paso para el uso diario del sistema sin tecnicismos.
 

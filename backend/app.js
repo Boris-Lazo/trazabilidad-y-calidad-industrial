@@ -33,19 +33,41 @@ const paroRoutes = require('./domains/production/paro.routes');
 const app = express();
 
 // --- MIDDLEWARES DE SEGURIDAD Y RENDIMIENTO ---
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "https://unpkg.com", "'unsafe-inline'"],
-      "script-src-attr": ["'unsafe-inline'"],
-      "connect-src": ["'self'"],
-      "img-src": ["'self'", "data:", "https://*"],
-      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      "font-src": ["'self'", "https://fonts.gstatic.com"]
+const crypto = require('crypto');
+
+app.use((req, res, next) => {
+  res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  next();
+});
+
+app.use((req, res, next) => {
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "https://unpkg.com",
+          (req, res) => `'nonce-${res.locals.cspNonce}'`
+        ],
+        scriptSrcAttr: [
+          (req, res) => `'nonce-${res.locals.cspNonce}'`
+        ],
+        connectSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://fonts.googleapis.com"
+        ],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        frameAncestors: ["'none'"],
+        formAction: ["'self'"]
+      },
     },
-  },
-}));
+    crossOriginEmbedderPolicy: false
+  })(req, res, next);
+});
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
