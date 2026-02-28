@@ -305,39 +305,54 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (state.bloqueos && state.bloqueos.length > 0) {
             alertDiv.style.display = 'block';
-            reasonsList.innerHTML = state.razonesBloqueo.map(r => `<li>${r}</li>`).join('');
+            reasonsList.innerHTML = state.bloqueos.map(r => `<li>${r}</li>`).join('');
         } else {
             alertDiv.style.display = 'none';
         }
 
         // REGLA FUNDAMENTAL: ELIMINAR MENÚS DE ACCIÓN OPCIONALES
-        // Solo mostramos el formulario que corresponde a la siguiente acción.
+        // Solo mostramos el formulario que corresponde a la siguiente acción obligatoria.
 
-        // Reset visibilidad base
-        cardCalidad.style.display = 'none';
-        cardProduccion.style.display = 'none';
-        cardDesperdicio.style.display = 'none';
-        cardParos.style.display = 'none';
+        // Ocultar TODO por defecto
+        [cardCalidad, cardProduccion, cardDesperdicio, cardParos, cardParamOperativos, cardMateriasPrimas].forEach(c => {
+            if (c) c.style.display = 'none';
+        });
 
-        if (state.siguienteAccion === 'REGISTRAR_CALIDAD') {
+        const action = state.siguienteAccion;
+
+        if (action === 'REGISTRAR_CALIDAD') {
             cardCalidad.style.display = 'block';
-            cardParamOperativos.style.display = 'block';
-            cardMateriasPrimas.style.display = 'block';
-        } else if (state.siguienteAccion === 'REGISTRAR_PRODUCCION' || state.siguienteAccion === 'COMPLETAR_DATOS' || state.siguienteAccion === 'CORREGIR_O_JUSTIFICAR') {
+            if (cardParamOperativos) cardParamOperativos.style.display = 'block';
+            if (cardMateriasPrimas) cardMateriasPrimas.style.display = 'block';
+        } else if (action === 'REGISTRAR_PRODUCCION') {
             cardProduccion.style.display = 'block';
             cardDesperdicio.style.display = 'block';
+        } else if (action === 'COMPLETAR_DATOS') {
             cardParos.style.display = 'block';
-            // Calidad visible pero lectura o corregible si es necesario
-            cardCalidad.style.display = 'block';
-        } else if (state.siguienteAccion === 'NINGUNA' || state.siguienteAccion === 'LECTURA') {
+            // Mostrar resumen de lo anterior pero en lectura si es posible
             cardCalidad.style.display = 'block';
             cardProduccion.style.display = 'block';
-            cardDesperdicio.style.display = 'block';
-            cardParos.style.display = 'block';
+        } else if (action === 'CORREGIR_O_JUSTIFICAR') {
+            cardCalidad.style.display = 'block';
+            cardProduccion.style.display = 'block';
+            document.getElementById('observaciones').closest('.card').style.border = '2px solid var(--danger)';
+        } else if (action === 'LECTURA' || action === 'NINGUNA') {
+            [cardCalidad, cardProduccion, cardDesperdicio, cardParos].forEach(c => { if (c) c.style.display = 'block'; });
+        }
+
+        // Bloqueo total de inputs si no está en accionesPermitidas
+        const inputs = document.querySelectorAll('input, select, textarea, button:not(#theme-toggle):not(#logout-link)');
+
+        if (action === 'LECTURA' || state.estadoProceso === 'CERRADO') {
+            inputs.forEach(i => {
+                if (!i.closest('.sidebar')) i.disabled = true;
+            });
+            document.getElementById('btn-guardar').style.display = 'none';
+            document.getElementById('btn-guardar-volver').style.display = 'none';
         }
 
         // Resaltar estado
-        if (state.estadoOperativo === 'REVISION') {
+        if (state.estadoProceso === 'REVISION') {
             document.getElementById('proceso-estado-badge').innerHTML = '<span class="badge badge-error">REVISIÓN REQUERIDA</span>';
         }
     }

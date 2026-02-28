@@ -23,37 +23,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         const result = await res.json();
         const state = result.data || {};
 
-        if (!state.estadoOperativo) {
+        if (!state.estadoTurno || !state.siguienteAccion) {
             console.error("Estado operativo incompleto. Contacte soporte.");
-            if (operativePages.some(p => path.includes(p))) {
-                document.body.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100vh; flex-direction:column; font-family:sans-serif;"><h1>⚠️ ERROR DE SISTEMA</h1><p>Estado operativo incompleto. Contacte soporte.</p></div>';
+            const isHome = path === '/' || path === '/index.html';
+            if (operativePages.some(p => path.includes(p)) || isHome) {
+                document.body.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100vh; flex-direction:column; font-family:sans-serif; background:#fef2f2; color:#991b1b; text-align:center; padding:2rem;"><h1>⚠️ ESTADO OPERATIVO INCOMPLETO</h1><p style="font-size:1.2rem;">El sistema no pudo determinar su siguiente paso obligatorio.<br>Contacte a soporte técnico de inmediato.</p></div>';
             }
             return;
         }
 
-        // Bloqueo de navegación lateral si no hay turno o está cerrado
+        // Bloqueo estricto de navegación lateral (Arquitectura Imperativa)
         const navProduccion = document.querySelector('.nav-group');
         const navControl = document.querySelectorAll('.nav-group')[1];
 
-        if (state.bloqueos && (state.bloqueos.includes('TODO') || state.bloqueos.includes('PRODUCCION'))) {
-            if (navProduccion) {
-                navProduccion.querySelectorAll('a').forEach(a => {
-                    if (!a.href.includes('bitacora.html')) {
-                        a.style.pointerEvents = 'none';
-                        a.style.opacity = '0.5';
-                    }
-                });
-            }
+        // REGLA: Durante cualquier estado de turno (activo o no),
+        // la navegación libre está PROHIBIDA. Solo se permite Bitácora como Hub.
+        const isOperativo = state.estadoTurno !== 'CERRADO';
+
+        if (navProduccion) {
+            navProduccion.querySelectorAll('a').forEach(a => {
+                if (!a.href.includes('bitacora.html')) {
+                    a.style.pointerEvents = 'none';
+                    a.style.opacity = '0.3';
+                }
+            });
+        }
+        if (navControl) {
+            navControl.style.pointerEvents = 'none';
+            navControl.style.opacity = '0.3';
         }
 
-        if (state.bloqueos && (state.bloqueos.includes('TODO') || state.bloqueos.includes('CALIDAD'))) {
-            if (navControl) {
-                navControl.style.pointerEvents = 'none';
-                navControl.style.opacity = '0.5';
-            }
-        }
-
-        // Redirección forzada desde el dashboard si hay procesos pendientes
+        // Redirección forzada desde el dashboard (Dashboard NO ES un menú)
         if (path === '/' || path === '/index.html') {
             if (state.siguienteAccion === 'IR_A_PROCESO' && state.actionPayload) {
                 const p = state.actionPayload;
@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        // Guardia Operativa: No permitir saltarse el flujo
         if (operativePages.some(p => path.includes(p)) && !state.abierta) {
              window.location.href = '/bitacora.html';
         }

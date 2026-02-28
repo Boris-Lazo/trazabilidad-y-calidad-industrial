@@ -31,6 +31,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const resEstado = await fetch('/api/bitacora/estado');
             const state = (await resEstado.json()).data || {};
 
+            if (!state.estadoTurno) {
+                document.body.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100vh; flex-direction:column; font-family:sans-serif;"><h1>⚠️ ERROR DE SISTEMA</h1><p>Estado operativo incompleto. Contacte soporte.</p></div>';
+                return;
+            }
+
+            // REDIRECCIÓN AUTOMÁTICA OBLIGATORIA
+            if (state.siguienteAccion === 'IR_A_PROCESO' && state.actionPayload) {
+                const p = state.actionPayload;
+                window.location.href = `/proceso.html?id=${p.proceso_id}&nombre=${encodeURIComponent(p.proceso_nombre)}`;
+                return;
+            }
+
             renderActionCenter(state);
         } catch (e) {
             console.error("Error al cargar contexto:", e);
@@ -48,24 +60,19 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.dashEstadoBitacora.textContent = state.abierta ? state.bitacora.estado : 'SIN BITÁCORA';
         elements.dashEstadoBitacora.className = `badge badge-${state.abierta ? 'success' : 'outline'}`;
 
-        blockingDiv.style.display = (state.razonesBloqueo && state.razonesBloqueo.length > 0) ? 'block' : 'none';
-        reasonsList.innerHTML = (state.razonesBloqueo || []).map(r => `<li>${r}</li>`).join('');
+        const blockingReasons = state.bloqueos || [];
+        blockingDiv.style.display = blockingReasons.length > 0 ? 'block' : 'none';
+        reasonsList.innerHTML = blockingReasons.map(r => `<li>${r}</li>`).join('');
 
         btn.style.display = 'inline-block';
         btn.onclick = () => handleAction(state.siguienteAccion, state);
 
-        switch (state.estadoOperativo) {
+        switch (state.estadoTurno) {
             case 'SIN_TURNO':
                 title.textContent = 'Bienvenido al Turno';
                 desc.textContent = 'No hay una bitácora abierta. Inicie el turno para comenzar el registro operativo.';
                 btn.textContent = 'ABRIR BITÁCORA DE TURNO';
                 iconContainer.innerHTML = '<i data-lucide="play-circle" style="width: 64px; height: 64px; color: var(--primary-color);"></i>';
-                break;
-            case 'EN_CURSO':
-                title.textContent = 'Turno en Curso';
-                desc.textContent = 'Existen procesos pendientes de registro en este turno.';
-                btn.textContent = 'IR A PROCESOS PENDIENTES';
-                iconContainer.innerHTML = '<i data-lucide="activity" style="width: 64px; height: 64px; color: var(--warning);"></i>';
                 break;
             case 'LISTO_PARA_CIERRE':
                 title.textContent = 'Procesos Completados';
@@ -81,8 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 iconContainer.innerHTML = '<i data-lucide="lock" style="width: 64px; height: 64px; color: var(--text-secondary);"></i>';
                 break;
             default:
-                title.textContent = 'Estado Desconocido';
-                desc.textContent = 'Contacte a soporte técnico.';
+                title.textContent = 'Sincronizando...';
+                desc.textContent = 'El sistema está determinando la siguiente acción.';
                 btn.style.display = 'none';
         }
 

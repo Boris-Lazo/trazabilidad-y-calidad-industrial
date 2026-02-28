@@ -27,6 +27,10 @@ class BitacoraService {
     return await this.bitacoraRepository.findActive();
   }
 
+  async getMostRecentBitacora() {
+    return await this.bitacoraRepository.findMostRecent();
+  }
+
   async openBitacora(data) {
     const active = await this.bitacoraRepository.findActive();
     if (active) {
@@ -165,10 +169,10 @@ class BitacoraService {
       const contract = ProcessRegistry.get(proceso.processId);
       const muestrasMinimas = contract.frecuenciaMuestreo?.muestrasMinTurno || 1;
 
-      let estadoOperativo = 'SIN_DATOS';
+      let estadoProceso = 'SIN_DATOS';
       let siguienteAccion = 'REGISTRAR_CALIDAD';
+      let accionesPermitidas = ['REGISTRAR_CALIDAD'];
       let bloqueos = [];
-      let razonesBloqueo = [];
 
       const produccionTotal = registros.reduce((sum, r) => sum + (r.cantidad_producida || 0), 0);
       const hasRegistros = registros.length > 0;
@@ -177,34 +181,37 @@ class BitacoraService {
       const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
 
       if (status && status.no_operativo) {
-        estadoOperativo = 'COMPLETO';
+        estadoProceso = 'COMPLETO';
         siguienteAccion = 'NINGUNA';
+        accionesPermitidas = [];
       } else if (hasRechazo || hasIncidente) {
-        estadoOperativo = 'REVISION';
+        estadoProceso = 'REVISION';
         siguienteAccion = 'CORREGIR_O_JUSTIFICAR';
+        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION', 'CORREGIR'];
       } else if (hasRegistros && hasMuestras) {
-        estadoOperativo = 'COMPLETO';
+        estadoProceso = 'COMPLETO';
         siguienteAccion = 'NINGUNA';
+        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION'];
       } else if (!hasMuestras) {
-        estadoOperativo = 'ESPERANDO_CALIDAD';
+        estadoProceso = 'ESPERANDO_CALIDAD';
         siguienteAccion = 'REGISTRAR_CALIDAD';
-        bloqueos = ['PRODUCCION', 'CIERRE'];
-        razonesBloqueo = [`Se requieren al menos ${muestrasMinimas} muestras de calidad para habilitar producción.`];
+        accionesPermitidas = ['REGISTRAR_CALIDAD'];
+        bloqueos = [`No se puede registrar producción hasta validar calidad (mínimo ${muestrasMinimas} muestras).`];
       } else if (!hasRegistros) {
-        estadoOperativo = 'ESPERANDO_PRODUCCION';
+        estadoProceso = 'ESPERANDO_PRODUCCION';
         siguienteAccion = 'REGISTRAR_PRODUCCION';
-        bloqueos = ['CIERRE'];
-        razonesBloqueo = ['Debe registrar producción antes de completar el proceso.'];
+        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION'];
       } else {
-        estadoOperativo = 'PARCIAL';
+        estadoProceso = 'PARCIAL';
         siguienteAccion = 'COMPLETAR_DATOS';
+        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION'];
       }
 
-      // Si la bitácora está cerrada, todo está bloqueado
       if (bitacora.estado === 'CERRADA') {
+        estadoProceso = 'CERRADO';
         siguienteAccion = 'LECTURA';
-        bloqueos = ['CALIDAD', 'PRODUCCION', 'PAROS', 'ACCIONES'];
-        razonesBloqueo = ['La bitácora de turno está CERRADA. No se permiten modificaciones.'];
+        accionesPermitidas = [];
+        bloqueos = ['El turno está CERRADO. No se permiten modificaciones.'];
       }
 
       let ultimaActualizacion = '—';
@@ -221,16 +228,15 @@ class BitacoraService {
       resumen.push({
         id: proceso.processId,
         nombre: proceso.nombre,
-        estado: this._mapEstadoToUI(estadoOperativo),
-        estadoOperativo,
+        estadoUI: this._mapEstadoToUI(estadoProceso),
+        estadoProceso,
         siguienteAccion,
+        accionesPermitidas,
         bloqueos,
-        razonesBloqueo,
         ultimaActualizacion,
         produccionTotal,
         calidadValidada: hasMuestras && !hasRechazo,
-        unidad: contract.unidadProduccion,
-        accion: estadoOperativo === 'SIN_DATOS' ? 'Registrar' : 'Continuar'
+        unidad: contract.unidadProduccion
       });
     }
     return resumen;

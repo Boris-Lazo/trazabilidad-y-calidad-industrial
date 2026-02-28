@@ -13,27 +13,35 @@ class BitacoraController {
 
   getEstadoActual = async (req, res, next) => {
     try {
-      const bitacora = await this.bitacoraService.getActiveBitacora();
+      let bitacora = await this.bitacoraService.getActiveBitacora();
+
+      // Si no hay activa, buscar la más reciente (por si está CERRADA)
+      if (!bitacora) {
+          bitacora = await this.bitacoraService.getMostRecentBitacora();
+      }
 
       if (!bitacora) {
         return sendSuccess(res, {
           abierta: false,
-          estadoOperativo: 'SIN_TURNO',
+          estadoTurno: 'SIN_TURNO',
           siguienteAccion: 'ABRIR_TURNO',
-          bloqueos: ['PRODUCCION', 'CALIDAD', 'PAROS'],
-          razonesBloqueo: ['No hay un turno activo. Debe abrir una bitácora para comenzar.']
+          accionesPermitidas: ['ABRIR_TURNO'],
+          bloqueos: ['No hay un turno activo. Debe abrir una bitácora para comenzar.'],
+          puedeCerrarTurno: false
         });
       }
 
       const procesos = await this.bitacoraService.getResumenProcesos(bitacora.id);
 
-      let estadoOperativo = 'EN_CURSO';
-      let siguienteAccion = 'COMPLETAR_PROCESOS';
+      let estadoTurno = 'EN_PROCESO';
+      let siguienteAccion = 'IR_A_PROCESO';
+      let accionesPermitidas = ['IR_A_PROCESO'];
       let bloqueos = [];
-      let razonesBloqueo = [];
+      let puedeCerrarTurno = false;
+      let razonesBloqueoCierre = [];
 
       const todosListos = procesos.every(p =>
-        p.estadoOperativo === 'COMPLETO' || p.estadoOperativo === 'REVISION'
+        p.estadoProceso === 'COMPLETO' || p.estadoProceso === 'REVISION'
       );
 
       const resumenCierre = procesos.map(p => ({
@@ -41,35 +49,40 @@ class BitacoraController {
           produccion: p.produccionTotal,
           unidad: p.unidad,
           calidadValidada: p.calidadValidada,
-          estado: p.estadoOperativo
+          estado: p.estadoProceso
       }));
 
       if (bitacora.estado === 'CERRADA') {
-        estadoOperativo = 'CERRADO';
+        estadoTurno = 'CERRADO';
         siguienteAccion = 'NINGUNA';
-        bloqueos = ['TODO'];
-        razonesBloqueo = ['El turno ha sido cerrado y es inmutable.'];
+        accionesPermitidas = [];
+        bloqueos = ['El turno ha sido cerrado y es inmutable.'];
       } else if (todosListos) {
-        estadoOperativo = 'LISTO_PARA_CIERRE';
+        estadoTurno = 'LISTO_PARA_CIERRE';
         siguienteAccion = 'CERRAR_TURNO';
+        accionesPermitidas = ['CERRAR_TURNO', 'IR_A_PROCESO'];
+        puedeCerrarTurno = true;
       } else {
-        const pendiente = procesos.find(p => p.estadoOperativo !== 'COMPLETO' && p.estadoOperativo !== 'REVISION');
-        estadoOperativo = 'EN_CURSO';
-        siguienteAccion = `IR_A_PROCESO`;
+        const pendiente = procesos.find(p => p.estadoProceso !== 'COMPLETO' && p.estadoProceso !== 'REVISION');
+        estadoTurno = 'EN_PROCESO';
+        siguienteAccion = 'IR_A_PROCESO';
         const actionPayload = {
             proceso_id: pendiente.id,
             proceso_nombre: pendiente.nombre
         };
-        razonesBloqueo = [`Existen procesos pendientes: ${pendiente.nombre}`];
+        razonesBloqueoCierre = [`Existen procesos pendientes: ${pendiente.nombre}`];
+
         return sendSuccess(res, {
           abierta: true,
           bitacora,
           procesos,
-          estadoOperativo,
+          estadoTurno,
           siguienteAccion,
           actionPayload,
+          accionesPermitidas,
           bloqueos,
-          razonesBloqueo
+          puedeCerrarTurno,
+          razonesBloqueoCierre
         });
       }
 
@@ -77,11 +90,13 @@ class BitacoraController {
         abierta: true,
         bitacora,
         procesos,
-        estadoOperativo,
+        estadoTurno,
         siguienteAccion,
         resumenCierre,
+        accionesPermitidas,
         bloqueos,
-        razonesBloqueo
+        puedeCerrarTurno,
+        razonesBloqueoCierre
       });
     } catch (error) {
       next(error);

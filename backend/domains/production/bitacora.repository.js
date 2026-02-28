@@ -8,6 +8,10 @@ class BitacoraRepository {
     return await this.db.get("SELECT * FROM bitacora_turno WHERE estado IN ('ABIERTA', 'REVISION')");
   }
 
+  async findMostRecent() {
+    return await this.db.get("SELECT * FROM bitacora_turno ORDER BY fecha_apertura DESC LIMIT 1");
+  }
+
   async findById(id) {
     return await this.db.get('SELECT * FROM bitacora_turno WHERE id = ?', [id]);
   }
