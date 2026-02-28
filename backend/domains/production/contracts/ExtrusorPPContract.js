@@ -166,7 +166,7 @@ class ExtrusorPPContract extends ProcessContract {
                     'Nunca reinicia salvo que la orden sea cancelada y recreada.',
                 formato: '3 dígitos con cero a la izquierda'
             },
-            estadosLote: ['activo', 'cerrado'],
+            estadosLote: ['activo', 'pausado', 'cerrado'],
             transicionEstado: 'El lote permanece activo mientras la orden esté ' +
                 'en producción. Se cierra cuando la orden se cierra o cancela.',
             responsableGeneracion: 'sistema',

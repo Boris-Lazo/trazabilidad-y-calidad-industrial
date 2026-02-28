@@ -136,8 +136,8 @@ class TelarContract extends ProcessContract {
                     'está consumiendo por cada orden activa en el turno.',
                 origen: 'Extrusor PP (proceso 1)',
                 seleccion: 'El operario selecciona de una lista los lotes activos ' +
-                    'disponibles. La lista muestra código de lote y código de orden ' +
-                    'del extrusor, ordenada por fecha descendente.',
+                    'o pausados disponibles. La lista muestra código de lote y código ' +
+                    'de orden del extrusor, ordenada por fecha descendente.',
                 multiplicidad: 'Un telar puede consumir múltiples lotes simultáneamente. ' +
                     'Casos: cambio de orden del extrusor dentro del turno, o bien ' +
                     'orden de telares que requiere dos colores de cinta (dos lotes).',
