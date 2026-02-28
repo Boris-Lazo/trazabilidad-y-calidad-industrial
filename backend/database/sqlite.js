@@ -395,8 +395,59 @@ const migrateBitacoraProceso = () => {
                         db.run("COMMIT", (err) => {
                             if (err) logger.error("Error al migrar BITACORA_PROCESO:", err.message);
                             else logger.info("BITACORA_PROCESO configurada.");
+                            migrateLotes();
+                        });
+                    });
+                } else {
+                    migrateLotes();
+                }
+            });
+        } else {
+            migrateLotes();
+        }
+    });
+};
+
+const migrateLotes = () => {
+    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='lotes'", (err, row) => {
+        if (row) {
+            db.all("PRAGMA table_info(lotes)", (err, columns) => {
+                const hasBitacoraId = columns.some(c => c.name === 'bitacora_id');
+                if (!hasBitacoraId) {
+                    logger.info("Migrando tabla lotes al nuevo esquema de trazabilidad...");
+                    db.serialize(() => {
+                        db.run("PRAGMA foreign_keys = OFF");
+                        db.run("BEGIN TRANSACTION");
+                        db.run(`CREATE TABLE lotes_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            codigo_lote TEXT UNIQUE NOT NULL,
+                            orden_produccion_id INTEGER NOT NULL,
+                            bitacora_id INTEGER NOT NULL,
+                            correlativo INTEGER NOT NULL,
+                            fecha_produccion DATE NOT NULL,
+                            estado TEXT CHECK(estado IN ('activo','pausado','cerrado')) DEFAULT 'activo',
+                            comentario_estado TEXT,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            created_by TEXT,
+                            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            updated_by TEXT,
+                            motivo_cambio TEXT,
+                            FOREIGN KEY (orden_produccion_id) REFERENCES orden_produccion(id),
+                            FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id)
+                        )`);
+
+                        db.run(`INSERT INTO lotes_new (id, codigo_lote, fecha_produccion, orden_produccion_id, bitacora_id, correlativo)
+                                SELECT id, codigo_lote, fecha_produccion, orden_produccion_id, 0, 0
+                                FROM lotes`);
+
+                        db.run("DROP TABLE lotes");
+                        db.run("ALTER TABLE lotes_new RENAME TO lotes");
+                        db.run("COMMIT", (err) => {
+                            if (err) logger.error("Error al migrar lotes:", err.message);
+                            else logger.info("Migración de lotes completada.");
                             runFullSchema();
                         });
+                        db.run("PRAGMA foreign_keys = ON");
                     });
                 } else {
                     runFullSchema();
@@ -543,10 +594,45 @@ const runFullSchema = () => {
 
     db.run(`CREATE TABLE IF NOT EXISTS lotes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        codigo_lote TEXT UNIQUE,
-        fecha_produccion DATE,
-        orden_produccion_id INTEGER,
-        FOREIGN KEY (orden_produccion_id) REFERENCES orden_produccion(id)
+        codigo_lote TEXT UNIQUE NOT NULL,
+        orden_produccion_id INTEGER NOT NULL,
+        bitacora_id INTEGER NOT NULL,
+        correlativo INTEGER NOT NULL,
+        fecha_produccion DATE NOT NULL,
+        estado TEXT CHECK(estado IN ('activo','pausado','cerrado')) DEFAULT 'activo',
+        comentario_estado TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_by TEXT,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_by TEXT,
+        motivo_cambio TEXT,
+        FOREIGN KEY (orden_produccion_id) REFERENCES orden_produccion(id),
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS telar_consumo_lote (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        registro_trabajo_id INTEGER NOT NULL,
+        maquina_id INTEGER NOT NULL,
+        bitacora_id INTEGER NOT NULL,
+        lote_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_by TEXT,
+        FOREIGN KEY (registro_trabajo_id) REFERENCES registros_trabajo(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (lote_id) REFERENCES lotes(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS lote_historial_estado (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lote_id INTEGER NOT NULL,
+        estado_anterior TEXT NOT NULL,
+        estado_nuevo TEXT NOT NULL,
+        comentario TEXT,
+        changed_by TEXT NOT NULL,
+        changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (lote_id) REFERENCES lotes(id)
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS muestras (
@@ -800,6 +886,12 @@ const runFullSchema = () => {
     db.run(`CREATE INDEX IF NOT EXISTS idx_registros_bitacora ON registros_trabajo(bitacora_id);`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_muestras_lote ON muestras(lote_id);`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_muestras_bitacora ON muestras(bitacora_id);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_lotes_orden ON lotes(orden_produccion_id);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_lotes_bitacora ON lotes(bitacora_id);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_telar_consumo_lote_bitacora ON telar_consumo_lote(bitacora_id, maquina_id);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_telar_consumo_lote_lote ON telar_consumo_lote(lote_id);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_lotes_estado ON lotes(estado);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_lote_historial_lote ON lote_historial_estado(lote_id);`);
 
     // --- SEMILLAS ---
     // Las semillas deben ejecutarse en orden para respetar dependencias

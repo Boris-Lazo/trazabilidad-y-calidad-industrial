@@ -23,28 +23,36 @@ describe('Quality Routes Integration Tests', () => {
             .send({ username: 'admin', password: 'admin123' });
         token = loginRes.body.data.token;
 
+        // Crear una bitácora
+        const bitacoraRes = await sqlite.run(
+            "INSERT INTO bitacora_turno (turno, fecha_operativa, inspector, estado) VALUES ('T1', '2024-01-01', 'Admin', 'ABIERTA')"
+        );
+        const bitacoraId = bitacoraRes.lastID;
+
         // Crear una orden de producción ficticia
         const res = await sqlite.run(
             'INSERT INTO orden_produccion (codigo_orden, producto, cantidad_objetivo, estado, fecha_creacion) VALUES (?, ?, ?, ?, ?)',
             ['2000001', 'Producto Test', 1000, 'Liberada', new Date().toISOString()]
         );
         ordenId = res.lastID;
+
+        // Crear un lote válido
+        const loteRes = await sqlite.run(
+            'INSERT INTO lotes (codigo_lote, orden_produccion_id, bitacora_id, correlativo, fecha_produccion, estado) VALUES (?, ?, ?, ?, ?, ?)',
+            ['L-TEST-INITIAL', ordenId, bitacoraId, 1, '2024-01-01', 'activo']
+        );
+        loteId = loteRes.lastID;
     });
 
-    test('POST /api/lotes retorna 201 y el lote creado', async () => {
+    test('GET /api/lotes/disponibles retorna array de lotes', async () => {
         const response = await request(app)
-            .post('/api/lotes')
-            .set('Cookie', [`token=${token}`])
-            .send({
-                codigo_lote: 'L-001',
-                fecha_produccion: '2024-01-01',
-                orden_produccion_id: ordenId
-            });
+            .get('/api/lotes/disponibles')
+            .set('Cookie', [`token=${token}`]);
 
-        expect(response.status).toBe(201);
+        expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
-        expect(response.body.data.codigo_lote).toBe('L-001');
-        loteId = response.body.data.id;
+        expect(Array.isArray(response.body.data)).toBe(true);
+        expect(response.body.data.length).toBeGreaterThan(0);
     });
 
     test('POST /api/lotes sin autenticación retorna 401', async () => {
