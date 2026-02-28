@@ -150,6 +150,29 @@ class ExtrusorPPContract extends ProcessContract {
             },
             motivo: 'Contrato actualizado con correcciones de nombres y esquema de copia por grupo'
         });
+
+        this.reglasLote = {
+            generacion: 'automatica',
+            descripcion: 'El sistema genera un lote por cada combinación única ' +
+                'de orden de producción y bitácora de turno. Si el extrusor cambia ' +
+                'de orden dentro del turno, se genera un nuevo lote para la nueva ' +
+                'orden en esa misma bitácora.',
+            codigoFormato: '{codigo_orden}-{correlativo_3_digitos}',
+            codigoEjemplo: '1000056-003',
+            correlativo: {
+                alcance: 'por_orden',
+                descripcion: 'El correlativo incrementa cada vez que la orden genera ' +
+                    'un lote nuevo en cualquier turno, acumulado histórico. ' +
+                    'Nunca reinicia salvo que la orden sea cancelada y recreada.',
+                formato: '3 dígitos con cero a la izquierda'
+            },
+            estadosLote: ['activo', 'cerrado'],
+            transicionEstado: 'El lote permanece activo mientras la orden esté ' +
+                'en producción. Se cierra cuando la orden se cierra o cancela.',
+            responsableGeneracion: 'sistema',
+            momentoGeneracion: 'al guardar producción del turno si no existe ' +
+                'lote previo para esa combinación orden+bitácora'
+        };
     }
 }
 

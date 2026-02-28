@@ -131,6 +131,29 @@ class TelarContract extends ProcessContract {
             nota: 'Si el telar no operó (paro total del turno), el operario igualmente registra el acumulado actual (igual al del turno anterior, diferencia = 0) y debe seleccionar el tipo de paro y su justificación escrita.'
         };
 
+            this.reglasConsumoLote = {
+                descripcion: 'Cada telar debe declarar qué lotes de Extrusor PP ' +
+                    'está consumiendo por cada orden activa en el turno.',
+                origen: 'Extrusor PP (proceso 1)',
+                seleccion: 'El operario selecciona de una lista los lotes activos ' +
+                    'disponibles. La lista muestra código de lote y código de orden ' +
+                    'del extrusor, ordenada por fecha descendente.',
+                multiplicidad: 'Un telar puede consumir múltiples lotes simultáneamente. ' +
+                    'Casos: cambio de orden del extrusor dentro del turno, o bien ' +
+                    'orden de telares que requiere dos colores de cinta (dos lotes).',
+                cantidadConsumida: 'No se registra. Solo se registra la referencia al lote.',
+                obligatoriedad: 'Al menos un lote debe ser declarado por cada registro ' +
+                    'de producción. Si el telar tuvo producción = 0 (paro total), ' +
+                    'la declaración de lote es opcional.',
+                tablaRelacion: 'telar_consumo_lote',
+                camposRelacion: {
+                    registro_trabajo_id: 'FK al registro de trabajo del telar',
+                    maquina_id: 'FK al telar',
+                    bitacora_id: 'FK a la bitácora del turno',
+                    lote_id: 'FK al lote del extrusor'
+                }
+            };
+
         this.verificacionColor = {
             parametros: [
                 {
