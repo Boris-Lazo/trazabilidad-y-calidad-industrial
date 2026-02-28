@@ -16,79 +16,109 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let orders = [];
     let paroTipos = [];
-    let nominalAncho = 0;
+    let currentSpecs = {
+        ancho_nominal: null,
+        construccion_urdido: null,
+        construccion_trama: null,
+        color_urdido: null,
+        color_trama: null
+    };
+    let baseAcumulado = 0;
 
     async function init() {
-        await Promise.all([
-            fetchOrders(),
-            fetchParoTipos(),
-            loadData()
-        ]);
-    }
-
-    async function fetchOrders() {
-        const res = await fetch('/api/ordenes-produccion?estado=Liberada&proceso_id=2');
-        const result = await res.json();
-        orders = result.data || [];
-    }
-
-    async function fetchParoTipos() {
-        const res = await fetch('/api/telares/paro-tipos');
-        const result = await res.json();
-        paroTipos = result.data || [];
-    }
-
-    async function loadData() {
         try {
-            const res = await fetch(`/api/telares/detalle/${maquinaId}?bitacora_id=${bitacoraId}`);
-            const result = await res.json();
-            if (result.success) {
-                renderData(result.data);
+            const [ordersRes, parosRes, detailRes] = await Promise.all([
+                fetch('/api/ordenes-produccion?estado=Liberada&proceso_id=2').then(r => r.json()),
+                fetch('/api/telares/paro-tipos').then(r => r.json()),
+                fetch(`/api/telares/detalle/${maquinaId}?bitacora_id=${bitacoraId}`).then(r => r.json())
+            ]);
+
+            orders = ordersRes.data || [];
+            paroTipos = parosRes.data || [];
+
+            if (detailRes.success) {
+                renderData(detailRes.data);
             }
         } catch (error) {
-            console.error('Error cargando detalle:', error);
+            console.error('Error initialization:', error);
+            alert('Error al cargar datos iniciales');
         }
     }
 
     function renderData(data) {
-        document.getElementById('select-estado').value = (data.estado === 'Con desviación') ? 'Completo' : data.estado;
-        document.getElementById('obs-advertencia').value = data.observacion_advertencia || '';
+        baseAcumulado = data.ultimoAcumulado || 0;
+        document.getElementById('val-ultimo-acumulado').textContent = `${baseAcumulado} m`;
 
-        // Producción
+        if (data.especificaciones_orden) {
+            updateSpecs(data.especificaciones_orden);
+        }
+
+        // Produccion
         const tbodyProd = document.getElementById('tbody-produccion');
         tbodyProd.innerHTML = '';
         data.produccion.forEach(p => agregarFilaProduccion(p));
         if (data.produccion.length === 0) agregarFilaProduccion();
 
-        // Actualizar ancho nominal basado en la última orden
-        if (data.produccion.length > 0 && data.produccion[0].especificaciones) {
-            nominalAncho = data.produccion[0].especificaciones.ancho_nominal || 0;
-            document.getElementById('ancho-nominal').textContent = nominalAncho;
-        }
-
         // Calidad Ancho
-        const tbodyAncho = document.getElementById('tbody-ancho');
-        tbodyAncho.innerHTML = '';
-        data.calidad.ancho.forEach(a => agregarFilaAncho(a));
-
-        // Calidad Visual
-        const tbodyVisual = document.getElementById('tbody-visual');
-        tbodyVisual.innerHTML = '';
-        data.calidad.visual.forEach(v => agregarFilaVisual(v));
-
-        // Incidentes
-        const tbodyInc = document.getElementById('tbody-incidentes');
-        tbodyInc.innerHTML = '';
-        data.incidentes.forEach(i => {
-             // Parsear descripción simple
-             const tiempoMatch = i.descripcion.match(/Tiempo: (\d+)/);
-             const motivoParts = i.descripcion.split('min. ');
-             agregarFilaIncidente({
-                tiempo: tiempoMatch ? tiempoMatch[1] : '',
-                clasificacion: i.titulo.split(':')[0],
-                motivo: motivoParts.length > 1 ? motivoParts[1] : i.descripcion
-            });
+        data.calidad.ancho.forEach(a => {
+            const tr = document.querySelector(`#tbody-ancho tr[data-indice="${a.indice}"]`);
+            if (tr) {
+                const input = tr.querySelector('.input-ancho');
+                input.value = a.valor;
+                updateAnchoResult(tr);
+            }
         });
+
+        // Calidad Construccion
+        data.calidad.construccion.forEach(c => {
+            const tr = document.querySelector(`#tbody-construccion tr[data-param="${c.parametro}"]`);
+            if (tr) {
+                const input = tr.querySelector('.input-const');
+                input.value = c.valor;
+                updateConstruccionResult(tr);
+            }
+        });
+
+        // Verificacion Color
+        data.calidad.color.forEach(c => {
+            const tr = document.querySelector(`#tbody-color tr[data-param="${c.parametro}"]`);
+            if (tr) {
+                tr.querySelector('.select-color').value = c.resultado;
+            }
+        });
+
+        // Visual
+        data.visual.forEach(v => agregarFilaVisual(v));
+
+        // Paros
+        data.paros.forEach(p => agregarFilaParo(p));
+
+        document.getElementById('input-justificacion').value = data.observacion_advertencia || '';
+
+        recalculateAll();
+    }
+
+    function updateSpecs(specs) {
+        currentSpecs = { ...currentSpecs, ...specs };
+        document.getElementById('val-ancho-nominal').textContent = specs.ancho_nominal ? `${specs.ancho_nominal}"` : '--';
+        document.getElementById('val-construccion').textContent = (specs.construccion_urdido && specs.construccion_trama)
+            ? `${specs.construccion_urdido} x ${specs.construccion_trama}` : '--';
+        document.getElementById('val-color').textContent = (specs.color_urdido && specs.color_trama)
+            ? `${specs.color_urdido} / ${specs.color_trama}` : '--';
+
+        // Update Quality Sections with nominals
+        document.querySelectorAll('.nom-const').forEach(td => {
+            const param = td.parentElement.dataset.param;
+            td.textContent = specs[param] || '--';
+        });
+        document.querySelectorAll('.exp-color').forEach(td => {
+            const param = td.parentElement.dataset.param;
+            td.textContent = specs[param] || '--';
+        });
+
+        // Re-evaluate quality results with new nominals
+        document.querySelectorAll('#tbody-ancho tr').forEach(tr => updateAnchoResult(tr));
+        document.querySelectorAll('#tbody-construccion tr').forEach(tr => updateConstruccionResult(tr));
     }
 
     function agregarFilaProduccion(data = {}) {
@@ -96,11 +126,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const options = orders.map(o => `<option value="${o.id}" ${data.orden_id == o.id ? 'selected' : ''}>${o.codigo_orden}</option>`).join('');
 
         tr.innerHTML = `
-            <td><select class="form-control select-orden">${options}</select></td>
-            <td><input type="number" class="form-control input-cantidad" value="${data.cantidad || ''}"></td>
-            <td><input type="number" class="form-control input-desperdicio" value="${data.desperdicio || ''}"></td>
-            <td><input type="text" class="form-control input-obs" value="${data.observaciones || ''}"></td>
-            <td><button class="button button-outline btn-del" style="color:var(--danger)">×</button></td>
+            <td><select class="select-orden"><option value="">Seleccione Orden...</option>${options}</select></td>
+            <td><input type="number" class="input-acumulado" value="${data.acumulado_contador || ''}"></td>
+            <td class="res-metros">0</td>
+            <td><input type="number" step="0.1" class="input-desperdicio" value="${data.desperdicio_kg || ''}"></td>
+            <td><input type="text" class="input-obs" value="${data.observaciones || ''}"></td>
+            <td><button class="button button-outline btn-del" title="Eliminar">×</button></td>
         `;
 
         tr.querySelector('.select-orden').addEventListener('change', (e) => {
@@ -108,135 +139,295 @@ document.addEventListener('DOMContentLoaded', async () => {
             const order = orders.find(o => o.id == orderId);
             if (order && order.especificaciones) {
                 const specs = typeof order.especificaciones === 'string' ? JSON.parse(order.especificaciones) : order.especificaciones;
-                nominalAncho = specs.ancho_nominal || 0;
-                document.getElementById('ancho-nominal').textContent = nominalAncho;
+                updateSpecs(specs);
             }
+            recalculateAll();
         });
 
-        tr.querySelector('.btn-del').addEventListener('click', () => tr.remove());
+        tr.querySelector('.input-acumulado').addEventListener('input', () => recalculateAll());
+        tr.querySelector('.btn-del').addEventListener('click', () => { tr.remove(); recalculateAll(); });
+
         document.getElementById('tbody-produccion').appendChild(tr);
     }
 
-    function agregarFilaAncho(data = {}) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><input type="number" step="0.01" class="form-control input-ancho-valor" value="${data.valor || ''}"></td>
-            <td class="td-resultado">${data.resultado || '--'}</td>
-            <td><button class="button button-outline btn-del" style="color:var(--danger)">×</button></td>
-        `;
+    function updateAnchoResult(tr) {
+        const val = parseFloat(tr.querySelector('.input-ancho').value);
+        const resTd = tr.querySelector('.res-ancho');
+        const nominal = currentSpecs.ancho_nominal;
 
-        const input = tr.querySelector('.input-ancho-valor');
-        const updateResult = () => {
-            const val = parseFloat(input.value);
-            const resTd = tr.querySelector('.td-resultado');
-            if (isNaN(val) || !nominalAncho) {
-                resTd.textContent = '--';
-                return;
-            }
-            const diff = Math.abs(val - nominalAncho);
-            if (diff <= 0.25) {
-                resTd.textContent = 'Cumple';
-                resTd.style.color = 'var(--success)';
-            } else {
-                resTd.textContent = 'No cumple';
-                resTd.style.color = 'var(--danger)';
-            }
-        };
+        if (isNaN(val) || nominal === null) {
+            resTd.textContent = '--';
+            resTd.className = 'res-ancho';
+            return;
+        }
 
-        input.addEventListener('input', updateResult);
-        if (data.valor) updateResult();
+        const ok = Math.abs(val - nominal) <= 0.25;
+        resTd.textContent = ok ? 'Cumple' : 'No cumple';
+        resTd.style.color = ok ? 'var(--success)' : 'var(--danger)';
+        resTd.style.fontWeight = 'bold';
+    }
 
-        tr.querySelector('.btn-del').addEventListener('click', () => tr.remove());
-        document.getElementById('tbody-ancho').appendChild(tr);
+    function updateConstruccionResult(tr) {
+        const val = parseInt(tr.querySelector('.input-const').value);
+        const resTd = tr.querySelector('.res-const');
+        const param = tr.dataset.param;
+        const nominal = currentSpecs[param];
+
+        if (isNaN(val) || nominal === null) {
+            resTd.textContent = '--';
+            return;
+        }
+
+        const ok = val === parseInt(nominal);
+        resTd.textContent = ok ? 'Cumple' : 'No cumple';
+        resTd.style.color = ok ? 'var(--success)' : 'var(--danger)';
     }
 
     function agregarFilaVisual(data = {}) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><input type="number" class="form-control input-rollo" value="${data.rollo_numero || ''}"></td>
-            <td><input type="text" class="form-control input-defecto" value="${data.tipo_defecto || ''}"></td>
-            <td><input type="text" class="form-control input-obs-visual" value="${data.observacion || ''}"></td>
-            <td><button class="button button-outline btn-del" style="color:var(--danger)">×</button></td>
+            <td><input type="number" class="input-rollo-num" value="${data.rollo_numero || ''}"></td>
+            <td class="display-rollo">--</td>
+            <td>
+                <select class="select-defecto">
+                    <option value="">Seleccione...</option>
+                    <option value="DEF-01" ${data.tipo_defecto_id === 'DEF-01' ? 'selected' : ''}>DEF-01 Cintas incorrectas</option>
+                    <option value="DEF-02" ${data.tipo_defecto_id === 'DEF-02' ? 'selected' : ''}>DEF-02 Tela picada</option>
+                    <option value="DEF-03" ${data.tipo_defecto_id === 'DEF-03' ? 'selected' : ''}>DEF-03 Rollo mal embobinado</option>
+                </select>
+            </td>
+            <td><input type="text" class="input-obs-visual" value="${data.observacion || ''}"></td>
+            <td><button class="button button-outline btn-del">×</button></td>
         `;
+
+        const inputNum = tr.querySelector('.input-rollo-num');
+        const display = tr.querySelector('.display-rollo');
+        const updateDisplay = () => {
+            display.textContent = inputNum.value ? `${inputNum.value}-${codigoMaquina}` : '--';
+        };
+        inputNum.addEventListener('input', updateDisplay);
+        updateDisplay();
+
         tr.querySelector('.btn-del').addEventListener('click', () => tr.remove());
         document.getElementById('tbody-visual').appendChild(tr);
     }
 
-    function agregarFilaIncidente(data = {}) {
+    function agregarFilaParo(data = {}) {
         const tr = document.createElement('tr');
-        const options = paroTipos.map(t => `<option value="${t.nombre}" ${data.clasificacion == t.nombre ? 'selected' : ''}>${t.nombre}</option>`).join('');
+        const options = paroTipos.map(t => `<option value="${t.id}" ${data.paro_tipo_id == t.id ? 'selected' : ''}>${t.nombre}</option>`).join('');
 
         tr.innerHTML = `
-            <td><input type="number" class="form-control input-tiempo" value="${data.tiempo || ''}"></td>
-            <td><select class="form-control select-paro">${options}</select></td>
-            <td><input type="text" class="form-control input-motivo" value="${data.motivo || ''}"></td>
-            <td><button class="button button-outline btn-del" style="color:var(--danger)">×</button></td>
+            <td><select class="select-paro-tipo"><option value="">Seleccione...</option>${options}</select></td>
+            <td><input type="number" class="input-minutos" value="${data.minutos || ''}"></td>
+            <td><input type="text" class="input-justificacion-paro" value="${data.justificacion || ''}"></td>
+            <td><button class="button button-outline btn-del">×</button></td>
         `;
-        tr.querySelector('.btn-del').addEventListener('click', () => tr.remove());
-        document.getElementById('tbody-incidentes').appendChild(tr);
+        tr.querySelector('.btn-del').addEventListener('click', () => { tr.remove(); recalculateAll(); });
+        tr.querySelector('.input-minutos').addEventListener('input', () => recalculateAll());
+        document.getElementById('tbody-paros').appendChild(tr);
     }
 
-    // Event listeners
+    function recalculateAll() {
+        // Recalcular metros producidos
+        let prevAcumulado = baseAcumulado;
+        let totalMetros = 0;
+        document.querySelectorAll('#tbody-produccion tr').forEach(tr => {
+            const current = parseInt(tr.querySelector('.input-acumulado').value) || 0;
+            const diff = current - prevAcumulado;
+            const resTd = tr.querySelector('.res-metros');
+            resTd.textContent = diff;
+            resTd.style.color = diff < 0 ? 'var(--danger)' : 'inherit';
+            totalMetros += (diff > 0 ? diff : 0);
+            prevAcumulado = current;
+        });
+
+        // Visibilidad de justificación
+        const anchosValidos = Array.from(document.querySelectorAll('.input-ancho')).filter(i => i.value.trim() !== '').length;
+        document.getElementById('section-justificacion').style.display = (anchosValidos > 0 && anchosValidos < 4) ? 'block' : 'none';
+
+        // Alerta color
+        const colorNoCumple = Array.from(document.querySelectorAll('.select-color')).some(s => s.value === 'No cumple');
+        document.getElementById('alert-color-fail').style.display = colorNoCumple ? 'block' : 'none';
+
+        // Badge de estado
+        updateStatusBadge(anchosValidos, colorNoCumple, totalMetros);
+    }
+
+    function updateStatusBadge(anchosCount, colorFail, totalMetros) {
+        const badge = document.getElementById('badge-estado');
+        const parosCount = document.querySelectorAll('#tbody-paros tr').length;
+        const constrCount = Array.from(document.querySelectorAll('.input-const')).filter(i => i.value.trim() !== '').length;
+        const colorsCount = Array.from(document.querySelectorAll('.select-color')).filter(s => s.value !== '').length;
+
+        const anchoFail = Array.from(document.querySelectorAll('.res-ancho')).some(td => td.textContent === 'No cumple');
+        const justif = document.getElementById('input-justificacion').value.trim().length > 0;
+
+        let estado = 'Sin datos';
+        let clase = 'status-sin-datos';
+
+        const hasData = totalMetros > 0 || parosCount > 0 || anchosCount > 0 || constrCount > 0 || colorsCount > 0;
+
+        if (hasData) {
+            estado = 'Parcial';
+            clase = 'status-parcial';
+
+            const completo = (totalMetros > 0 || parosCount > 0) &&
+                             (anchosCount >= 4 || (anchosCount > 0 && justif)) &&
+                             (constrCount === 2) &&
+                             (colorsCount === 2);
+
+            if (completo) {
+                estado = 'Completo';
+                clase = 'status-completo';
+            }
+
+            if (anchoFail || colorFail) {
+                estado = 'Con desviación';
+                clase = 'status-desviacion';
+            }
+        }
+
+        badge.textContent = estado;
+        badge.className = `badge-status ${clase}`;
+    }
+
+    // Handlers
     document.getElementById('btn-agregar-produccion').addEventListener('click', () => agregarFilaProduccion());
-    document.getElementById('btn-agregar-ancho').addEventListener('click', () => agregarFilaAncho());
     document.getElementById('btn-agregar-visual').addEventListener('click', () => agregarFilaVisual());
-    document.getElementById('btn-agregar-incidente').addEventListener('click', () => agregarFilaIncidente());
+    document.getElementById('btn-agregar-paro').addEventListener('click', () => agregarFilaParo());
+
+    document.querySelectorAll('.input-ancho').forEach(input => {
+        input.addEventListener('input', (e) => {
+            updateAnchoResult(e.target.closest('tr'));
+            recalculateAll();
+        });
+    });
+
+    document.querySelectorAll('.input-const').forEach(input => {
+        input.addEventListener('input', (e) => {
+            updateConstruccionResult(e.target.closest('tr'));
+            recalculateAll();
+        });
+    });
+
+    document.querySelectorAll('.select-color').forEach(select => {
+        select.addEventListener('change', () => {
+            if (select.value === 'No cumple') {
+                document.getElementById('alert-color-fail').scrollIntoView({ behavior: 'smooth' });
+            }
+            recalculateAll();
+        });
+    });
+
+    document.getElementById('input-justificacion').addEventListener('input', () => recalculateAll());
 
     document.getElementById('btn-volver').addEventListener('click', () => {
         window.location.href = `telares_resumen.html?id=${bitacoraId}`;
     });
 
     document.getElementById('btn-guardar').addEventListener('click', async () => {
-        const estado = document.getElementById('select-estado').value;
-
-        const produccion = Array.from(document.querySelectorAll('#tbody-produccion tr')).map(tr => ({
-            orden_id: tr.querySelector('.select-orden').value,
-            cantidad: parseFloat(tr.querySelector('.input-cantidad').value) || 0,
-            desperdicio: parseFloat(tr.querySelector('.input-desperdicio').value) || 0,
-            observaciones: tr.querySelector('.input-obs').value
-        }));
-
-        const calidadAncho = Array.from(document.querySelectorAll('#tbody-ancho tr')).map(tr => ({
-            valor: parseFloat(tr.querySelector('.input-ancho-valor').value),
-            resultado: tr.querySelector('.td-resultado').textContent,
-            valor_nominal: nominalAncho
-        })).filter(a => !isNaN(a.valor));
-
-        const calidadVisual = Array.from(document.querySelectorAll('#tbody-visual tr')).map(tr => ({
-            rollo_numero: parseInt(tr.querySelector('.input-rollo').value),
-            tipo_defecto: tr.querySelector('.input-defecto').value,
-            observacion: tr.querySelector('.input-obs-visual').value,
-            orden_id: produccion.length > 0 ? produccion[0].orden_id : null
-        })).filter(v => v.rollo_numero && v.tipo_defecto);
-
-        const incidentes = Array.from(document.querySelectorAll('#tbody-incidentes tr')).map(tr => ({
-            tiempo: parseInt(tr.querySelector('.input-tiempo').value),
-            clasificacion: tr.querySelector('.select-paro').value,
-            motivo: tr.querySelector('.input-motivo').value
-        })).filter(i => i.tiempo && i.motivo);
-
         // Validaciones Frontend
-        let hasDeviation = calidadAncho.some(a => a.resultado !== 'Cumple');
+        const prodRows = document.querySelectorAll('#tbody-produccion tr');
+        const produccion = [];
+        let validProd = true;
+        let lastAcum = baseAcumulado;
 
-        if (estado === 'Completo' && calidadAncho.length === 0) {
-            document.getElementById('aviso-calidad').style.display = 'block';
-            if (!document.getElementById('obs-advertencia').value.trim()) {
-                alert('Debe proporcionar una explicación si no hay datos de calidad para un registro completo.');
+        prodRows.forEach(tr => {
+            const orden_id = tr.querySelector('.select-orden').value;
+            const acumulado = parseInt(tr.querySelector('.input-acumulado').value);
+            if (!orden_id || isNaN(acumulado)) {
+                validProd = false;
                 return;
             }
+            if (acumulado < lastAcum) {
+                alert(`Error: El acumulado (${acumulado}) no puede ser menor al anterior (${lastAcum}).`);
+                validProd = false;
+            }
+            produccion.push({
+                orden_id,
+                acumulado_contador: acumulado,
+                desperdicio_kg: parseFloat(tr.querySelector('.input-desperdicio').value) || 0,
+                observaciones: tr.querySelector('.input-obs').value
+            });
+            lastAcum = acumulado;
+        });
+
+        if (!validProd) return;
+
+        const paros = Array.from(document.querySelectorAll('#tbody-paros tr')).map(tr => ({
+            paro_tipo_id: tr.querySelector('.select-paro-tipo').value,
+            minutos: parseInt(tr.querySelector('.input-minutos').value),
+            justificacion: tr.querySelector('.input-justificacion-paro').value
+        })).filter(p => p.paro_tipo_id && !isNaN(p.minutos));
+
+        for (const p of paros) {
+            if (p.minutos <= 0) { alert('Los minutos de paro deben ser mayores a 0.'); return; }
+            if (p.justificacion.trim().length < 10) { alert('La justificación del paro debe tener al menos 10 caracteres.'); return; }
+        }
+
+        const metrosTotales = produccion.reduce((acc, p, i) => {
+            const ant = (i === 0) ? baseAcumulado : produccion[i-1].acumulado_contador;
+            return acc + (p.acumulado_contador - ant);
+        }, 0);
+
+        if (metrosTotales === 0 && paros.length === 0) {
+            alert('Debe registrar al menos un paro si no hubo producción.');
+            return;
+        }
+
+        const anchoMuestras = Array.from(document.querySelectorAll('#tbody-ancho tr')).map(tr => ({
+            indice: parseInt(tr.dataset.indice),
+            valor: parseFloat(tr.querySelector('.input-ancho').value),
+            resultado: tr.querySelector('.res-ancho').textContent,
+            valor_nominal: currentSpecs.ancho_nominal
+        })).filter(a => !isNaN(a.valor));
+
+        if (anchoMuestras.length > 0 && anchoMuestras.length < 4 && !document.getElementById('input-justificacion').value.trim()) {
+            alert('Debe justificar por qué hay menos de 4 mediciones de ancho.');
+            return;
+        }
+
+        const constMuestras = Array.from(document.querySelectorAll('#tbody-construccion tr')).map(tr => ({
+            parametro: tr.dataset.param,
+            valor: parseInt(tr.querySelector('.input-const').value),
+            resultado: tr.querySelector('.res-const').textContent,
+            valor_nominal: currentSpecs[tr.dataset.param]
+        })).filter(c => !isNaN(c.valor));
+
+        const colorMuestras = Array.from(document.querySelectorAll('#tbody-color tr')).map(tr => ({
+            parametro: tr.dataset.param,
+            resultado: tr.querySelector('.select-color').value,
+            valor_nominal: currentSpecs[tr.dataset.param]
+        })).filter(c => c.resultado !== '');
+
+        if (colorMuestras.some(c => c.resultado === 'No cumple') && paros.length === 0) {
+            alert('Un color fuera de especificación obliga a registrar un paro.');
+            return;
+        }
+
+        const visual = Array.from(document.querySelectorAll('#tbody-visual tr')).map(tr => ({
+            rollo_numero: parseInt(tr.querySelector('.input-rollo-num').value),
+            tipo_defecto_id: tr.querySelector('.select-defecto').value,
+            observacion: tr.querySelector('.input-obs-visual').value,
+            orden_id: produccion.length > 0 ? produccion[0].orden_id : null
+        })).filter(v => v.rollo_numero && v.tipo_defecto_id);
+
+        for (const v of visual) {
+            if (v.observacion.trim().length < 10) { alert('La observación del defecto visual debe tener al menos 10 caracteres.'); return; }
         }
 
         const payload = {
             bitacora_id: parseInt(bitacoraId),
             maquina_id: parseInt(maquinaId),
-            estado,
             produccion,
             calidad: {
-                ancho: calidadAncho,
-                visual: calidadVisual
+                ancho: anchoMuestras,
+                construccion: constMuestras,
+                color: colorMuestras
             },
-            incidentes,
-            observacion_advertencia: document.getElementById('obs-advertencia').value
+            visual,
+            paros,
+            observacion_advertencia: document.getElementById('input-justificacion').value
         };
 
         try {
@@ -251,11 +442,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.location.href = `telares_resumen.html?id=${bitacoraId}`;
             } else {
                 const err = await res.json();
-                alert('Error al guardar: ' + (err.error || 'Error desconocido'));
+                alert('Error al guardar: ' + (err.error || err.message || 'Error desconocido'));
             }
         } catch (error) {
-            console.error('Error guardando:', error);
-            alert('Error de conexión');
+            console.error('Error saving:', error);
+            alert('Error de conexión al guardar');
         }
     });
 

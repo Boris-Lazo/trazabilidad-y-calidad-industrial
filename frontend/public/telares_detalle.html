@@ -9,9 +9,16 @@
     <link rel="stylesheet" href="css/main.css">
     <style>
         .form-section { margin-bottom: 24px; }
-        .table input { width: 100%; background: transparent; border: 1px solid transparent; color: inherit; padding: 4px; }
-        .table input:focus { border-color: var(--primary-base); outline: none; }
-        .text-error { color: var(--danger); font-size: 0.875rem; }
+        .table input, .table select { width: 100%; background: transparent; border: 1px solid transparent; color: inherit; padding: 4px; }
+        .table input:focus, .table select:focus { border-color: var(--primary-base); outline: none; background: rgba(255,255,255,0.05); }
+        .badge-status { padding: 4px 12px; border-radius: 4px; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
+        .status-sin-datos { background: #6b7280; color: white; }
+        .status-parcial { background: #f59e0b; color: white; }
+        .status-completo { background: #10b981; color: white; }
+        .status-desviacion { background: #ef4444; color: white; }
+        .spec-label { font-size: 0.875rem; color: var(--text-muted); }
+        .spec-value { font-weight: 600; }
+        .alert-color { background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #ef4444; padding: 12px; border-radius: 4px; margin-top: 12px; display: none; }
     </style>
 </head>
 <body class="industrial-theme">
@@ -31,14 +38,33 @@
                 <div class="section-header">
                     <div>
                         <h1 id="title-maquina">Registro de Telar T-XX</h1>
-                        <p class="text-muted">Ingrese los datos de producción, calidad e incidentes.</p>
+                        <p class="text-muted">Gestión de producción, calidad y paros del proceso de telares.</p>
                     </div>
-                    <div>
-                        <select id="select-estado" class="form-control" style="width: auto;">
-                            <option value="Sin datos">⚪ Sin datos</option>
-                            <option value="Parcial">🟡 Parcial</option>
-                            <option value="Completo">🟢 Completo</option>
-                        </select>
+                    <div id="container-status">
+                        <span class="badge-status status-sin-datos" id="badge-estado">Sin datos</span>
+                    </div>
+                </div>
+
+                <!-- CABECERA DE TELAR (Datos de Orden) -->
+                <div class="card mb-4">
+                    <div class="card-header">INFORMACIÓN DE LA ORDEN ACTIVA</div>
+                    <div class="card-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; padding: 16px;">
+                        <div>
+                            <div class="spec-label">Ancho Nominal</div>
+                            <div class="spec-value" id="val-ancho-nominal">--</div>
+                        </div>
+                        <div>
+                            <div class="spec-label">Construcción (Urdido x Trama)</div>
+                            <div class="spec-value" id="val-construccion">--</div>
+                        </div>
+                        <div>
+                            <div class="spec-label">Color Esperado (Urdido / Trama)</div>
+                            <div class="spec-value" id="val-color">--</div>
+                        </div>
+                        <div>
+                            <div class="spec-label">Último Acumulado</div>
+                            <div class="spec-value" id="val-ultimo-acumulado">-- m</div>
+                        </div>
                     </div>
                 </div>
 
@@ -50,46 +76,100 @@
                             <table class="table" id="tabla-produccion">
                                 <thead>
                                     <tr>
-                                        <th>Orden</th>
-                                        <th>Producción (m)</th>
+                                        <th>Orden de Producción</th>
+                                        <th>Acumulado Contador</th>
+                                        <th>Metros Producidos</th>
                                         <th>Desperdicio (kg)</th>
-                                        <th>Observación / Motivo</th>
+                                        <th>Observaciones</th>
                                         <th style="width: 40px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbody-produccion"></tbody>
                             </table>
                         </div>
-                        <button class="button button-outline" id="btn-agregar-produccion" style="margin-top: 12px;">+ Agregar Orden</button>
+                        <button class="button button-outline" id="btn-agregar-produccion" style="margin-top: 12px;">+ Agregar tramo / cambio de orden</button>
                     </div>
 
-                    <!-- 2. CALIDAD -->
+                    <!-- 2. CALIDAD ANCHO -->
                     <div class="card form-section">
-                        <div class="card-header">2. CALIDAD - ANCHO TELA (Pulgadas)</div>
-                        <p class="text-muted mb-2">Tolerancia: <span id="ancho-nominal">--</span>" ± 1/4"</p>
+                        <div class="card-header">2. CALIDAD: ANCHO DE TELA</div>
+                        <p class="text-muted mb-2">4 mediciones por turno (cada 2 horas). Tolerancia ± 0.25"</p>
                         <div class="table-container">
                             <table class="table">
                                 <thead>
                                     <tr>
-                                        <th>Valor</th>
+                                        <th>Medición</th>
+                                        <th>Momento</th>
+                                        <th>Valor (pulg)</th>
                                         <th>Resultado</th>
-                                        <th style="width: 40px;"></th>
                                     </tr>
                                 </thead>
-                                <tbody id="tbody-ancho"></tbody>
+                                <tbody id="tbody-ancho">
+                                    <tr data-indice="1"><td>1</td><td>Hora 2</td><td><input type="number" step="0.01" class="input-ancho"></td><td class="res-ancho">--</td></tr>
+                                    <tr data-indice="2"><td>2</td><td>Hora 4</td><td><input type="number" step="0.01" class="input-ancho"></td><td class="res-ancho">--</td></tr>
+                                    <tr data-indice="3"><td>3</td><td>Hora 6</td><td><input type="number" step="0.01" class="input-ancho"></td><td class="res-ancho">--</td></tr>
+                                    <tr data-indice="4"><td>4</td><td>Cierre</td><td><input type="number" step="0.01" class="input-ancho"></td><td class="res-ancho">--</td></tr>
+                                </tbody>
                             </table>
                         </div>
-                        <button class="button button-outline" id="btn-agregar-ancho" style="margin-top: 12px;">+ Medición Ancho</button>
                     </div>
 
+                    <!-- 3. CALIDAD CONSTRUCCION -->
                     <div class="card form-section">
-                        <div class="card-header">3. DEFECTOS VISUALES</div>
+                        <div class="card-header">3. CALIDAD: CONSTRUCCIÓN</div>
+                        <p class="text-muted mb-2">1 verificación por turno.</p>
                         <div class="table-container">
                             <table class="table">
                                 <thead>
                                     <tr>
-                                        <th>Rollo</th>
-                                        <th>Defecto</th>
+                                        <th>Tipo</th>
+                                        <th>Nominal</th>
+                                        <th>Medido</th>
+                                        <th>Resultado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-construccion">
+                                    <tr data-param="construccion_urdido"><td>Urdido</td><td class="nom-const">--</td><td><input type="number" class="input-const"></td><td class="res-const">--</td></tr>
+                                    <tr data-param="construccion_trama"><td>Trama</td><td class="nom-const">--</td><td><input type="number" class="input-const"></td><td class="res-const">--</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 4. VERIFICACION COLOR -->
+                    <div class="card form-section">
+                        <div class="card-header">4. VERIFICACIÓN DE COLOR</div>
+                        <p class="text-muted mb-2">Verificar al inicio y en cada cambio de orden.</p>
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Componente</th>
+                                        <th>Esperado</th>
+                                        <th>¿Cumple?</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-color">
+                                    <tr data-param="color_urdido"><td>Urdido</td><td class="exp-color">--</td><td><select class="select-color"><option value="">Seleccione...</option><option value="Cumple">Cumple</option><option value="No cumple">No cumple</option></select></td></tr>
+                                    <tr data-param="color_trama"><td>Trama</td><td class="exp-color">--</td><td><select class="select-color"><option value="">Seleccione...</option><option value="Cumple">Cumple</option><option value="No cumple">No cumple</option></select></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="alert-color-fail" class="alert-color">
+                            ⚠ Color fuera de especificación: registre el paro obligatorio.
+                        </div>
+                    </div>
+
+                    <!-- 5. DEFECTOS VISUALES -->
+                    <div class="card form-section">
+                        <div class="card-header">5. DEFECTOS VISUALES</div>
+                        <div class="table-container">
+                            <table class="table" id="tabla-visual">
+                                <thead>
+                                    <tr>
+                                        <th>N° Rollo</th>
+                                        <th>Display</th>
+                                        <th>Tipo Defecto</th>
                                         <th>Observación</th>
                                         <th style="width: 40px;"></th>
                                     </tr>
@@ -100,31 +180,32 @@
                         <button class="button button-outline" id="btn-agregar-visual" style="margin-top: 12px;">+ Registrar Defecto</button>
                     </div>
 
-                    <!-- 4. INCIDENTES -->
+                    <!-- 6. PAROS -->
                     <div class="card form-section" style="grid-column: span 2;">
-                        <div class="card-header">4. INCIDENTES Y PAROS</div>
+                        <div class="card-header">6. PAROS DE PRODUCCIÓN</div>
                         <div class="table-container">
-                            <table class="table">
+                            <table class="table" id="tabla-paros">
                                 <thead>
                                     <tr>
-                                        <th>Tiempo (min)</th>
-                                        <th>Clasificación</th>
-                                        <th>Motivo / Acción</th>
+                                        <th>Tipo de Paro</th>
+                                        <th>Minutos</th>
+                                        <th>Justificación</th>
                                         <th style="width: 40px;"></th>
                                     </tr>
                                 </thead>
-                                <tbody id="tbody-incidentes"></tbody>
+                                <tbody id="tbody-paros"></tbody>
                             </table>
                         </div>
-                        <button class="button button-outline" id="btn-agregar-incidente" style="margin-top: 12px;">+ Registrar Paro</button>
+                        <button class="button button-outline" id="btn-agregar-paro" style="margin-top: 12px;">+ Registrar Paro</button>
                     </div>
                 </div>
 
-                <div id="aviso-calidad" class="card" style="border-left: 4px solid var(--warning); display: none;">
-                    <div style="padding: 16px;">
-                        <strong>⚠ Advertencia de Calidad</strong>
-                        <p class="text-muted">Se requiere una explicación para cerrar sin datos de calidad o con desviaciones.</p>
-                        <input type="text" id="obs-advertencia" class="form-control mt-2" placeholder="Explicación obligatoria...">
+                <!-- 7. JUSTIFICACION -->
+                <div id="section-justificacion" class="card mt-4" style="border-left: 4px solid var(--danger); display: none;">
+                    <div class="card-body">
+                        <strong>Justificación por omisión de mediciones (obligatoria)</strong>
+                        <p class="text-muted">Se requiere explicar por qué no se completaron las 4 mediciones de ancho.</p>
+                        <input type="text" id="input-justificacion" class="form-control mt-2" placeholder="Escriba la justificación aquí...">
                     </div>
                 </div>
             </div>
