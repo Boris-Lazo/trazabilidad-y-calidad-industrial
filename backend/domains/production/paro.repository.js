@@ -33,19 +33,35 @@ class ParoRepository {
 
   async sumMinutosByBitacoraAndProceso(bitacoraId, procesoId) {
     const res = await this.db.get(
-      'SELECT SUM(minutos_perdidos) as total FROM PARO_PROCESO WHERE bitacora_id = ? AND proceso_id = ?',
+      'SELECT SUM(minutos_perdidos) as total FROM PARO_PROCESO WHERE bitacora_id = ? AND proceso_id = ? AND fecha_fin IS NOT NULL',
       [bitacoraId, procesoId]
     );
     return res.total || 0;
   }
 
+  async findOpenByProceso(bitacoraId, procesoId) {
+    return await this.db.get(
+      'SELECT * FROM PARO_PROCESO WHERE bitacora_id = ? AND proceso_id = ? AND fecha_fin IS NULL',
+      [bitacoraId, procesoId]
+    );
+  }
+
   async create(data) {
-    const { bitacora_id, proceso_id, motivo_id, minutos_perdidos, observacion } = data;
+    const { bitacora_id, proceso_id, motivo_id, observacion, fecha_inicio } = data;
+    const inicio = fecha_inicio || new Date().toISOString();
     const result = await this.db.run(
-      'INSERT INTO PARO_PROCESO (bitacora_id, proceso_id, motivo_id, minutos_perdidos, observacion, fecha_hora) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
-      [bitacora_id, proceso_id, motivo_id, minutos_perdidos, observacion]
+      'INSERT INTO PARO_PROCESO (bitacora_id, proceso_id, motivo_id, observacion, fecha_inicio, fecha_hora) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
+      [bitacora_id, proceso_id, motivo_id, observacion, inicio]
     );
     return result.lastID;
+  }
+
+  async closeParo(id, minutos, fechaFin) {
+    const fin = fechaFin || new Date().toISOString();
+    await this.db.run(
+      'UPDATE PARO_PROCESO SET minutos_perdidos = ?, fecha_fin = ? WHERE id = ?',
+      [minutos, fin, id]
+    );
   }
 
   async update(id, data) {

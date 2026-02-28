@@ -16,6 +16,7 @@ const router = express.Router();
 
 router.get('/', authorize(PERMISSIONS.VIEW_PRODUCTION), paroController.getParosByProceso);
 router.post('/', authorize(PERMISSIONS.MANAGE_PRODUCTION), paroController.create);
+router.post('/cerrar', authorize(PERMISSIONS.MANAGE_PRODUCTION), paroController.cerrar);
 router.put('/:id', authorize(PERMISSIONS.MANAGE_PRODUCTION), paroController.update);
 router.delete('/:id', authorize(PERMISSIONS.MANAGE_PRODUCTION), paroController.delete);
 router.get('/motivos', authorize(PERMISSIONS.VIEW_PRODUCTION), paroController.getMotivos);

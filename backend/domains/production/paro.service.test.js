@@ -10,9 +10,11 @@ describe('ParoService Hardening', () => {
   beforeEach(() => {
     paroRepositoryMock = {
       findByBitacoraAndProceso: jest.fn(),
+      findOpenByProceso: jest.fn(),
       findById: jest.fn(),
       sumMinutosByBitacoraAndProceso: jest.fn(),
       create: jest.fn(),
+      closeParo: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
       getMotivosCatalogo: jest.fn()
@@ -24,26 +26,30 @@ describe('ParoService Hardening', () => {
     paroService = new ParoService(paroRepositoryMock, bitacoraRepositoryMock);
   });
 
-  test('1. Crear paro válido', async () => {
-    const data = { bitacora_id: 1, proceso_id: 1, motivo_id: 1, minutos_perdidos: 30 };
+  test('1. Abrir paro válido', async () => {
+    const data = { bitacora_id: 1, proceso_id: 1, motivo_id: 1, observacion: 'Test' };
     bitacoraRepositoryMock.findById.mockResolvedValue({ id: 1, estado: 'ABIERTA' });
-    bitacoraRepositoryMock.getProcesoStatus.mockResolvedValue({ tiempo_programado_minutos: 480 });
-    paroRepositoryMock.sumMinutosByBitacoraAndProceso.mockResolvedValue(100);
+    paroRepositoryMock.findOpenByProceso.mockResolvedValue(null);
     paroRepositoryMock.create.mockResolvedValue(1);
-    paroRepositoryMock.findById.mockResolvedValue({ id: 1, ...data });
+    paroRepositoryMock.findById.mockResolvedValue({ id: 1, ...data, fecha_inicio: new Date().toISOString() });
 
-    const result = await paroService.create(data);
+    const result = await paroService.abrirParo(data);
     expect(result.id).toBe(1);
-    expect(paroRepositoryMock.create).toHaveBeenCalledWith(data);
+    expect(paroRepositoryMock.create).toHaveBeenCalled();
   });
 
-  test('2. Crear paro que excede tiempo programado -> debe fallar', async () => {
-    const data = { bitacora_id: 1, proceso_id: 1, motivo_id: 1, minutos_perdidos: 400 };
-    bitacoraRepositoryMock.findById.mockResolvedValue({ id: 1, estado: 'ABIERTA' });
-    bitacoraRepositoryMock.getProcesoStatus.mockResolvedValue({ tiempo_programado_minutos: 480 });
-    paroRepositoryMock.sumMinutosByBitacoraAndProceso.mockResolvedValue(100);
+  test('2. Cerrar paro calcula duración correctamente', async () => {
+    const bitacora_id = 1;
+    const proceso_id = 1;
+    const inicio = new Date(Date.now() - 30 * 60000).toISOString(); // Hace 30 min
 
-    await expect(paroService.create(data)).rejects.toThrow(/excede el tiempo programado/);
+    bitacoraRepositoryMock.findById.mockResolvedValue({ id: 1, estado: 'ABIERTA' });
+    paroRepositoryMock.findOpenByProceso.mockResolvedValue({ id: 10, fecha_inicio: inicio });
+    paroRepositoryMock.findById.mockResolvedValue({ id: 10, minutos_perdidos: 30 });
+
+    const result = await paroService.cerrarParo(bitacora_id, proceso_id);
+    expect(paroRepositoryMock.closeParo).toHaveBeenCalledWith(10, 30, expect.any(String));
+    expect(result.minutos_perdidos).toBe(30);
   });
 
   test('3. Editar paro y exceder tiempo -> debe fallar', async () => {
@@ -56,11 +62,11 @@ describe('ParoService Hardening', () => {
     await expect(paroService.update(1, data)).rejects.toThrow(/excede el tiempo programado/);
   });
 
-  test('4. Intentar crear paro en bitácora cerrada -> debe fallar', async () => {
-    const data = { bitacora_id: 1, proceso_id: 1, motivo_id: 1, minutos_perdidos: 30 };
+  test('4. Intentar abrir paro en bitácora cerrada -> debe fallar', async () => {
+    const data = { bitacora_id: 1, proceso_id: 1, motivo_id: 1 };
     bitacoraRepositoryMock.findById.mockResolvedValue({ id: 1, estado: 'CERRADA' });
 
-    await expect(paroService.create(data)).rejects.toThrow('BITACORA_CERRADA_NO_MODIFICABLE');
+    await expect(paroService.abrirParo(data)).rejects.toThrow('BITACORA_CERRADA_NO_MODIFICABLE');
   });
 
   test('5. Intentar editar paro en bitácora cerrada -> debe fallar', async () => {

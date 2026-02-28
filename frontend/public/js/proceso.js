@@ -18,11 +18,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- CARGAR DATOS INICIALES ---
     try {
-        const [contratoRes, bitacoraRes, ordersRes, maquinasRes] = await Promise.all([
+        const [contratoRes, bitacoraRes, ordersRes, maquinasRes, motivosRes] = await Promise.all([
             fetch(`/api/procesos/${procesoId}`),
             fetch('/api/bitacora/estado'),
             fetch(`/api/ordenes-produccion?estado=Liberada&proceso_id=${procesoId}`),
-            fetch(`/api/maquinas?proceso_id=${procesoId}`)
+            fetch(`/api/maquinas?proceso_id=${procesoId}`),
+            fetch('/api/paros/motivos')
         ]);
 
         contrato = (await contratoRes.json()).data;
@@ -31,9 +32,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentBitacora = fullState.bitacora;
         orders = (await ordersRes.json()).data || [];
         maquinasAutorizadas = (await maquinasRes.json()).data || [];
+        const motivos = (await motivosRes.json()).data || [];
 
         document.getElementById('bread-turno').textContent = currentBitacora.turno;
         document.getElementById('bread-fecha').textContent = currentBitacora.fecha_operativa;
+
+        renderMotivosParo(motivos);
 
         const procesoState = fullState.procesos.find(p => p.id == procesoId);
         applyEnforcedFlow(procesoState);
@@ -310,51 +314,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             alertDiv.style.display = 'none';
         }
 
-        // REGLA FUNDAMENTAL: ELIMINAR MENÚS DE ACCIÓN OPCIONALES
-        // Solo mostramos el formulario que corresponde a la siguiente acción obligatoria.
-
-        // Ocultar TODO por defecto
-        [cardCalidad, cardProduccion, cardDesperdicio, cardParos, cardParamOperativos, cardMateriasPrimas].forEach(c => {
-            if (c) c.style.display = 'none';
-        });
-
+        const permitidas = state.accionesPermitidas || [];
         const action = state.siguienteAccion;
 
-        if (action === 'REGISTRAR_CALIDAD') {
-            cardCalidad.style.display = 'block';
-            if (cardParamOperativos) cardParamOperativos.style.display = 'block';
-            if (cardMateriasPrimas) cardMateriasPrimas.style.display = 'block';
-        } else if (action === 'REGISTRAR_PRODUCCION') {
-            cardProduccion.style.display = 'block';
-            cardDesperdicio.style.display = 'block';
-        } else if (action === 'COMPLETAR_DATOS') {
-            cardParos.style.display = 'block';
-            // Mostrar resumen de lo anterior pero en lectura si es posible
-            cardCalidad.style.display = 'block';
-            cardProduccion.style.display = 'block';
-        } else if (action === 'CORREGIR_O_JUSTIFICAR') {
-            cardCalidad.style.display = 'block';
-            cardProduccion.style.display = 'block';
-            document.getElementById('observaciones').closest('.card').style.border = '2px solid var(--danger)';
-        } else if (action === 'LECTURA' || action === 'NINGUNA') {
-            [cardCalidad, cardProduccion, cardDesperdicio, cardParos].forEach(c => { if (c) c.style.display = 'block'; });
+        // VISIBILIDAD DE SECCIONES BASADA EN ESTADO INDEPENDIENTE
+        cardCalidad.style.display = permitidas.includes('REGISTRAR_CALIDAD') ? 'block' : 'none';
+        cardProduccion.style.display = permitidas.includes('REGISTRAR_PRODUCCION') ? 'block' : 'none';
+        cardDesperdicio.style.display = permitidas.includes('REGISTRAR_PRODUCCION') ? 'block' : 'none';
+        cardParos.style.display = 'block'; // Siempre visible para historial, pero botones cambian.
+
+        if (cardParamOperativos) cardParamOperativos.style.display = permitidas.includes('REGISTRAR_CALIDAD') ? 'block' : 'none';
+        if (cardMateriasPrimas) cardMateriasPrimas.style.display = permitidas.includes('REGISTRAR_CALIDAD') ? 'block' : 'none';
+
+        const isEnParo = state.estadoProceso === 'EN_PARO';
+        document.getElementById('paro-form-container').style.display = (isEnParo || state.estadoProceso === 'CERRADO') ? 'none' : 'block';
+        document.getElementById('paro-active-banner').style.display = isEnParo ? 'block' : 'none';
+
+        if (isEnParo) {
+            document.getElementById('badge-estado-proceso').className = 'badge badge-danger';
+            document.getElementById('badge-estado-proceso').textContent = 'EN PARO';
         }
 
         // Bloqueo total de inputs si no está en accionesPermitidas
-        const inputs = document.querySelectorAll('input, select, textarea, button:not(#theme-toggle):not(#logout-link)');
+        const inputs = document.querySelectorAll('input, select, textarea, button:not(#theme-toggle):not(#logout-link):not(#btn-registrar-arranque):not(#btn-registrar-paro)');
 
         if (action === 'LECTURA' || state.estadoProceso === 'CERRADO') {
-            inputs.forEach(i => {
-                if (!i.closest('.sidebar')) i.disabled = true;
-            });
+            inputs.forEach(i => { if (!i.closest('.sidebar')) i.disabled = true; });
             document.getElementById('btn-guardar').style.display = 'none';
             document.getElementById('btn-guardar-volver').style.display = 'none';
         }
 
-        // Resaltar estado
         if (state.estadoProceso === 'REVISION') {
             document.getElementById('proceso-estado-badge').innerHTML = '<span class="badge badge-error">REVISIÓN REQUERIDA</span>';
         }
+    }
+
+    function renderMotivosParo(motivos) {
+        const select = document.getElementById('paro-motivo-id');
+        select.innerHTML = '<option value="">— Seleccione motivo —</option>' +
+            motivos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
     }
 
     // --- COPIAR ÚLTIMO TURNO ---
@@ -424,7 +422,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             data.produccion?.forEach(p => agregarProduccion(p));
             data.desperdicio?.forEach(d => agregarDesperdicio(d));
-            data.incidentes?.forEach(inc => agregarIncidente(inc));
+
+            // Cargar historial de paros reales
+            await cargarHistorialParos();
+
             document.getElementById('observaciones').value = data.observaciones || '';
 
             if (data.solo_lectura) {
@@ -442,6 +443,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) {
             console.error("Error cargando datos:", e);
         }
+    }
+
+    async function cargarHistorialParos() {
+        const res = await fetch(`/api/paros?bitacora_id=${currentBitacora.id}&proceso_id=${procesoId}`);
+        const result = await res.json();
+        const paros = result.data || [];
+        const tbody = document.getElementById('tbody-incidentes');
+        tbody.innerHTML = '';
+
+        paros.forEach(p => {
+            const tr = document.createElement('tr');
+            const inicio = new Date(p.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const fin = p.fecha_fin ? new Date(p.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '<span class="text-error">ABIERTO</span>';
+
+            tr.innerHTML = `
+                <td>${inicio}</td>
+                <td>${fin}</td>
+                <td>${p.motivo_nombre}</td>
+                <td>${p.minutos_perdidos || '—'}</td>
+                <td>${p.observacion || ''}</td>
+            `;
+            tbody.appendChild(tr);
+
+            if (!p.fecha_fin) {
+                document.getElementById('paro-active-banner').style.display = 'block';
+                document.getElementById('paro-active-info').textContent = `Motivo: ${p.motivo_nombre} | Iniciado: ${inicio}`;
+                document.getElementById('paro-form-container').style.display = 'none';
+            }
+        });
     }
 
     async function updateBalanceTiempos() {
@@ -608,29 +638,55 @@ document.addEventListener('DOMContentLoaded', async () => {
         tr.querySelector('.btn-eliminar-fila').onclick = () => tr.remove();
     }
 
-    function agregarIncidente(data = {}) {
-        const tbody = document.getElementById('tbody-incidentes');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><input type="number" class="form-control" value="${data.tiempo || ''}" style="padding: 4px;"></td>
-            <td><input type="text" class="form-control" value="${data.motivo || ''}" style="padding: 4px;"></td>
-            <td>
-                <select class="form-control" style="padding: 4px;">
-                    <option value="Operativa" ${data.clasificacion === 'Operativa' ? 'selected' : ''}>Operativa</option>
-                    <option value="Mecánica" ${data.clasificacion === 'Mecánica' ? 'selected' : ''}>Mecánica</option>
-                    <option value="Eléctrica" ${data.clasificacion === 'Eléctrica' ? 'selected' : ''}>Eléctrica</option>
-                    <option value="Calidad" ${data.clasificacion === 'Calidad' ? 'selected' : ''}>Calidad</option>
-                </select>
-            </td>
-            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
-        `;
-        tbody.appendChild(tr);
-        tr.querySelector('.btn-eliminar-fila').onclick = () => { tr.remove(); updateBalanceTiempos(); };
+    async function registrarParo() {
+        const motivo_id = document.getElementById('paro-motivo-id').value;
+        const observacion = document.getElementById('paro-observacion').value;
+
+        if (!motivo_id) { alert('Debe seleccionar un motivo de paro.'); return; }
+
+        try {
+            const res = await fetch('/api/paros', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    bitacora_id: currentBitacora.id,
+                    proceso_id: procesoId,
+                    motivo_id,
+                    observacion
+                })
+            });
+            if (res.ok) {
+                location.reload();
+            } else {
+                const err = await res.json();
+                alert(err.message || 'Error al registrar paro');
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function registrarArranque() {
+        try {
+            const res = await fetch('/api/paros/cerrar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    bitacora_id: currentBitacora.id,
+                    proceso_id: procesoId
+                })
+            });
+            if (res.ok) {
+                location.reload();
+            } else {
+                const err = await res.json();
+                alert(err.message || 'Error al registrar arranque');
+            }
+        } catch (e) { console.error(e); }
     }
 
     document.getElementById('btn-agregar-produccion').onclick = () => agregarProduccion();
     document.getElementById('btn-agregar-desperdicio').onclick = () => agregarDesperdicio();
-    document.getElementById('btn-agregar-incidente').onclick = () => agregarIncidente();
+    document.getElementById('btn-registrar-paro').onclick = registrarParo;
+    document.getElementById('btn-registrar-arranque').onclick = registrarArranque;
     document.getElementById('btn-guardar').onclick = () => guardar(false);
     document.getElementById('btn-guardar-volver').onclick = () => guardar(true);
 

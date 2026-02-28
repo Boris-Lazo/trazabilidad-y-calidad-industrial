@@ -111,6 +111,12 @@ class BitacoraService {
 
         await this._validateProcesoPersonal(proceso, bitacora, registros, muestras);
 
+        // Validar si hay paros abiertos
+        const openParo = await this.paroRepository.findOpenByProceso(bitacoraId, proceso.processId);
+        if (openParo) {
+            throw new ValidationError(`El proceso '${proceso.nombre}' tiene un paro abierto. Debe registrar arranque antes de cerrar el turno.`);
+        }
+
         // Validar tiempos de paro antes de cerrar
         const resumenTiempos = await this.calcularResumenTiempo(bitacoraId, proceso.processId);
         if (resumenTiempos.total_paros > resumenTiempos.tiempo_programado) {
@@ -162,16 +168,17 @@ class BitacoraService {
     const resumen = [];
 
     for (const proceso of procesos) {
+      const status = await this.bitacoraRepository.getProcesoStatus(bitacoraId, proceso.processId);
       const registros = await this.bitacoraRepository.getRegistrosByProceso(bitacoraId, proceso.processId);
       const muestras = await this.bitacoraRepository.getMuestrasByProceso(bitacoraId, proceso.processId);
-      const status = await this.bitacoraRepository.getProcesoStatus(bitacoraId, proceso.processId);
+      const openParo = await this.paroRepository.findOpenByProceso(bitacoraId, proceso.processId);
 
       const contract = ProcessRegistry.get(proceso.processId);
       const muestrasMinimas = contract.frecuenciaMuestreo?.muestrasMinTurno || 1;
 
       let estadoProceso = 'SIN_DATOS';
-      let siguienteAccion = 'REGISTRAR_CALIDAD';
-      let accionesPermitidas = ['REGISTRAR_CALIDAD'];
+      let siguienteAccion = 'REGISTRAR_CALIDAD'; // Se mantiene por legacy, pero accionesPermitidas es la verdad.
+      let accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PARO'];
       let bloqueos = [];
 
       const produccionTotal = registros.reduce((sum, r) => sum + (r.cantidad_producida || 0), 0);
@@ -184,27 +191,32 @@ class BitacoraService {
         estadoProceso = 'COMPLETO';
         siguienteAccion = 'NINGUNA';
         accionesPermitidas = [];
+      } else if (openParo) {
+        estadoProceso = 'EN_PARO';
+        siguienteAccion = 'REGISTRAR_ARRANQUE';
+        accionesPermitidas = ['REGISTRAR_ARRANQUE', 'REGISTRAR_CALIDAD'];
+        bloqueos = ['El proceso está detenido. Registre arranque para continuar producción.'];
       } else if (hasRechazo || hasIncidente) {
         estadoProceso = 'REVISION';
         siguienteAccion = 'CORREGIR_O_JUSTIFICAR';
-        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION', 'CORREGIR'];
+        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION', 'REGISTRAR_PARO', 'CORREGIR'];
       } else if (hasRegistros && hasMuestras) {
         estadoProceso = 'COMPLETO';
         siguienteAccion = 'NINGUNA';
-        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION'];
+        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION', 'REGISTRAR_PARO'];
       } else if (!hasMuestras) {
         estadoProceso = 'ESPERANDO_CALIDAD';
         siguienteAccion = 'REGISTRAR_CALIDAD';
-        accionesPermitidas = ['REGISTRAR_CALIDAD'];
+        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PARO'];
         bloqueos = [`No se puede registrar producción hasta validar calidad (mínimo ${muestrasMinimas} muestras).`];
       } else if (!hasRegistros) {
         estadoProceso = 'ESPERANDO_PRODUCCION';
         siguienteAccion = 'REGISTRAR_PRODUCCION';
-        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION'];
+        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION', 'REGISTRAR_PARO'];
       } else {
         estadoProceso = 'PARCIAL';
         siguienteAccion = 'COMPLETAR_DATOS';
-        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION'];
+        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION', 'REGISTRAR_PARO'];
       }
 
       if (bitacora.estado === 'CERRADA') {

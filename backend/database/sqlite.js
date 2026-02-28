@@ -538,7 +538,9 @@ const runFullSchema = () => {
         bitacora_id INTEGER NOT NULL,
         proceso_id INTEGER NOT NULL,
         motivo_id INTEGER NOT NULL,
-        minutos_perdidos INTEGER NOT NULL,
+        minutos_perdidos INTEGER,
+        fecha_inicio DATETIME NOT NULL,
+        fecha_fin DATETIME,
         observacion TEXT,
         fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
@@ -1077,6 +1079,16 @@ const runFullSchema = () => {
       db.run(`ALTER TABLE ${item.table} ADD COLUMN ${item.column} ${item.type}`, (err) => {
         // Ignoramos error si la columna ya existe
       });
+    });
+
+    // Migración para PARO_PROCESO: agregar fecha_inicio y fecha_fin si no existen
+    db.run("ALTER TABLE PARO_PROCESO ADD COLUMN fecha_inicio DATETIME", (err) => {
+        if (!err) {
+            db.run("UPDATE PARO_PROCESO SET fecha_inicio = fecha_hora WHERE fecha_inicio IS NULL");
+        }
+    });
+    db.run("ALTER TABLE PARO_PROCESO ADD COLUMN fecha_fin DATETIME", (err) => {
+        // Ignoramos error si la columna ya existe
     });
 
     logger.info("Esquema e índices verificados con éxito.");

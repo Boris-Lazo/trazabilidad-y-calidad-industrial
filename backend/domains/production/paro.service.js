@@ -15,27 +15,45 @@ class ParoService {
     return await this.paroRepository.findByBitacoraAndProceso(bitacoraId, procesoId);
   }
 
-  async create(data) {
-    const { bitacora_id, proceso_id, minutos_perdidos } = data;
+  async abrirParo(data) {
+    const { bitacora_id, proceso_id, motivo_id, observacion, fecha_inicio } = data;
 
-    // Validar estado de la bitácora
     const bitacora = await this.bitacoraRepository.findById(bitacora_id);
     if (!bitacora) throw new NotFoundError('Bitácora no encontrada.');
-    if (bitacora.estado === 'CERRADA') {
-      throw new ValidationError('BITACORA_CERRADA_NO_MODIFICABLE');
-    }
+    if (bitacora.estado === 'CERRADA') throw new ValidationError('BITACORA_CERRADA_NO_MODIFICABLE');
 
-    // Validar exceso de tiempo
-    const status = await this.bitacoraRepository.getProcesoStatus(bitacora_id, proceso_id);
-    const tiempoProgramado = status ? status.tiempo_programado_minutos : 480;
-    const sumaActual = await this.paroRepository.sumMinutosByBitacoraAndProceso(bitacora_id, proceso_id);
+    const openParo = await this.paroRepository.findOpenByProceso(bitacora_id, proceso_id);
+    if (openParo) throw new ValidationError('Ya existe un paro abierto para este proceso.');
 
-    if (sumaActual + minutos_perdidos > tiempoProgramado) {
-      throw new ValidationError(`El tiempo de paro excede el tiempo programado (${tiempoProgramado} min).`);
-    }
-
-    const id = await this.paroRepository.create(data);
+    const id = await this.paroRepository.create({
+      bitacora_id,
+      proceso_id,
+      motivo_id,
+      observacion,
+      fecha_inicio: fecha_inicio || new Date().toISOString()
+    });
     return await this.paroRepository.findById(id);
+  }
+
+  async cerrarParo(bitacora_id, proceso_id, fecha_fin) {
+    const bitacora = await this.bitacoraRepository.findById(bitacora_id);
+    if (bitacora.estado === 'CERRADA') throw new ValidationError('BITACORA_CERRADA_NO_MODIFICABLE');
+
+    const openParo = await this.paroRepository.findOpenByProceso(bitacora_id, proceso_id);
+    if (!openParo) throw new ValidationError('No hay un paro abierto para este proceso.');
+
+    const fin = fecha_fin ? new Date(fecha_fin) : new Date();
+    const inicio = new Date(openParo.fecha_inicio);
+    const diffMs = fin - inicio;
+    const minutos = Math.max(1, Math.round(diffMs / 60000));
+
+    await this.paroRepository.closeParo(openParo.id, minutos, fin.toISOString());
+    return await this.paroRepository.findById(openParo.id);
+  }
+
+  async create(data) {
+    // Legacy support or direct entry
+    return await this.abrirParo(data);
   }
 
   async update(id, data) {

@@ -63,27 +63,11 @@ class BitacoraController {
         accionesPermitidas = ['CERRAR_TURNO', 'IR_A_PROCESO'];
         puedeCerrarTurno = true;
       } else {
-        const pendiente = procesos.find(p => p.estadoProceso !== 'COMPLETO' && p.estadoProceso !== 'REVISION');
         estadoTurno = 'EN_PROCESO';
-        siguienteAccion = 'IR_A_PROCESO';
-        const actionPayload = {
-            proceso_id: pendiente.id,
-            proceso_nombre: pendiente.nombre
-        };
-        razonesBloqueoCierre = [`Existen procesos pendientes: ${pendiente.nombre}`];
-
-        return sendSuccess(res, {
-          abierta: true,
-          bitacora,
-          procesos,
-          estadoTurno,
-          siguienteAccion,
-          actionPayload,
-          accionesPermitidas,
-          bloqueos,
-          puedeCerrarTurno,
-          razonesBloqueoCierre
-        });
+        siguienteAccion = 'VER_ESTADO_PROCESOS';
+        accionesPermitidas = ['IR_A_PROCESO'];
+        const pendientes = procesos.filter(p => p.estadoProceso !== 'COMPLETO' && p.estadoProceso !== 'REVISION');
+        razonesBloqueoCierre = pendientes.map(p => `Proceso pendiente: ${p.nombre}`);
       }
 
       return sendSuccess(res, {

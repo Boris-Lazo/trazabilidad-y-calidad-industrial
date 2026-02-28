@@ -20,8 +20,18 @@ class ParoController {
 
   create = async (req, res, next) => {
     try {
-      const paro = await this.paroService.create(req.body);
+      const paro = await this.paroService.abrirParo(req.body);
       return sendSuccess(res, paro, 201);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  cerrar = async (req, res, next) => {
+    try {
+      const { bitacora_id, proceso_id, fecha_fin } = req.body;
+      const paro = await this.paroService.cerrarParo(bitacora_id, proceso_id, fecha_fin);
+      return sendSuccess(res, paro);
     } catch (error) {
       next(error);
     }

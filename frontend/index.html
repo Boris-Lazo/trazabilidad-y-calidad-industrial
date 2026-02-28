@@ -106,17 +106,17 @@
 
             <div class="page-content">
                 <!-- ACTION CENTER (The system thinks for the operator) -->
-                <div id="action-center" style="max-width: 800px; margin: 2rem auto;">
-                    <div class="card" style="text-align: center; padding: 3rem 2rem; border-top: 8px solid var(--primary-color);">
-                        <div id="action-icon-container" style="margin-bottom: 1.5rem;">
-                            <i data-lucide="play-circle" style="width: 64px; height: 64px; color: var(--primary-color);"></i>
+                <div id="action-center" style="max-width: 1000px; margin: 2rem auto;">
+                    <div class="card" style="text-align: center; padding: 2rem; border-top: 8px solid var(--primary-color);">
+                        <div id="action-icon-container" style="margin-bottom: 1rem;">
+                            <i data-lucide="play-circle" style="width: 48px; height: 48px; color: var(--primary-color);"></i>
                         </div>
-                        <h2 id="action-title" style="font-size: 2rem; margin-bottom: 1rem;">Cargando estado...</h2>
-                        <p id="action-description" style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 2.5rem;">
+                        <h2 id="action-title" style="font-size: 1.75rem; margin-bottom: 0.5rem;">Cargando estado...</h2>
+                        <p id="action-description" style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 1.5rem;">
                             El sistema está sincronizando el estado operativo actual.
                         </p>
 
-                        <div id="blocking-reasons" style="display: none; background: var(--danger-subtle); padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; text-align: left; border: 1px solid var(--danger);">
+                        <div id="blocking-reasons" style="display: none; background: var(--danger-subtle); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: left; border: 1px solid var(--danger);">
                             <h4 style="color: var(--danger); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;">
                                 <i data-lucide="alert-octagon" style="width: 20px; height: 20px;"></i>
                                 No puedes continuar porque:
@@ -126,9 +126,14 @@
                             </ul>
                         </div>
 
-                        <button id="main-action-btn" class="btn btn-primary" style="font-size: 1.25rem; padding: 1rem 3rem; min-width: 300px; display: none;">
-                            Siguiente Acción
+                        <button id="main-action-btn" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.75rem 2rem; min-width: 250px; display: none;">
+                            Acción Principal
                         </button>
+                    </div>
+
+                    <!-- PANEL DE PROCESOS PARALELOS -->
+                    <div id="parallel-processes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+                        <!-- Se llena dinámicamente desde dashboard.js -->
                     </div>
 
                     <!-- Read-Only Context (KPIs reduced) -->

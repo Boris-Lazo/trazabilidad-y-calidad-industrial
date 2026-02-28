@@ -36,13 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // REDIRECCIÓN AUTOMÁTICA OBLIGATORIA
-            if (state.siguienteAccion === 'IR_A_PROCESO' && state.actionPayload) {
-                const p = state.actionPayload;
-                window.location.href = `/proceso.html?id=${p.proceso_id}&nombre=${encodeURIComponent(p.proceso_nombre)}`;
-                return;
-            }
-
+            // Renderizar el centro de acción con todos los procesos
             renderActionCenter(state);
         } catch (e) {
             console.error("Error al cargar contexto:", e);
@@ -56,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const iconContainer = document.getElementById('action-icon-container');
         const blockingDiv = document.getElementById('blocking-reasons');
         const reasonsList = document.getElementById('reasons-list');
+        const processContainer = document.getElementById('parallel-processes-container');
 
         elements.dashEstadoBitacora.textContent = state.abierta ? state.bitacora.estado : 'SIN BITÁCORA';
         elements.dashEstadoBitacora.className = `badge badge-${state.abierta ? 'success' : 'outline'}`;
@@ -64,36 +59,60 @@ document.addEventListener('DOMContentLoaded', () => {
         blockingDiv.style.display = blockingReasons.length > 0 ? 'block' : 'none';
         reasonsList.innerHTML = blockingReasons.map(r => `<li>${r}</li>`).join('');
 
-        btn.style.display = 'inline-block';
-        btn.onclick = () => handleAction(state.siguienteAccion, state);
+        // Limpiar contenedor de procesos
+        if (processContainer) processContainer.innerHTML = '';
 
-        switch (state.estadoTurno) {
-            case 'SIN_TURNO':
-                title.textContent = 'Bienvenido al Turno';
-                desc.textContent = 'No hay una bitácora abierta. Inicie el turno para comenzar el registro operativo.';
-                btn.textContent = 'ABRIR BITÁCORA DE TURNO';
-                iconContainer.innerHTML = '<i data-lucide="play-circle" style="width: 64px; height: 64px; color: var(--primary-color);"></i>';
-                break;
-            case 'LISTO_PARA_CIERRE':
-                title.textContent = 'Procesos Completados';
-                desc.textContent = 'Todos los procesos han sido registrados. Puede proceder al cierre del turno.';
-                btn.textContent = 'REALIZAR CIERRE DE TURNO';
-                btn.className = 'btn btn-primary';
-                iconContainer.innerHTML = '<i data-lucide="check-circle" style="width: 64px; height: 64px; color: var(--success);"></i>';
-                break;
-            case 'CERRADO':
-                title.textContent = 'Turno Finalizado';
-                desc.textContent = 'Esta bitácora ha sido cerrada. El sistema se encuentra en modo de solo lectura.';
-                btn.style.display = 'none';
-                iconContainer.innerHTML = '<i data-lucide="lock" style="width: 64px; height: 64px; color: var(--text-secondary);"></i>';
-                break;
-            default:
-                title.textContent = 'Sincronizando...';
-                desc.textContent = 'El sistema está determinando la siguiente acción.';
-                btn.style.display = 'none';
+        if (state.estadoTurno === 'SIN_TURNO') {
+            title.textContent = 'Bienvenido al Turno';
+            desc.textContent = 'No hay una bitácora abierta. Inicie el turno para comenzar el registro operativo.';
+            btn.textContent = 'ABRIR BITÁCORA DE TURNO';
+            btn.style.display = 'inline-block';
+            btn.onclick = () => window.location.href = '/bitacora.html';
+            iconContainer.innerHTML = '<i data-lucide="play-circle" style="width: 64px; height: 64px; color: var(--primary-color);"></i>';
+        } else if (state.estadoTurno === 'CERRADO') {
+            title.textContent = 'Turno Finalizado';
+            desc.textContent = 'Esta bitácora ha sido cerrada. El sistema se encuentra en modo de solo lectura.';
+            btn.style.display = 'none';
+            iconContainer.innerHTML = '<i data-lucide="lock" style="width: 64px; height: 64px; color: var(--text-secondary);"></i>';
+        } else {
+            // TURNO ABIERTO: Mostrar Procesos en Paralelo
+            title.textContent = 'Panel de Control de Turno';
+            desc.textContent = 'Gestione cada proceso de forma independiente.';
+            btn.style.display = state.estadoTurno === 'LISTO_PARA_CIERRE' ? 'inline-block' : 'none';
+            btn.textContent = 'REALIZAR CIERRE DE TURNO';
+            btn.onclick = () => window.location.href = '/bitacora.html';
+            iconContainer.innerHTML = `<i data-lucide="${state.estadoTurno === 'LISTO_PARA_CIERRE' ? 'check-circle' : 'activity'}" style="width: 64px; height: 64px; color: var(--primary-color);"></i>`;
+
+            if (processContainer && state.procesos) {
+                renderParallelProcesses(state.procesos, processContainer);
+            }
         }
 
         if (window.lucide) window.lucide.createIcons();
+    }
+
+    function renderParallelProcesses(procesos, container) {
+        container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8';
+        container.innerHTML = procesos.map(p => {
+            const statusClass = p.estadoProceso === 'EN_PARO' ? 'badge-danger' :
+                               p.estadoProceso === 'COMPLETO' ? 'badge-success' : 'badge-warning';
+
+            return `
+                <div class="card p-4 flex flex-col justify-between border-l-4" style="border-left-color: ${statusClass === 'badge-success' ? 'var(--success)' : statusClass === 'badge-danger' ? 'var(--danger)' : 'var(--warning)'}">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-lg">${p.nombre}</h3>
+                            <span class="badge ${statusClass}">${p.estadoUI}</span>
+                        </div>
+                        <p class="text-sm text-secondary mb-4">Ult. Act: ${p.ultimaActualizacion}</p>
+                        ${p.bloqueos.length > 0 ? `<p class="text-xs text-danger mb-2">⚠️ ${p.bloqueos[0]}</p>` : ''}
+                    </div>
+                    <button class="btn btn-outline w-full mt-4" onclick="window.location.href='/proceso.html?id=${p.id}&nombre=${encodeURIComponent(p.nombre)}'">
+                        ${p.estadoProceso === 'EN_PARO' ? 'GESTIONAR ARRANQUE' : 'VER DETALLE / REGISTRAR'}
+                    </button>
+                </div>
+            `;
+        }).join('');
     }
 
     function handleAction(action, state) {
