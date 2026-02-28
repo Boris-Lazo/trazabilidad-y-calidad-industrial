@@ -1,92 +1,93 @@
-# Modelo de Dominio: Turnos, Bitácoras y Ejecución de Órdenes
+# Modelo de Dominio Formal: Turno, Bitácora y Ejecución de Órdenes
 
-Este documento define el modelo de dominio formal para el sistema de control industrial, enfocado en la trazabilidad operativa y la integridad de los datos en planta.
+Este documento define el modelo de dominio conceptual para el sistema de control industrial, enfocado en la integridad de datos, trazabilidad absoluta y auditoría estricta.
 
 ## 1. Mapa de Entidades del Dominio
 
 ### 1.1 Bitácora de Turno (Entidad Raíz / Aggregate Root)
-Representa la unidad fundamental de auditoría y operación. Es el contenedor legal de todo lo ocurrido en un periodo de tiempo determinado.
-- **Atributos Clave**: Periodo operativo, Turno asignado, Inspector responsable, Estado operativo, Timestamp de apertura/cierre, Justificación de desviaciones.
+Es el contenedor legal y operativo de toda actividad en planta. Representa el acto formal de un turno de trabajo.
+- **Atributos**: Periodo operativo, turno asignado (T1-T4), inspector responsable, estado, timestamp apertura/cierre, justificaciones auditadas.
+- **Responsabilidad**: Garantizar que ninguna acción (producción, calidad, paro) ocurra fuera de su contexto.
 
-### 1.2 Turno (Valor de Dominio)
-Define la ventana temporal y el equipo de trabajo.
-- **Atributos Clave**: Identificador (T1, T2, T3, T4), Horario teórico, Grupo asignado.
-- **Nota**: Su detección es automática por hora de sistema pero su asignación es auditable.
+### 1.2 Turno (Identidad Temporal)
+Entidad detectada automáticamente por el sistema según la hora, pero sujeta a corrección administrativa auditada.
+- **Atributos**: Identificador (T1, T2, T3, T4), Horario teórico, Grupo operativo asignado (A, B, C o Administrativo).
 
 ### 1.3 ProcesoPorTurno (Agregado Intermedio)
-Instancia de un Proceso Industrial (ej. Extrusión PP) dentro de una Bitácora específica.
-- **Atributos Clave**: Referencia al Contrato de Proceso, Estado de completitud, Tiempo programado, Resumen de métricas.
+Instancia específica de un proceso (ej. Extrusor PP) ejecutándose dentro de una Bitácora.
+- **Atributos**: Referencia al contrato técnico del proceso (1-9), estado de completitud, tiempo programado (default 480 min), responsable operativo.
+- **Responsabilidad**: Contener las ejecuciones de órdenes, registros de calidad, paros y desperdicios del proceso específico.
 
-### 1.4 Ejecución de Orden (Entidad de Ejecución)
-Representa el trabajo real realizado sobre una Orden de Producción.
-- **Atributos Clave**: Referencia a OP (SAP), Máquina/Activo utilizado, Secuencia de eventos, Operario responsable, Cantidad producida, Merma generada.
+### 1.4 Ejecución de Orden (Entidad de Auditoría)
+Representa la transformación real de materiales vinculada a una Orden de Producción.
+- **Atributos**: Referencia a OP, Máquina (Activo), Secuencia de eventos (inicio/pausa/fin), operario responsable, métricas producidas.
+- **Responsabilidad**: Rastrear el uso de activos y cumplimiento de órdenes en el tiempo real de la bitácora.
 
 ### 1.5 Orden de Producción (Referencia Externa)
-Entidad estática proveniente de SAP.
-- **Atributos Clave**: Código OP (7 dígitos), Parámetros técnicos, Producto objetivo, Cantidad teórica.
+Entidad inmutable importada de SAP.
+- **Atributos**: Código de 7 dígitos (prefijo indica proceso), parámetros técnicos, producto objetivo.
+- **Responsabilidad**: Definir el "qué" debe hacerse, sin tener estado operativo propio en planta.
 
 ---
 
 ## 2. Relaciones entre Entidades
 
-- Una **Bitácora de Turno** posee N **ProcesosPorTurno**.
-- Un **ProcesoPorTurno** pertenece a una única **Bitácora de Turno**.
-- Un **ProcesoPorTurno** actúa como contenedor para N **Ejecuciones de Orden**, N **Registros de Calidad** y N **Eventos de Paro**.
-- Una **Ejecución de Orden** referencia a una **Orden de Producción** estática, pero su ciclo de vida es independiente.
-- Toda **Ejecución de Orden** debe estar vinculada a una **Máquina** autorizada por el contrato del proceso.
+- **Bitácora de Turno [1] -- [N] ProcesoPorTurno**: Una bitácora orquesta múltiples procesos simultáneos.
+- **ProcesoPorTurno [1] -- [N] Ejecución de Orden**: Las órdenes se ejecutan dentro del contexto de un proceso y un turno.
+- **Ejecución de Orden [N] -- [1] Máquina**: Toda ejecución debe estar vinculada a un activo autorizado por el contrato del proceso.
+- **Ejecución de Orden [N] -- [1] Orden de Producción**: Referencia externa obligatoria para trazabilidad SAP.
 
 ---
 
-## 3. Estados y Transiciones
+## 3. Máquinas de Estado
 
-### 3.1 Máquina de Estados: Bitácora de Turno
-| Estado | Transiciones Permitidas | Rol Autorizado | Restricciones |
+### 3.1 Bitácora de Turno
+| Estado | Transiciones Permitidas | Rol Autorizado | Restricción |
 | :--- | :--- | :--- | :--- |
-| **ABIERTA** | -> EN_REVISION, -> CERRADA | Inspector | Permite registros de producción y calidad. |
-| **EN_REVISION** | -> ABIERTA, -> CERRADA | Inspector, Supervisor | Requiere observaciones obligatorias por cada proceso marcado. |
-| **CERRADA** | -> CORREGIDA | Administrador | **Inmutable**. No permite edición de datos operativos. |
-| **CORREGIDA** | - | Administrador | Estado final tras un ajuste auditado. Genera un nuevo evento de auditoría vinculante. |
+| **ABIERTA** | -> EN_REVISION, -> CERRADA | Inspector | Permite ingreso de datos operativos. |
+| **EN_REVISION** | -> ABIERTA, -> CERRADA | Inspector, Supervisor | Requiere observaciones de justificación por cada desviación. |
+| **CERRADA** | -> CORREGIDA | Administrador | **Inmutable**. Bloquea cualquier modificación operativa. |
+| **CORREGIDA** | - | Administrador | Estado terminal. Indica corrección post-cierre con rastro de auditoría. |
 
-### 3.2 Máquina de Estados: ProcesoPorTurno
+### 3.2 ProcesoPorTurno
 | Estado | Transiciones Permitidas | Definición |
 | :--- | :--- | :--- |
-| **SIN_DATOS** | -> PARCIAL | Estado inicial. No hay registros de producción ni calidad. |
-| **PARCIAL** | -> COMPLETO, -> EN_REVISION | Existen datos pero no cumplen con la frecuencia de muestreo o el cierre de órdenes. |
-| **COMPLETO** | -> EN_REVISION | Cumple con todas las métricas obligatorias y cierres de ejecución. |
-| **EN_REVISION** | -> COMPLETO | Detectado por el sistema o marcado por el Inspector ante anomalías (ej. Rechazo de calidad). |
+| **SIN_DATOS** | -> PARCIAL | Estado inicial. Sin registros de producción/calidad. |
+| **PARCIAL** | -> COMPLETO, -> EN_REVISION | Registros presentes pero insuficientes según frecuencia de contrato. |
+| **COMPLETO** | -> EN_REVISION | Cumple con métricas, personal asignado y frecuencia de calidad. |
+| **EN_REVISION** | -> COMPLETO | Marcado ante anomalías (ej. Rechazos de calidad o incidentes). |
 
-### 3.3 Máquina de Estados: Ejecución de Orden
-| Estado | Transiciones Permitidas | Significado Operativo |
+### 3.3 Ejecución de Orden
+| Estado | Transiciones Permitidas | Significado |
 | :--- | :--- | :--- |
-| **EN_PROGRESO** | -> PAUSADA, -> FINALIZADA | La máquina está transformando material vinculado a la OP. |
-| **PAUSADA** | -> EN_PROGRESO, -> FINALIZADA | El trabajo se detiene por cambio de turno, mantenimiento o paro operativo. |
-| **FINALIZADA** | - | La orden ha completado su paso por este proceso en este turno. |
-| **CANCELADA** | - | Cierre administrativo de la ejecución por error de asignación. |
+| **IN_PROGRESS** | -> PAUSED, -> FINISHED | La máquina está procesando la orden. |
+| **PAUSED** | -> IN_PROGRESS, -> FINISHED | Interrupción temporal (cambio de turno, mantenimiento). |
+| **FINISHED** | - | Orden completada en este proceso para este turno. |
 
 ---
 
-## 4. Reglas Duras del Sistema
+## 4. Reglas Duras del Sistema (No Negociables)
 
-1. **Principio de Bitácora Única**: No puede existir más de una Bitácora en estado `ABIERTA` o `EN_REVISION` simultáneamente.
-2. **Identidad de Proceso**: Un `ProcesoPorTurno` no puede iniciarse si el `Contrato de Proceso` no está en estado `Activo`.
-3. **Cierre Condicionado**: Una Bitácora no puede pasar a `CERRADA` si existe algún `ProcesoPorTurno` con datos de producción pero sin el personal mínimo requerido asignado.
-4. **Integridad de Tiempos**: La suma de `TiempoEfectivo` + `TiempoTotalParos` debe ser igual al `TiempoProgramado` del proceso. No se permiten tiempos negativos.
-5. **Auditoría de Corrección**: Cualquier cambio en una Bitácora `CERRADA` debe disparar una transición a `CORREGIDA`, exigiendo un `Motivo de Cambio` y preservando el valor original en el log de auditoría.
+1. **Inmutabilidad Operativa**: Una vez que una Bitácora pasa a `CERRADA`, ningún dato (producción, paros, calidad) puede ser modificado o eliminado.
+2. **Principio de Bitácora Única**: No se permite la coexistencia de dos bitácoras abiertas para el mismo grupo/turno en traslape temporal.
+3. **Validación SAP 7-Dígitos**: El sistema debe bloquear ejecuciones de órdenes cuyo primer dígito no coincida con el `processId` del ProcesoPorTurno.
+4. **Balance de Tiempos**: `Tiempo Programado (480) = Tiempo Efectivo + Total Paros`. No se permiten cierres con tiempos negativos o excedentes sin justificación en `EN_REVISION`.
+5. **Auditoría Transversal**: Toda transición de estado y corrección de datos debe registrar: Quién, Cuándo, Por Qué, Valor Anterior y Valor Nuevo.
 
 ---
 
 ## 5. Acciones NO Permitidas
 
-- **Eliminación Física**: Ningún registro de producción, calidad o bitácora puede ser borrado de la base de datos.
-- **Registro Anacrónico**: No se pueden registrar datos de producción con timestamps fuera del rango de apertura/cierre de la Bitácora.
-- **Salto de Proceso**: No se puede ejecutar una OP en un proceso que no coincida con su código identificador (ej. OP que inicia con '1' solo en Extrusión PP).
-- **Cierre con Pendientes**: No se permite cerrar una Bitácora si hay una `Ejecución de Orden` en estado `EN_PROGRESO` sin una pausa o finalización registrada para el corte de turno.
+- **Eliminación de Registros**: Queda estrictamente prohibido el borrado físico de cualquier dato. Los errores se gestionan mediante estados de corrección.
+- **Registros Anacrónicos**: No se permite ingresar datos con fecha/hora fuera del rango operativo de la Bitácora actual.
+- **Cierre con Ejecuciones Activas**: No se puede cerrar una Bitácora si existe alguna Ejecución de Orden en estado `IN_PROGRESS`. Debe ser pausada o finalizada.
+- **Salto de Jerarquía**: No se pueden registrar producciones o mermas si no están vinculadas a un ProcesoPorTurno activo.
 
 ---
 
 ## 6. Errores Operativos que el Dominio Debe Prevenir
 
-- **Duplicidad de Órdenes**: Evitar que una misma OP se ejecute en dos máquinas distintas para el mismo proceso simultáneamente, a menos que el contrato lo autorice explícitamente.
-- **Inconsistencia de Calidad**: Impedir la finalización de un `ProcesoPorTurno` si las muestras de calidad obligatorias (según frecuencia del contrato) no han sido registradas.
-- **Fuga de Responsabilidad**: Impedir la apertura de una Bitácora si el Inspector identificado no cuenta con una sesión activa y válida en el sistema.
-- **Traslape de Turnos**: Bloquear la creación de una Bitácora cuya fecha operativa sea inferior a la última Bitácora cerrada (garantía de avance lineal en el tiempo).
+- **Fuga de Trazabilidad**: Impedir que una orden sea procesada en una máquina no autorizada por su contrato técnico.
+- **Inconsistencia de Calidad**: Impedir el marcado de un ProcesoPorTurno como `COMPLETO` si no se cumple con la frecuencia mínima de muestreo (ej. 3 muestras por turno).
+- **Traslape de Responsabilidad**: Bloquear la apertura de una Bitácora si el Inspector responsable no tiene una sesión válida o ya tiene otra bitácora abierta.
+- **Dato Huérfano**: Bloquear el registro de producción si el proceso no tiene personal mínimo asignado en el turno correspondiente.
