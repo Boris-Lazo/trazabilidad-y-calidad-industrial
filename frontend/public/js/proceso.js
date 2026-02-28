@@ -27,12 +27,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         contrato = (await contratoRes.json()).data;
         const bitacoraResult = await bitacoraRes.json();
-        currentBitacora = bitacoraResult.data.bitacora;
+        const fullState = bitacoraResult.data;
+        currentBitacora = fullState.bitacora;
         orders = (await ordersRes.json()).data || [];
         maquinasAutorizadas = (await maquinasRes.json()).data || [];
 
         document.getElementById('bread-turno').textContent = currentBitacora.turno;
         document.getElementById('bread-fecha').textContent = currentBitacora.fecha_operativa;
+
+        const procesoState = fullState.procesos.find(p => p.id == procesoId);
+        applyEnforcedFlow(procesoState);
 
         renderTablaCalidad(contrato);
         renderParametrosOperativos(contrato);
@@ -283,6 +287,74 @@ document.addEventListener('DOMContentLoaded', async () => {
         Array.from(document.getElementById(tbodyId).children).forEach((tr, i) => {
             tr.children[0].textContent = i + 1;
         });
+    }
+
+    function applyEnforcedFlow(state) {
+        if (!state) return;
+
+        const alertDiv = document.getElementById('proceso-blocking-alert');
+        const reasonsList = document.getElementById('proceso-blocking-reasons');
+
+        // Tarjetas y formularios
+        const cardCalidad = document.getElementById('seccion-calidad-dinamica').closest('.card');
+        const cardProduccion = document.getElementById('tbody-produccion').closest('.card');
+        const cardDesperdicio = document.getElementById('tbody-desperdicio').closest('.card');
+        const cardParos = document.getElementById('seccion-incidentes').closest('.card');
+        const cardParamOperativos = document.getElementById('card-parametros-operativos');
+        const cardMateriasPrimas = document.getElementById('card-materias-primas');
+
+        if (state.bloqueos && state.bloqueos.length > 0) {
+            alertDiv.style.display = 'block';
+            reasonsList.innerHTML = state.bloqueos.map(r => `<li>${r}</li>`).join('');
+        } else {
+            alertDiv.style.display = 'none';
+        }
+
+        // REGLA FUNDAMENTAL: ELIMINAR MENÚS DE ACCIÓN OPCIONALES
+        // Solo mostramos el formulario que corresponde a la siguiente acción obligatoria.
+
+        // Ocultar TODO por defecto
+        [cardCalidad, cardProduccion, cardDesperdicio, cardParos, cardParamOperativos, cardMateriasPrimas].forEach(c => {
+            if (c) c.style.display = 'none';
+        });
+
+        const action = state.siguienteAccion;
+
+        if (action === 'REGISTRAR_CALIDAD') {
+            cardCalidad.style.display = 'block';
+            if (cardParamOperativos) cardParamOperativos.style.display = 'block';
+            if (cardMateriasPrimas) cardMateriasPrimas.style.display = 'block';
+        } else if (action === 'REGISTRAR_PRODUCCION') {
+            cardProduccion.style.display = 'block';
+            cardDesperdicio.style.display = 'block';
+        } else if (action === 'COMPLETAR_DATOS') {
+            cardParos.style.display = 'block';
+            // Mostrar resumen de lo anterior pero en lectura si es posible
+            cardCalidad.style.display = 'block';
+            cardProduccion.style.display = 'block';
+        } else if (action === 'CORREGIR_O_JUSTIFICAR') {
+            cardCalidad.style.display = 'block';
+            cardProduccion.style.display = 'block';
+            document.getElementById('observaciones').closest('.card').style.border = '2px solid var(--danger)';
+        } else if (action === 'LECTURA' || action === 'NINGUNA') {
+            [cardCalidad, cardProduccion, cardDesperdicio, cardParos].forEach(c => { if (c) c.style.display = 'block'; });
+        }
+
+        // Bloqueo total de inputs si no está en accionesPermitidas
+        const inputs = document.querySelectorAll('input, select, textarea, button:not(#theme-toggle):not(#logout-link)');
+
+        if (action === 'LECTURA' || state.estadoProceso === 'CERRADO') {
+            inputs.forEach(i => {
+                if (!i.closest('.sidebar')) i.disabled = true;
+            });
+            document.getElementById('btn-guardar').style.display = 'none';
+            document.getElementById('btn-guardar-volver').style.display = 'none';
+        }
+
+        // Resaltar estado
+        if (state.estadoProceso === 'REVISION') {
+            document.getElementById('proceso-estado-badge').innerHTML = '<span class="badge badge-error">REVISIÓN REQUERIDA</span>';
+        }
     }
 
     // --- COPIAR ÚLTIMO TURNO ---

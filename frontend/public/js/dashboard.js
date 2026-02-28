@@ -22,28 +22,86 @@ document.addEventListener('DOMContentLoaded', () => {
     async function cargarContexto() {
         try {
             const resContexto = await fetch('/api/bitacora/tiempo-actual');
-            const resultContexto = await resContexto.json();
-            const dataContexto = resultContexto.data || {};
+            const dataContexto = (await resContexto.json()).data || {};
 
             elements.dashTurno.textContent = dataContexto.turno;
             elements.dashFecha.textContent = dataContexto.fechaOperativa || dataContexto.fecha;
             elements.dashHora.textContent = dataContexto.hora;
 
-            const resBitacora = await fetch('/api/bitacora/estado');
-            const resultBitacora = await resBitacora.json();
-            const dataBitacora = resultBitacora.data || {};
+            const resEstado = await fetch('/api/bitacora/estado');
+            const state = (await resEstado.json()).data || {};
 
-            if (dataBitacora.abierta) {
-                elements.dashEstadoBitacora.textContent = dataBitacora.bitacora.estado;
-                elements.dashEstadoBitacora.className = 'badge badge-success';
-                elements.dashWarningBitacora.style.display = 'none';
-            } else {
-                elements.dashEstadoBitacora.textContent = 'SIN BITÁCORA';
-                elements.dashEstadoBitacora.className = 'badge badge-outline';
-                elements.dashWarningBitacora.style.display = 'flex';
+            if (!state.estadoTurno) {
+                document.body.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100vh; flex-direction:column; font-family:sans-serif;"><h1>⚠️ ERROR DE SISTEMA</h1><p>Estado operativo incompleto. Contacte soporte.</p></div>';
+                return;
             }
+
+            // REDIRECCIÓN AUTOMÁTICA OBLIGATORIA
+            if (state.siguienteAccion === 'IR_A_PROCESO' && state.actionPayload) {
+                const p = state.actionPayload;
+                window.location.href = `/proceso.html?id=${p.proceso_id}&nombre=${encodeURIComponent(p.proceso_nombre)}`;
+                return;
+            }
+
+            renderActionCenter(state);
         } catch (e) {
             console.error("Error al cargar contexto:", e);
+        }
+    }
+
+    function renderActionCenter(state) {
+        const title = document.getElementById('action-title');
+        const desc = document.getElementById('action-description');
+        const btn = document.getElementById('main-action-btn');
+        const iconContainer = document.getElementById('action-icon-container');
+        const blockingDiv = document.getElementById('blocking-reasons');
+        const reasonsList = document.getElementById('reasons-list');
+
+        elements.dashEstadoBitacora.textContent = state.abierta ? state.bitacora.estado : 'SIN BITÁCORA';
+        elements.dashEstadoBitacora.className = `badge badge-${state.abierta ? 'success' : 'outline'}`;
+
+        const blockingReasons = state.bloqueos || [];
+        blockingDiv.style.display = blockingReasons.length > 0 ? 'block' : 'none';
+        reasonsList.innerHTML = blockingReasons.map(r => `<li>${r}</li>`).join('');
+
+        btn.style.display = 'inline-block';
+        btn.onclick = () => handleAction(state.siguienteAccion, state);
+
+        switch (state.estadoTurno) {
+            case 'SIN_TURNO':
+                title.textContent = 'Bienvenido al Turno';
+                desc.textContent = 'No hay una bitácora abierta. Inicie el turno para comenzar el registro operativo.';
+                btn.textContent = 'ABRIR BITÁCORA DE TURNO';
+                iconContainer.innerHTML = '<i data-lucide="play-circle" style="width: 64px; height: 64px; color: var(--primary-color);"></i>';
+                break;
+            case 'LISTO_PARA_CIERRE':
+                title.textContent = 'Procesos Completados';
+                desc.textContent = 'Todos los procesos han sido registrados. Puede proceder al cierre del turno.';
+                btn.textContent = 'REALIZAR CIERRE DE TURNO';
+                btn.className = 'btn btn-primary';
+                iconContainer.innerHTML = '<i data-lucide="check-circle" style="width: 64px; height: 64px; color: var(--success);"></i>';
+                break;
+            case 'CERRADO':
+                title.textContent = 'Turno Finalizado';
+                desc.textContent = 'Esta bitácora ha sido cerrada. El sistema se encuentra en modo de solo lectura.';
+                btn.style.display = 'none';
+                iconContainer.innerHTML = '<i data-lucide="lock" style="width: 64px; height: 64px; color: var(--text-secondary);"></i>';
+                break;
+            default:
+                title.textContent = 'Sincronizando...';
+                desc.textContent = 'El sistema está determinando la siguiente acción.';
+                btn.style.display = 'none';
+        }
+
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function handleAction(action, state) {
+        if (action === 'ABRIR_TURNO' || action === 'CERRAR_TURNO') {
+            window.location.href = '/bitacora.html';
+        } else if (action === 'IR_A_PROCESO' && state.actionPayload) {
+            const p = state.actionPayload;
+            window.location.href = `/proceso.html?id=${p.proceso_id}&nombre=${encodeURIComponent(p.proceso_nombre)}`;
         }
     }
 
@@ -52,65 +110,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!window.Auth || !window.Auth.isAuthenticated()) return;
 
             const response = await fetch('/api/dashboard/summary');
-            if (!response.ok) throw new Error('Error al cargar el resumen');
-            const result = await response.json();
-            const data = result.data || {};
+            const data = (await response.json()).data || {};
 
             if (elements.countOrdenes) elements.countOrdenes.textContent = data.ordenesActivas;
-            if (elements.countIncidentes) elements.countIncidentes.textContent = data.incidentesActivos;
             if (elements.countProduccionTurno) elements.countProduccionTurno.textContent = `${data.produccionDia} kg`;
-            if (elements.alertCountTotal) elements.alertCountTotal.textContent = data.criticalIncidents ? data.criticalIncidents.length : 0;
-
-            if (elements.tablaOrdenesBody) {
-                if (data.recentOrders && data.recentOrders.length > 0) {
-                    elements.tablaOrdenesBody.innerHTML = data.recentOrders.map(orden => {
-                        const porcentaje = orden.cantidad_objetivo > 0 ? ((orden.cantidad_producida / orden.cantidad_objetivo) * 100).toFixed(0) : 0;
-                        return `
-                            <tr>
-                                <td><strong>${orden.codigo_orden || orden.id}</strong></td>
-                                <td>${orden.producto || 'N/D'}</td>
-                                <td><span class="badge badge-${orden.estado === 'en proceso' ? 'success' : 'warning'}">${orden.estado}</span></td>
-                                <td>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <div style="flex:1; height:6px; background:#EEE; border-radius:3px; overflow:hidden;">
-                                            <div style="width:${porcentaje}%; height:100%; background:var(--primary);"></div>
-                                        </div>
-                                        <span style="font-size:12px; font-weight:600;">${porcentaje}%</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
-                    }).join('');
-                } else {
-                    elements.tablaOrdenesBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-secondary">No hay órdenes activas</td></tr>';
-                }
-            }
-
-            if (elements.listaIncidentes) {
-                if (data.criticalIncidents && data.criticalIncidents.length > 0) {
-                    elements.listaIncidentes.innerHTML = data.criticalIncidents.map(inc => `
-                        <div style="padding:12px; border-bottom:1px solid var(--border-light);">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                                <span class="badge badge-error">${inc.tipo || 'Alerta'}</span>
-                                <small>${formatRelativeTime(inc.fecha_creacion)}</small>
-                            </div>
-                            <p style="margin:0; font-size:14px;">${inc.descripcion}</p>
-                        </div>
-                    `).join('');
-                } else {
-                    elements.listaIncidentes.innerHTML = '<div class="text-center py-4 text-secondary">No hay alertas críticas</div>';
-                }
-            }
 
             if (elements.lastUpdatedSpan) {
                 const now = new Date();
                 elements.lastUpdatedSpan.textContent = `Actualizado: ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
             }
-
-            if (window.lucide) window.lucide.createIcons();
-
         } catch (error) {
-            console.error('Error dashboard:', error);
+            console.error('Error dashboard summary:', error);
         }
     }
 

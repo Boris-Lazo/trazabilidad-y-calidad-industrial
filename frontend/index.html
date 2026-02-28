@@ -105,68 +105,43 @@
             </header>
 
             <div class="page-content">
-                <!-- KPI Row -->
-                <div class="kpi-grid">
-                    <div class="card kpi-card">
-                        <span class="kpi-label">Órdenes Activas</span>
-                        <span class="kpi-value" id="count-ordenes-activas">-</span>
-                    </div>
-                    <div class="card kpi-card">
-                        <span class="kpi-label">Incidencias Abiertas</span>
-                        <span class="kpi-value" id="count-incidentes-activos">-</span>
-                    </div>
-                    <div class="card kpi-card">
-                        <span class="kpi-label">Producción del Turno</span>
-                        <span class="kpi-value" id="count-produccion-turno">0 kg</span>
-                    </div>
-                    <div class="card kpi-card">
-                        <span class="kpi-label">Alertas de Calidad</span>
-                        <span class="kpi-value" id="alert-count-total">0</span>
-                    </div>
-                </div>
+                <!-- ACTION CENTER (The system thinks for the operator) -->
+                <div id="action-center" style="max-width: 800px; margin: 2rem auto;">
+                    <div class="card" style="text-align: center; padding: 3rem 2rem; border-top: 8px solid var(--primary-color);">
+                        <div id="action-icon-container" style="margin-bottom: 1.5rem;">
+                            <i data-lucide="play-circle" style="width: 64px; height: 64px; color: var(--primary-color);"></i>
+                        </div>
+                        <h2 id="action-title" style="font-size: 2rem; margin-bottom: 1rem;">Cargando estado...</h2>
+                        <p id="action-description" style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 2.5rem;">
+                            El sistema está sincronizando el estado operativo actual.
+                        </p>
 
-                <!-- Aviso de Bitácora Cerrada -->
-                <div id="dash-warning-bitacora" class="card" style="display: none; background: var(--danger-subtle); color: var(--danger); border-color: var(--danger); margin-bottom: 1.5rem;">
-                    <i data-lucide="alert-circle" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 12px;"></i>
-                    <strong>ATENCIÓN OPERATIVA:</strong> No existe una bitácora abierta. No se permite el registro de producción ni calidad.
-                    <a href="/bitacora.html" class="btn btn-primary btn-sm" style="margin-left: 20px; padding: 4px 12px;">Abrir Turno</a>
-                </div>
+                        <div id="blocking-reasons" style="display: none; background: var(--danger-subtle); padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; text-align: left; border: 1px solid var(--danger);">
+                            <h4 style="color: var(--danger); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="alert-octagon" style="width: 20px; height: 20px;"></i>
+                                No puedes continuar porque:
+                            </h4>
+                            <ul id="reasons-list" style="margin: 0; padding-left: 1.5rem; color: var(--danger); font-weight: bold;">
+                                <!-- Se llena dinámicamente -->
+                            </ul>
+                        </div>
 
-                <div class="dashboard-grid">
-                    <!-- Alertas -->
-                    <section class="card">
-                        <div class="card-header">
-                            <h2 class="card-title">Alertas Críticas</h2>
-                        </div>
-                        <div id="lista-incidentes-criticos">
-                            <div class="text-center py-4 text-secondary">No hay alertas críticas</div>
-                        </div>
-                    </section>
+                        <button id="main-action-btn" class="btn btn-primary" style="font-size: 1.25rem; padding: 1rem 3rem; min-width: 300px; display: none;">
+                            Siguiente Acción
+                        </button>
+                    </div>
 
-                    <!-- Órdenes -->
-                    <section class="card">
-                        <div class="card-header">
-                            <h2 class="card-title">Órdenes en Ejecución</h2>
-                            <a href="/ordenes.html" class="btn btn-secondary" style="padding: 4px 12px; font-size: 12px;">Ver todas</a>
+                    <!-- Read-Only Context (KPIs reduced) -->
+                    <div class="kpi-grid" style="margin-top: 3rem; opacity: 0.8;">
+                        <div class="card kpi-card">
+                            <span class="kpi-label">Órdenes Activas</span>
+                            <span class="kpi-value" id="count-ordenes-activas" style="font-size: 1.5rem;">-</span>
                         </div>
-                        <div class="table-container">
-                            <table class="table" id="tabla-ordenes-activas">
-                                <thead>
-                                    <tr>
-                                        <th>Orden</th>
-                                        <th>Producto</th>
-                                        <th>Estado</th>
-                                        <th>Avance</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td colspan="4" class="text-center py-4">Cargando...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div class="card kpi-card">
+                            <span class="kpi-label">Producción Turno</span>
+                            <span class="kpi-value" id="count-produccion-turno" style="font-size: 1.5rem;">0 kg</span>
                         </div>
-                    </section>
+                    </div>
                 </div>
             </div>
         </div>

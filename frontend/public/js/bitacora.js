@@ -81,35 +81,68 @@ document.addEventListener('DOMContentLoaded', () => {
         data.procesos.forEach(p => {
             const card = document.createElement('div');
             card.className = 'card process-card';
-            card.style.borderLeft = `8px solid ${getEstadoColor(p.estado)}`;
+            card.style.borderLeft = `8px solid ${getEstadoColor(p.estadoUI)}`;
             card.style.display = 'flex';
             card.style.flexDirection = 'column';
             card.style.justifyContent = 'space-between';
+
+            const isBlocked = p.bloqueos && p.bloqueos.length > 0;
+
+            const canAction = p.accionesPermitidas && p.accionesPermitidas.length > 0;
+            const isMandatory = data.siguienteAccion === 'IR_A_PROCESO' && data.actionPayload?.proceso_id == p.id;
 
             card.innerHTML = `
                 <div style="padding: 1rem;">
                     <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem;">${p.nombre}</h3>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span class="badge ${getBadgeClass(p.estado)}">${p.estado}</span>
+                        <span class="badge ${getBadgeClass(p.estadoUI)}">${p.estadoUI}</span>
                         <small style="color: var(--text-secondary);">${p.ultimaActualizacion}</small>
                     </div>
+                    ${isBlocked ? `
+                        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--danger); font-weight: bold;">
+                            <i data-lucide="lock" style="width: 10px; height: 10px; vertical-align: middle;"></i>
+                            ${p.bloqueos[0]}
+                        </div>
+                    ` : ''}
                 </div>
                 <div style="background: rgba(0,0,0,0.05); padding: 0.75rem 1rem; text-align: right;">
-                    <button class="btn ${p.accion === 'Registrar' ? 'btn-primary' : 'btn-secondary'} btn-registrar"
-                            data-id="${p.id}" data-nombre="${p.nombre}" style="min-width: 120px;">
-                        ${p.accion}
+                    <button class="btn ${isMandatory ? 'btn-primary' : 'btn-secondary'} btn-registrar"
+                            data-id="${p.id}" data-nombre="${p.nombre}" style="min-width: 120px;"
+                            ${(!canAction || (data.siguienteAccion === 'IR_A_PROCESO' && !isMandatory)) ? 'disabled' : ''}>
+                        ${b.estado === 'CERRADA' ? 'Ver Histórico' : (isMandatory ? 'REGISTRO OBLIGATORIO' : p.siguienteAccion)}
                     </button>
                 </div>
             `;
             gridProcesos.appendChild(card);
         });
 
-        // Lógica de habilitación de cierre: Guía y Bloquea
-        const todosListos = data.procesos.every(p =>
-            p.estado.includes('Completo') || p.estado.includes('Revisión')
-        );
-        btnCerrar.disabled = !todosListos;
-        btnCerrar.title = todosListos ? 'Finalizar Turno' : 'Complete todos los procesos antes de cerrar';
+        // Lógica de habilitación de cierre
+        btnCerrar.disabled = data.estadoTurno !== 'LISTO_PARA_CIERRE' || b.estado === 'CERRADA';
+        btnCerrar.style.display = b.estado === 'CERRADA' ? 'none' : 'block';
+
+        if (b.estado === 'CERRADA') {
+            // Ceremonial histórico: Cambiar visual completa
+            document.body.classList.add('historical-mode');
+            const mainContainer = document.querySelector('.main-container');
+            mainContainer.style.filter = 'grayscale(0.5)';
+            mainContainer.style.pointerEvents = 'none';
+            document.querySelector('.sidebar').style.filter = 'grayscale(0.5)';
+
+            const alertCerrada = document.createElement('div');
+            alertCerrada.className = 'card';
+            alertCerrada.style.background = '#1f2937'; // Slate 800
+            alertCerrada.style.color = 'white';
+            alertCerrada.style.marginBottom = '2rem';
+            alertCerrada.style.textAlign = 'center';
+            alertCerrada.style.padding = '2rem';
+            alertCerrada.style.border = '4px solid #ef4444';
+            alertCerrada.innerHTML = `
+                <i data-lucide="lock" style="width: 48px; height: 48px; margin-bottom: 1rem;"></i>
+                <h1 style="margin:0; font-size: 2rem;">BITÁCORA CERRADA E INMUTABLE</h1>
+                <p>Este turno ha sido finalizado y auditado. No se permiten más cambios.</p>
+            `;
+            viewAbierta.prepend(alertCerrada);
+        }
 
         // Listeners a botones de tarjetas
         document.querySelectorAll('.btn-registrar').forEach(btn => {
@@ -128,7 +161,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getEstadoColor(estado) {
+        if (!estado) return 'var(--border-color)';
         if (estado.includes('Sin datos')) return 'var(--text-secondary)';
+        if (estado.includes('Esperando')) return 'var(--warning)';
         if (estado.includes('Parcial')) return 'var(--warning)';
         if (estado.includes('Completo')) return 'var(--success)';
         if (estado.includes('Revisión')) return 'var(--danger)';
@@ -136,7 +171,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getBadgeClass(estado) {
+        if (!estado) return '';
         if (estado.includes('Sin datos')) return 'badge-outline';
+        if (estado.includes('Esperando')) return 'badge-warning';
         if (estado.includes('Parcial')) return 'badge-warning';
         if (estado.includes('Completo')) return 'badge-success';
         if (estado.includes('Revisión')) return 'badge-error';
@@ -164,9 +201,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- CIERRE (INTEGRITY CHECKLIST) ---
-    btnCerrar.addEventListener('click', () => {
+    // --- CIERRE (EVENTO IRREVERSIBLE) ---
+    btnCerrar.addEventListener('click', async () => {
         if (btnCerrar.disabled) return;
+
+        // Obtener estado completo para el resumen
+        const res = await fetch('/api/bitacora/estado');
+        const state = (await res.json()).data;
+        const resumenCierre = state.resumenCierre || [];
+
+        document.getElementById('modal-turno-text').textContent = currentBitacora.turno;
+        document.getElementById('modal-fecha-text').textContent = currentBitacora.fecha_operativa;
+
+        const resumenContainer = document.getElementById('resumen-cierre-container');
+        resumenContainer.innerHTML = resumenCierre.map(p => `
+            <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem;">
+                <span>${p.nombre}:</span>
+                <span style="font-weight: bold;">
+                    ${p.produccion} ${p.unidad}
+                    <i data-lucide="${p.calidadValidada ? 'shield-check' : 'shield-alert'}"
+                       style="width: 14px; height: 14px; vertical-align: middle; color: ${p.calidadValidada ? 'var(--success)' : 'var(--danger)'};"></i>
+                </span>
+            </div>
+        `).join('');
 
         checklistProcesos.innerHTML = '';
         let hasRevision = false;
@@ -192,6 +249,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         containerRevision.style.display = hasRevision ? 'block' : 'none';
         obsRevision.required = hasRevision;
+
+        const checkFinal = document.getElementById('check-confirmacion-final');
+        checkFinal.checked = false;
+        confirmarCierre.disabled = true;
+
+        checkFinal.onchange = (e) => {
+            confirmarCierre.disabled = !e.target.checked;
+        };
 
         modalCierre.style.display = 'flex';
         if (window.lucide) window.lucide.createIcons();

@@ -27,6 +27,10 @@ class BitacoraService {
     return await this.bitacoraRepository.findActive();
   }
 
+  async getMostRecentBitacora() {
+    return await this.bitacoraRepository.findMostRecent();
+  }
+
   async openBitacora(data) {
     const active = await this.bitacoraRepository.findActive();
     if (active) {
@@ -153,51 +157,101 @@ class BitacoraService {
   }
 
   async getResumenProcesos(bitacoraId) {
-      const procesos = ProcessRegistry.getAll();
-      const resumen = [];
+    const bitacora = await this.bitacoraRepository.findById(bitacoraId);
+    const procesos = ProcessRegistry.getAll();
+    const resumen = [];
 
-      for (const proceso of procesos) {
-          const registros = await this.bitacoraRepository.getRegistrosByProceso(bitacoraId, proceso.processId);
-          const muestras = await this.bitacoraRepository.getMuestrasByProceso(bitacoraId, proceso.processId);
-          const status = await this.bitacoraRepository.getProcesoStatus(bitacoraId, proceso.processId);
+    for (const proceso of procesos) {
+      const registros = await this.bitacoraRepository.getRegistrosByProceso(bitacoraId, proceso.processId);
+      const muestras = await this.bitacoraRepository.getMuestrasByProceso(bitacoraId, proceso.processId);
+      const status = await this.bitacoraRepository.getProcesoStatus(bitacoraId, proceso.processId);
 
-          let estado = '⚪ Sin datos';
-          let ultimaActualizacion = '—';
+      const contract = ProcessRegistry.get(proceso.processId);
+      const muestrasMinimas = contract.frecuenciaMuestreo?.muestrasMinTurno || 1;
 
-          const hasRegistros = registros.length > 0;
-          const hasMuestras = muestras.length > 0;
-          const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
-          const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
+      let estadoProceso = 'SIN_DATOS';
+      let siguienteAccion = 'REGISTRAR_CALIDAD';
+      let accionesPermitidas = ['REGISTRAR_CALIDAD'];
+      let bloqueos = [];
 
-          if (status && status.no_operativo) {
-              estado = '🟢 Completo';
-          } else if (hasRechazo || hasIncidente) {
-              estado = '🔴 Revisión';
-          } else if (hasRegistros && hasMuestras) {
-              estado = '🟢 Completo';
-          } else if (hasRegistros || hasMuestras) {
-              estado = '🟡 Parcial';
-          }
+      const produccionTotal = registros.reduce((sum, r) => sum + (r.cantidad_producida || 0), 0);
+      const hasRegistros = registros.length > 0;
+      const hasMuestras = muestras.length >= muestrasMinimas;
+      const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
+      const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
 
-          const allDates = [
-              ...registros.map(r => new Date(r.fecha_hora)),
-              ...muestras.map(m => new Date(m.fecha_analisis))
-          ].filter(d => !isNaN(d.getTime()));
-
-          if (allDates.length > 0) {
-              const latest = new Date(Math.max(...allDates));
-              ultimaActualizacion = latest.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          }
-
-          resumen.push({
-              id: proceso.processId,
-              nombre: proceso.nombre,
-              estado,
-              ultimaActualizacion,
-              accion: estado.includes('Sin datos') ? 'Registrar' : 'Continuar'
-          });
+      if (status && status.no_operativo) {
+        estadoProceso = 'COMPLETO';
+        siguienteAccion = 'NINGUNA';
+        accionesPermitidas = [];
+      } else if (hasRechazo || hasIncidente) {
+        estadoProceso = 'REVISION';
+        siguienteAccion = 'CORREGIR_O_JUSTIFICAR';
+        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION', 'CORREGIR'];
+      } else if (hasRegistros && hasMuestras) {
+        estadoProceso = 'COMPLETO';
+        siguienteAccion = 'NINGUNA';
+        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION'];
+      } else if (!hasMuestras) {
+        estadoProceso = 'ESPERANDO_CALIDAD';
+        siguienteAccion = 'REGISTRAR_CALIDAD';
+        accionesPermitidas = ['REGISTRAR_CALIDAD'];
+        bloqueos = [`No se puede registrar producción hasta validar calidad (mínimo ${muestrasMinimas} muestras).`];
+      } else if (!hasRegistros) {
+        estadoProceso = 'ESPERANDO_PRODUCCION';
+        siguienteAccion = 'REGISTRAR_PRODUCCION';
+        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION'];
+      } else {
+        estadoProceso = 'PARCIAL';
+        siguienteAccion = 'COMPLETAR_DATOS';
+        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION'];
       }
-      return resumen;
+
+      if (bitacora.estado === 'CERRADA') {
+        estadoProceso = 'CERRADO';
+        siguienteAccion = 'LECTURA';
+        accionesPermitidas = [];
+        bloqueos = ['El turno está CERRADO. No se permiten modificaciones.'];
+      }
+
+      let ultimaActualizacion = '—';
+      const allDates = [
+        ...registros.map(r => new Date(r.fecha_hora)),
+        ...muestras.map(m => new Date(m.fecha_analisis))
+      ].filter(d => !isNaN(d.getTime()));
+
+      if (allDates.length > 0) {
+        const latest = new Date(Math.max(...allDates));
+        ultimaActualizacion = latest.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+
+      resumen.push({
+        id: proceso.processId,
+        nombre: proceso.nombre,
+        estadoUI: this._mapEstadoToUI(estadoProceso),
+        estadoProceso,
+        siguienteAccion,
+        accionesPermitidas,
+        bloqueos,
+        ultimaActualizacion,
+        produccionTotal,
+        calidadValidada: hasMuestras && !hasRechazo,
+        unidad: contract.unidadProduccion
+      });
+    }
+    return resumen;
+  }
+
+  _mapEstadoToUI(estado) {
+    const map = {
+      'SIN_DATOS': '⚪ Sin datos',
+      'ESPERANDO_CALIDAD': '🟡 Esperando Calidad',
+      'ESPERANDO_PRODUCCION': '🟡 Esperando Producción',
+      'PARCIAL': '🟡 Parcial',
+      'REVISION': '🔴 Revisión',
+      'COMPLETO': '🟢 Completo'
+    };
+    return map[estado] || estado;
   }
 
   async getProcesoData(bitacoraId, procesoId, ultimoTurno = false) {
