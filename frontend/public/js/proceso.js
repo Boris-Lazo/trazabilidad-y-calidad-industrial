@@ -27,12 +27,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         contrato = (await contratoRes.json()).data;
         const bitacoraResult = await bitacoraRes.json();
-        currentBitacora = bitacoraResult.data.bitacora;
+        const fullState = bitacoraResult.data;
+        currentBitacora = fullState.bitacora;
         orders = (await ordersRes.json()).data || [];
         maquinasAutorizadas = (await maquinasRes.json()).data || [];
 
         document.getElementById('bread-turno').textContent = currentBitacora.turno;
         document.getElementById('bread-fecha').textContent = currentBitacora.fecha_operativa;
+
+        const procesoState = fullState.procesos.find(p => p.id == procesoId);
+        applyEnforcedFlow(procesoState);
 
         renderTablaCalidad(contrato);
         renderParametrosOperativos(contrato);
@@ -283,6 +287,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         Array.from(document.getElementById(tbodyId).children).forEach((tr, i) => {
             tr.children[0].textContent = i + 1;
         });
+    }
+
+    function applyEnforcedFlow(state) {
+        if (!state) return;
+
+        const alertDiv = document.getElementById('proceso-blocking-alert');
+        const reasonsList = document.getElementById('proceso-blocking-reasons');
+
+        if (state.bloqueos && state.bloqueos.length > 0) {
+            alertDiv.style.display = 'block';
+            reasonsList.innerHTML = state.razonesBloqueo.map(r => `<li>${r}</li>`).join('');
+
+            if (state.bloqueos.includes('PRODUCCION')) {
+                const prodCard = document.getElementById('tbody-produccion').closest('.card');
+                prodCard.style.opacity = '0.5';
+                prodCard.style.pointerEvents = 'none';
+                prodCard.querySelector('.card-header').innerHTML += ' <span class="badge badge-error">BLOQUEADO</span>';
+                document.getElementById('tbody-desperdicio').closest('.card').style.opacity = '0.5';
+                document.getElementById('tbody-desperdicio').closest('.card').style.pointerEvents = 'none';
+            }
+        } else {
+            alertDiv.style.display = 'none';
+        }
+
+        // Si el estado operativo es COMPLETO, avisar pero dejar editar.
+        // Si el estado operativo es REVISION, resaltar.
+        if (state.estadoOperativo === 'REVISION') {
+            document.getElementById('proceso-estado-badge').innerHTML = '<span class="badge badge-error">REVISIÓN REQUERIDA</span>';
+        }
     }
 
     // --- COPIAR ÚLTIMO TURNO ---

@@ -105,6 +105,15 @@
             </header>
 
             <div class="page-content">
+                <!-- BLOCKING ALERTS (The system thinks for the operator) -->
+                <div id="proceso-blocking-alert" style="display: none; background: var(--danger-subtle); color: var(--danger); padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border: 2px solid var(--danger);">
+                    <h3 style="margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 10px;">
+                        <i data-lucide="lock" style="width: 24px; height: 24px;"></i>
+                        Sección Bloqueada
+                    </h3>
+                    <ul id="proceso-blocking-reasons" style="margin: 0; font-weight: bold; font-size: 1.1rem; padding-left: 1.5rem;"></ul>
+                </div>
+
                 <!-- Selector de Operatividad -->
                 <div class="card" style="border-left: 5px solid var(--warning); margin-bottom: 2rem;">
                     <div class="card-header">Disponibilidad del Proceso</div>

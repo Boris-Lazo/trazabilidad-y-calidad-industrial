@@ -14,24 +14,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // 2. Guardia Operativa Global: "NADA ocurre fuera de la Bitácora"
-    // Bloquea accesos directos a pantallas de registro si no hay bitácora abierta.
+    // 2. Guardia Operativa Global: Estado Explícito
     const path = window.location.pathname;
-    const operativePages = ['/proceso.html', '/ejecucion.html', '/incidentes.html', '/calidad.html', '/trazabilidad.html'];
+    const operativePages = ['/proceso.html', '/ejecucion.html', '/incidentes.html', '/calidad.html', '/trazabilidad.html', '/ordenes.html'];
 
-    if (operativePages.some(p => path.includes(p))) {
-        try {
-            const res = await fetch('/api/bitacora/estado');
-            const result = await res.json();
+    try {
+        const res = await fetch('/api/bitacora/estado');
+        const result = await res.json();
+        const state = result.data || {};
 
-            if (result.success && !result.data.abierta) {
-                // Redirigir a la bitácora con un mensaje claro
-                console.warn("Acceso denegado: No existe una bitácora activa para este turno.");
-                alert("ATENCIÓN: Debe abrir una Bitácora de Turno antes de acceder a esta sección operativa.");
-                window.location.href = '/bitacora.html';
+        if (!state.estadoOperativo) {
+            console.error("Estado operativo incompleto. Contacte soporte.");
+            if (operativePages.some(p => path.includes(p))) {
+                document.body.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100vh; flex-direction:column; font-family:sans-serif;"><h1>⚠️ ERROR DE SISTEMA</h1><p>Estado operativo incompleto. Contacte soporte.</p></div>';
             }
-        } catch (e) {
-            console.error("Error en guardia operativa:", e);
+            return;
         }
+
+        // Bloqueo de navegación lateral si no hay turno o está cerrado
+        const navProduccion = document.querySelector('.nav-group');
+        const navControl = document.querySelectorAll('.nav-group')[1];
+
+        if (state.estadoOperativo === 'SIN_TURNO' || state.estadoOperativo === 'CERRADO') {
+            if (navProduccion) {
+                navProduccion.querySelectorAll('a').forEach(a => {
+                    if (!a.href.includes('bitacora.html')) {
+                        a.style.pointerEvents = 'none';
+                        a.style.opacity = '0.5';
+                    }
+                });
+            }
+            if (navControl) {
+                navControl.style.pointerEvents = 'none';
+                navControl.style.opacity = '0.5';
+            }
+        }
+
+        if (operativePages.some(p => path.includes(p)) && !state.abierta) {
+             window.location.href = '/bitacora.html';
+        }
+
+        // Exportar estado para uso en otras pantallas
+        window.AppState = state;
+
+    } catch (e) {
+        console.error("Error en guardia operativa:", e);
     }
 });
