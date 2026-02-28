@@ -3,14 +3,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewApertura = document.getElementById('view-apertura');
     const viewAbierta = document.getElementById('view-abierta');
     const formAbrir = document.getElementById('form-abrir-bitacora');
-    const tbodyProcesos = document.getElementById('tbody-procesos');
+    const gridProcesos = document.getElementById('grid-procesos');
     const btnCerrar = document.getElementById('btn-cerrar-bitacora');
     const modalCierre = document.getElementById('modal-cierre');
+    const checklistProcesos = document.getElementById('checklist-procesos');
+    const containerRevision = document.getElementById('container-revision');
+    const obsRevision = document.getElementById('obs-revision');
     const confirmarCierre = document.getElementById('confirmar-cierre');
+    const cancelarCierre = document.getElementById('cancelar-cierre');
 
     let currentBitacora = null;
     let procesosTurno = [];
 
+    // --- RELOJ Y TIEMPO REAL ---
     async function updateClock() {
         try {
             const response = await fetch('/api/bitacora/tiempo-actual');
@@ -19,24 +24,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.getElementById('reloj-fecha').textContent = data.fecha;
             document.getElementById('reloj-hora').textContent = data.hora;
-            document.getElementById('reloj-timezone').textContent = data.timezone;
-
-            const infoHoraOperativa = document.getElementById('info-hora-operativa');
-            if (infoHoraOperativa) {
-                infoHoraOperativa.textContent = data.hora;
-            }
-
-            // Si no hay bitácora abierta, podríamos mostrar el turno teórico en alguna parte si quisiéramos,
-            // pero el requerimiento se enfoca en la vista abierta.
         } catch (error) {
             console.error('Error al actualizar el reloj:', error);
         }
     }
 
-    // Actualizar reloj cada minuto
     setInterval(updateClock, 60000);
     updateClock();
 
+    // --- ESTADO Y CARGA ---
     async function checkEstado() {
         try {
             const response = await fetch('/api/bitacora/estado');
@@ -58,62 +54,64 @@ document.addEventListener('DOMContentLoaded', () => {
     async function showApertura() {
         viewApertura.style.display = 'block';
         viewAbierta.style.display = 'none';
+        document.getElementById('header-contexto').style.display = 'none';
 
-        // En el MVP con Autenticación, el inspector es el usuario logueado.
         const user = Auth.getUser();
         if (user) {
             document.getElementById('inspector').value = user.nombre || user.username;
-            document.getElementById('inspector').readOnly = true;
         }
     }
 
     function showAbierta(data) {
         viewApertura.style.display = 'none';
         viewAbierta.style.display = 'block';
+        document.getElementById('header-contexto').style.display = 'flex';
 
         const b = data.bitacora;
         document.getElementById('info-turno').textContent = b.turno;
         document.getElementById('info-fecha').textContent = b.fecha_operativa;
         document.getElementById('info-inspector').textContent = b.inspector;
+        document.getElementById('info-estado').textContent = b.estado;
 
         if (b.fuera_de_horario) {
             document.getElementById('warning-horario').style.display = 'block';
         }
 
-        tbodyProcesos.innerHTML = '';
+        gridProcesos.innerHTML = '';
         data.procesos.forEach(p => {
-            const tr = document.createElement('tr');
+            const card = document.createElement('div');
+            card.className = 'card process-card';
+            card.style.borderLeft = `8px solid ${getEstadoColor(p.estado)}`;
+            card.style.display = 'flex';
+            card.style.flexDirection = 'column';
+            card.style.justifyContent = 'space-between';
 
-            let badgeClass = 'badge-info';
-            if (p.estado.includes('Sin datos')) badgeClass = 'badge-outline';
-            if (p.estado.includes('Parcial')) badgeClass = 'badge-warning';
-            if (p.estado.includes('Completo')) badgeClass = 'badge-success';
-            if (p.estado.includes('Revisión')) badgeClass = 'badge-error';
-            if (p.estado.includes('No operativo')) badgeClass = 'badge-error'; // Or a specific style
-
-            tr.innerHTML = `
-                <td><strong>${p.nombre}</strong></td>
-                <td><span class="badge ${badgeClass}">${p.estado}</span></td>
-                <td>${p.ultimaActualizacion}</td>
-                <td style="text-align: right;">
-                    <button class="button ${p.accion === 'Registrar' ? 'button-primary' : 'button-outline'} btn-registrar"
-                            data-id="${p.id}" data-nombre="${p.nombre}">
+            card.innerHTML = `
+                <div style="padding: 1rem;">
+                    <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem;">${p.nombre}</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="badge ${getBadgeClass(p.estado)}">${p.estado}</span>
+                        <small style="color: var(--text-secondary);">${p.ultimaActualizacion}</small>
+                    </div>
+                </div>
+                <div style="background: rgba(0,0,0,0.05); padding: 0.75rem 1rem; text-align: right;">
+                    <button class="btn ${p.accion === 'Registrar' ? 'btn-primary' : 'btn-secondary'} btn-registrar"
+                            data-id="${p.id}" data-nombre="${p.nombre}" style="min-width: 120px;">
                         ${p.accion}
                     </button>
-                </td>
+                </div>
             `;
-            tbodyProcesos.appendChild(tr);
+            gridProcesos.appendChild(card);
         });
 
-        // Solo habilitar si todos están en Completo o Revisión
+        // Lógica de habilitación de cierre: Guía y Bloquea
         const todosListos = data.procesos.every(p =>
             p.estado.includes('Completo') || p.estado.includes('Revisión')
         );
         btnCerrar.disabled = !todosListos;
-        btnCerrar.style.opacity = todosListos ? '1' : '0.5';
-        btnCerrar.title = todosListos ? 'Cerrar Bitácora' : 'Todos los procesos deben estar en estado Completo o Revisión';
+        btnCerrar.title = todosListos ? 'Finalizar Turno' : 'Complete todos los procesos antes de cerrar';
 
-        // Add event listeners to buttons
+        // Listeners a botones de tarjetas
         document.querySelectorAll('.btn-registrar').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const id = e.target.getAttribute('data-id');
@@ -125,14 +123,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+
+        if (window.lucide) window.lucide.createIcons();
     }
 
+    function getEstadoColor(estado) {
+        if (estado.includes('Sin datos')) return 'var(--text-secondary)';
+        if (estado.includes('Parcial')) return 'var(--warning)';
+        if (estado.includes('Completo')) return 'var(--success)';
+        if (estado.includes('Revisión')) return 'var(--danger)';
+        return 'var(--border-color)';
+    }
+
+    function getBadgeClass(estado) {
+        if (estado.includes('Sin datos')) return 'badge-outline';
+        if (estado.includes('Parcial')) return 'badge-warning';
+        if (estado.includes('Completo')) return 'badge-success';
+        if (estado.includes('Revisión')) return 'badge-error';
+        return '';
+    }
+
+    // --- APERTURA ---
     formAbrir.addEventListener('submit', async (e) => {
         e.preventDefault();
-        // El inspector ya se envía automáticamente por el backend usando el token,
-        // pero lo mantenemos en el body por compatibilidad si fuera necesario,
-        // aunque el backend ahora lo ignora y usa req.user.
-
         try {
             const response = await fetch('/api/bitacora/abrir', {
                 method: 'POST',
@@ -147,56 +160,71 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert(result.error || 'Error al abrir bitácora');
             }
         } catch (error) {
-            console.error('Error al abrir bitácora:', error);
+            console.error('Error al abrir:', error);
         }
     });
 
+    // --- CIERRE (INTEGRITY CHECKLIST) ---
     btnCerrar.addEventListener('click', () => {
         if (btnCerrar.disabled) return;
 
-        // Generar resumen para el modal
-        const resumen = {
-            completo: procesosTurno.filter(p => p.estado.includes('Completo')).length,
-            parcial: procesosTurno.filter(p => p.estado.includes('Parcial')).length,
-            revision: procesosTurno.filter(p => p.estado.includes('Revisión')).length,
-            sinDatos: procesosTurno.filter(p => p.estado.includes('Sin datos')).length
-        };
+        checklistProcesos.innerHTML = '';
+        let hasRevision = false;
 
-        const resumenDiv = document.getElementById('resumen-cierre');
-        let warningHtml = '';
-        if (resumen.revision > 0) {
-            warningHtml = `<p class="text-error" style="font-weight: bold; margin-top: 1rem;">⚠ ATENCIÓN: Hay ${resumen.revision} procesos con desviaciones o rechazos.</p>`;
-        }
+        procesosTurno.forEach(p => {
+            const item = document.createElement('div');
+            item.style.display = 'flex';
+            item.style.justifyContent = 'space-between';
+            item.style.padding = '0.5rem';
+            item.style.borderBottom = '1px solid var(--border-color)';
 
-        resumenDiv.innerHTML = `
-            <ul style="list-style: none; padding: 0;">
-                <li class="text-success">🟢 ${resumen.completo} procesos completos</li>
-                <li class="text-error">🔴 ${resumen.revision} procesos en revisión</li>
-                ${resumen.parcial > 0 ? `<li class="text-warning">🟡 ${resumen.parcial} procesos parciales</li>` : ''}
-                ${resumen.sinDatos > 0 ? `<li style="color: var(--text-muted);">⚪ ${resumen.sinDatos} procesos sin datos</li>` : ''}
-            </ul>
-            ${warningHtml}
-        `;
+            const labelColor = p.estado.includes('Completo') ? 'var(--success)' : 'var(--danger)';
+            const icon = p.estado.includes('Completo') ? 'check-circle' : 'alert-circle';
+
+            if (p.estado.includes('Revisión')) hasRevision = true;
+
+            item.innerHTML = `
+                <span><i data-lucide="${icon}" style="width: 14px; height: 14px; vertical-align: middle; color: ${labelColor}; margin-right: 8px;"></i> ${p.nombre}</span>
+                <span style="font-weight: bold; color: ${labelColor}">${p.estado}</span>
+            `;
+            checklistProcesos.appendChild(item);
+        });
+
+        containerRevision.style.display = hasRevision ? 'block' : 'none';
+        obsRevision.required = hasRevision;
 
         modalCierre.style.display = 'flex';
+        if (window.lucide) window.lucide.createIcons();
     });
 
     confirmarCierre.addEventListener('click', async () => {
+        if (containerRevision.style.display === 'block' && !obsRevision.value.trim()) {
+            alert('Por favor, ingrese el motivo de revisión de los procesos marcados.');
+            obsRevision.focus();
+            return;
+        }
+
         try {
             const response = await fetch(`/api/bitacora/${currentBitacora.id}/cerrar`, {
-                method: 'POST'
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ observaciones: obsRevision.value })
             });
 
             if (response.ok) {
                 modalCierre.style.display = 'none';
+                obsRevision.value = '';
                 checkEstado();
             } else {
-                alert('Error al cerrar la bitácora');
+                const res = await response.json();
+                alert('Error al cerrar: ' + (res.error || res.message));
             }
         } catch (error) {
             console.error('Error al cerrar:', error);
         }
     });
+
+    cancelarCierre.onclick = () => { modalCierre.style.display = 'none'; };
 
     checkEstado();
 });

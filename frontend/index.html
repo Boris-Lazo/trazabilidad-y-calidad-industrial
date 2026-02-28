@@ -79,14 +79,28 @@
         </aside>
 
         <div class="main-container" id="main-content">
-            <header class="topbar">
-                <h1>Panel de Control Operativo</h1>
-                <div class="topbar-actions">
-                    <button id="theme-toggle" class="btn btn-secondary" style="padding: 4px 8px; min-height: 32px; border: none; background: transparent;" title="Cambiar tema">
-                        <i data-lucide="sun" class="sun-icon" style="width: 18px; height: 18px;"></i>
-                        <i data-lucide="moon" class="moon-icon" style="width: 18px; height: 18px;"></i>
-                    </button>
-                    <span id="last-updated" style="color: var(--text-secondary); font-size: 12px;">Actualizado: -</span>
+            <header class="topbar" style="height: auto; padding: 1rem 1.5rem; flex-direction: column; align-items: flex-start; gap: 0.5rem; border-bottom: 2px solid var(--primary-color);">
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                    <h1 style="margin: 0;">Panel de Control Operativo</h1>
+                    <div class="topbar-actions">
+                        <button id="theme-toggle" class="btn btn-secondary" style="padding: 4px 8px; min-height: 32px; border: none; background: transparent;" title="Cambiar tema">
+                            <i data-lucide="sun" class="sun-icon" style="width: 18px; height: 18px;"></i>
+                            <i data-lucide="moon" class="moon-icon" style="width: 18px; height: 18px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Contexto Operativo Persistente -->
+                <div id="dash-contexto" style="display: flex; width: 100%; justify-content: space-between; align-items: center; background: rgba(59, 130, 246, 0.1); padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                    <div style="display: flex; gap: 2rem;">
+                        <div><small style="color: var(--text-secondary); display: block;">Turno</small><strong id="dash-turno">-</strong></div>
+                        <div><small style="color: var(--text-secondary); display: block;">Fecha Operativa</small><strong id="dash-fecha">-</strong></div>
+                        <div><small style="color: var(--text-secondary); display: block;">Estado Bitácora</small><span id="dash-estado-bitacora" class="badge badge-outline">SIN BITÁCORA</span></div>
+                    </div>
+                    <div id="dash-reloj" style="text-align: right; font-family: monospace;">
+                        <div style="font-size: 1.2rem; font-weight: bold;" id="dash-hora">--:--</div>
+                        <span id="last-updated" style="color: var(--text-secondary); font-size: 11px;">Actualizado: -</span>
+                    </div>
                 </div>
             </header>
 
@@ -102,13 +116,20 @@
                         <span class="kpi-value" id="count-incidentes-activos">-</span>
                     </div>
                     <div class="card kpi-card">
-                        <span class="kpi-label">Producción del Día</span>
-                        <span class="kpi-value" id="count-produccion-dia">0 kg</span>
+                        <span class="kpi-label">Producción del Turno</span>
+                        <span class="kpi-value" id="count-produccion-turno">0 kg</span>
                     </div>
                     <div class="card kpi-card">
-                        <span class="kpi-label">Alertas Críticas</span>
+                        <span class="kpi-label">Alertas de Calidad</span>
                         <span class="kpi-value" id="alert-count-total">0</span>
                     </div>
+                </div>
+
+                <!-- Aviso de Bitácora Cerrada -->
+                <div id="dash-warning-bitacora" class="card" style="display: none; background: var(--danger-subtle); color: var(--danger); border-color: var(--danger); margin-bottom: 1.5rem;">
+                    <i data-lucide="alert-circle" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 12px;"></i>
+                    <strong>ATENCIÓN OPERATIVA:</strong> No existe una bitácora abierta. No se permite el registro de producción ni calidad.
+                    <a href="/bitacora.html" class="btn btn-primary btn-sm" style="margin-left: 20px; padding: 4px 12px;">Abrir Turno</a>
                 </div>
 
                 <div class="dashboard-grid">
@@ -151,7 +172,7 @@
         </div>
     </div>
 
-    <script src="js/dashboard.js?v=1.4"></script>
-    <script src="js/main.js?v=1.1"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

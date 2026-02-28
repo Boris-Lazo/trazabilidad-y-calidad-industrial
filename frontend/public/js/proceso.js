@@ -10,43 +10,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.getElementById('proceso-titulo').textContent = `Proceso: ${procesoNombre}`;
-    document.getElementById('bread-proceso').textContent = procesoNombre;
 
     let currentBitacora = null;
     let orders = [];
     let contrato = null;
+    let maquinasAutorizadas = [];
 
-    // 1. CARGAR DATOS INICIALES (Contrato + Estado Bitácora + Órdenes)
+    // --- CARGAR DATOS INICIALES ---
     try {
-        const [contratoRes, bitacoraRes, ordersRes] = await Promise.all([
+        const [contratoRes, bitacoraRes, ordersRes, maquinasRes] = await Promise.all([
             fetch(`/api/procesos/${procesoId}`),
             fetch('/api/bitacora/estado'),
-            fetch(`/api/ordenes-produccion?estado=Liberada&proceso_id=${procesoId}`)
+            fetch(`/api/ordenes-produccion?estado=Liberada&proceso_id=${procesoId}`),
+            fetch(`/api/maquinas?proceso_id=${procesoId}`)
         ]);
 
-        const contratoResult = await contratoRes.json();
-        contrato = contratoResult.data;
-
+        contrato = (await contratoRes.json()).data;
         const bitacoraResult = await bitacoraRes.json();
         currentBitacora = bitacoraResult.data.bitacora;
-
-        const ordersResult = await ordersRes.json();
-        orders = ordersResult.data || [];
+        orders = (await ordersRes.json()).data || [];
+        maquinasAutorizadas = (await maquinasRes.json()).data || [];
 
         document.getElementById('bread-turno').textContent = currentBitacora.turno;
         document.getElementById('bread-fecha').textContent = currentBitacora.fecha_operativa;
 
-        // 2. RENDERIZAR FORMULARIO DINÁMICO
         renderTablaCalidad(contrato);
         renderParametrosOperativos(contrato);
         renderMateriasPrimas(contrato);
 
-        // 3. CARGAR DATOS EXISTENTES
         await cargarDatosExistentes();
+        updateReloj();
+        setInterval(updateReloj, 60000);
 
     } catch (error) {
-        console.error('Error cargando datos iniciales:', error);
+        console.error('Error inicializando proceso:', error);
         alert('Error al cargar la configuración del proceso.');
+    }
+
+    function updateReloj() {
+        const now = new Date();
+        document.getElementById('reloj-proceso').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
     // --- RENDERIZADO DINÁMICO ---
@@ -62,19 +65,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <tr>
                             <th>#</th>
                             ${cols.map(p => `
-                                <th>
+                                <th style="font-size: 0.8rem;">
                                     ${p.etiqueta}
-                                    ${p.unidad ? `<br><small style="font-weight:normal;color:var(--text-secondary)">${p.unidad}</small>` : ''}
+                                    ${p.unidad ? `<br><small style="color:var(--text-secondary)">${p.unidad}</small>` : ''}
                                 </th>
                             `).join('')}
                             <th>Estado</th>
-                            <th style="width:50px;"></th>
+                            <th style="width:40px;"></th>
                         </tr>
                     </thead>
                     <tbody id="tbody-calidad-dinamica"></tbody>
                 </table>
             </div>
-            <button id="btn-agregar-muestra-dinamica" class="btn btn-secondary">+ Agregar Muestra</button>
+            <button id="btn-agregar-muestra-dinamica" class="btn btn-secondary">+ Agregar Muestra de Calidad</button>
         `;
 
         document.getElementById('btn-agregar-muestra-dinamica').onclick = () => agregarFilaMuestra(contrato);
@@ -87,26 +90,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const inputsHtml = contrato.parametrosCalidad.map(p => {
             const val = data[p.nombre] !== undefined ? data[p.nombre] : '';
-            const readonly = p.calculado ? 'readonly style="background:rgba(255,255,255,0.05)"' : '';
-            return `<td><input type="number" class="form-control input-calidad" data-nombre="${p.nombre}" value="${val}" step="0.01" ${readonly}></td>`;
+            const readonly = p.calculado ? 'readonly style="background:rgba(0,0,0,0.05)"' : '';
+            return `<td><input type="number" class="form-control input-calidad" data-nombre="${p.nombre}" value="${val}" step="0.01" ${readonly} style="padding: 4px; font-size: 0.9rem;"></td>`;
         }).join('');
 
         tr.innerHTML = `
             <td>${index}</td>
             ${inputsHtml}
             <td>
-                <select class="form-control select-estado-muestra">
+                <select class="form-control select-estado-muestra" style="padding: 4px; font-size: 0.8rem;">
                     <option value="Aceptable" ${data.estado === 'Aceptable' ? 'selected' : ''}>Aceptable</option>
                     <option value="Observación" ${data.estado === 'Observación' ? 'selected' : ''}>Observación</option>
                     <option value="Rechazo" ${data.estado === 'Rechazo' ? 'selected' : ''}>Rechazo</option>
                 </select>
             </td>
-            <td><button class="btn-eliminar-fila" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:1.2rem;">×</button></td>
+            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
         `;
 
         tbody.appendChild(tr);
 
-        // Listeners para cálculos y validación
         tr.querySelectorAll('.input-calidad').forEach(input => {
             input.oninput = () => {
                 evaluarFormulasFila(tr, contrato);
@@ -131,14 +133,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     function evaluarFormulasFila(tr, contrato) {
         contrato.parametrosCalidad.filter(p => p.calculado && p.formula).forEach(p => {
             try {
-                // Crear contexto de variables desde los inputs de la fila
                 const context = {};
                 contrato.parametrosCalidad.forEach(param => {
                     const input = tr.querySelector(`[data-nombre="${param.nombre}"]`);
                     context[param.nombre] = parseFloat(input.value) || 0;
                 });
 
-                // Evaluar fórmula simple (reemplazo de nombres por valores)
                 let expr = p.formula;
                 Object.keys(context).forEach(key => {
                     expr = expr.replace(new RegExp(key, 'g'), context[key]);
@@ -157,12 +157,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         let esRechazo = false;
         contrato.parametrosCalidad.forEach(p => {
             if (p.minimo === null && p.maximo === null) return;
-
-            const val = parseFloat(tr.querySelector(`[data-nombre="${p.nombre}"]`).value);
+            const input = tr.querySelector(`[data-nombre="${p.nombre}"]`);
+            const val = parseFloat(input.value);
             if (isNaN(val)) return;
 
             const fueraDeRango = (p.minimo !== null && val < p.minimo) || (p.maximo !== null && val > p.maximo);
-            if (fueraDeRango) esRechazo = true;
+            if (fueraDeRango) {
+                esRechazo = true;
+                input.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                input.style.borderColor = 'var(--danger)';
+            } else {
+                input.style.backgroundColor = '';
+                input.style.borderColor = '';
+            }
         });
 
         const select = tr.querySelector('.select-estado-muestra');
@@ -184,26 +191,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             grupos[p.grupo].push(p);
         });
 
-        const etiquetasGrupo = {
-            maquina: 'Máquina',
-            temperaturas: 'Temperaturas (°C)',
-            ratios: 'Ratios de Estiraje'
-        };
-
         Object.entries(grupos).forEach(([grupo, campos]) => {
-            const titulo = etiquetasGrupo[grupo] || grupo.charAt(0).toUpperCase() + grupo.slice(1);
+            const titulo = grupo.charAt(0).toUpperCase() + grupo.slice(1);
             const grid = campos.map(p => `
-                <div class="form-group">
-                    <label>${p.etiqueta}${p.unidad ? ` (${p.unidad})` : ''}</label>
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: 0.75rem; margin-bottom: 2px;">${p.etiqueta}${p.unidad ? ` (${p.unidad})` : ''}</label>
                     <input type="number" class="form-control param-informativo"
                            data-nombre="${p.nombre}" data-grupo="${p.grupo}"
-                           step="0.01" placeholder="—">
+                           step="0.01" placeholder="—" style="padding: 6px;">
                 </div>
             `).join('');
 
             container.innerHTML += `
-                <h4 style="font-size:0.85rem;color:var(--text-secondary);margin:1rem 0 0.5rem">${titulo}</h4>
-                <div class="dashboard-grid">${grid}</div>
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="font-size:0.8rem; color:var(--text-secondary); margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);">${titulo}</h4>
+                    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem;">${grid}</div>
+                </div>
             `;
         });
     }
@@ -217,31 +220,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         container.innerHTML = `
             <div class="table-container mb-4">
-                <table id="tabla-materias-primas">
+                <table id="tabla-materias-primas" class="table">
                     <thead>
                         <tr>
                             ${paramLista.campos.map(c => `<th>${c.etiqueta}</th>`).join('')}
-                            <th style="width:50px;"></th>
+                            <th style="width:40px;"></th>
                         </tr>
                     </thead>
                     <tbody id="tbody-materias-dinamica"></tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="${paramLista.campos.length - 1}" style="text-align: right; font-weight: bold;">TOTAL:</td>
-                            <td id="total-mezcla" style="font-weight: bold;">0%</td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
-            <div id="warning-mezcla" class="text-error" style="display: none; margin-bottom:1rem;">⚠ La suma debe ser exactamente 100%</div>
-            <button id="btn-agregar-materia" class="btn btn-secondary">+ Agregar Materia Prima</button>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <button id="btn-agregar-materia" class="btn btn-secondary" style="font-size: 0.8rem;">+ Agregar Materia Prima</button>
+                <div style="font-weight: bold;">TOTAL MEZCLA: <span id="total-mezcla">0%</span></div>
+            </div>
+            <div id="warning-mezcla" class="text-error" style="display: none; margin-top: 0.5rem; font-size: 0.8rem;">
+                ⚠ La mezcla debe sumar exactamente 100%
+            </div>
         `;
 
         document.getElementById('btn-agregar-materia').onclick = () => agregarFilaMateria(paramLista);
-
-        // Inicializar con 6 filas si está vacío
-        for(let i=0; i<6; i++) agregarFilaMateria(paramLista);
+        for(let i=0; i<4; i++) agregarFilaMateria(paramLista);
     }
 
     function agregarFilaMateria(paramLista, data = {}) {
@@ -251,27 +250,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         tr.innerHTML = paramLista.campos.map(campo => {
             if (campo.nombre === 'tipo' && paramLista.opcionesTipo) {
                 return `<td>
-                    <select class="form-control input-materia" data-campo="${campo.nombre}">
+                    <select class="form-control input-materia" data-campo="${campo.nombre}" style="padding: 4px;">
                         <option value="">— Seleccione —</option>
                         ${paramLista.opcionesTipo.map(opt => `<option value="${opt}" ${data[campo.nombre] === opt ? 'selected' : ''}>${opt}</option>`).join('')}
                     </select>
                 </td>`;
             }
-            const step = campo.nombre === 'porcentaje' ? 'step="0.1"' : '';
             const type = campo.nombre === 'porcentaje' ? 'number' : 'text';
-            return `<td><input type="${type}" class="form-control input-materia" data-campo="${campo.nombre}" value="${data[campo.nombre] || ''}" ${step}></td>`;
-        }).join('') + `<td><button class="btn-eliminar-fila" style="background:none;border:none;color:var(--danger);cursor:pointer;">×</button></td>`;
+            return `<td><input type="${type}" class="form-control input-materia" data-campo="${campo.nombre}" value="${data[campo.nombre] || ''}" style="padding: 4px;"></td>`;
+        }).join('') + `<td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>`;
 
         tbody.appendChild(tr);
-
-        tr.querySelectorAll('.input-materia').forEach(input => {
-            input.oninput = calcularTotalMezcla;
-        });
-
-        tr.querySelector('.btn-eliminar-fila').onclick = () => {
-            tr.remove();
-            calcularTotalMezcla();
-        };
+        tr.querySelectorAll('.input-materia').forEach(input => { input.oninput = calcularTotalMezcla; });
+        tr.querySelector('.btn-eliminar-fila').onclick = () => { tr.remove(); calcularTotalMezcla(); };
     }
 
     function calcularTotalMezcla() {
@@ -294,19 +285,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- COPIAR DEL TURNO ANTERIOR ---
+    // --- COPIAR ÚLTIMO TURNO ---
     document.getElementById('btn-copiar-ultimo-turno').onclick = async () => {
         try {
             const res = await fetch(`/api/bitacora/proceso-data?proceso_id=${procesoId}&ultimo_turno=true`);
             const result = await res.json();
             const data = result.data;
 
-            if (!data || (!data.parametros_operativos && (!data.mezcla || data.mezcla.length === 0))) {
-                alert('No se encontraron datos cerrados del turno anterior para este proceso.');
-                return;
-            }
+            if (!data) { alert('No hay datos cerrados del turno anterior.'); return; }
 
-            // Copiar parámetros operativos
             if (data.parametros_operativos) {
                 Object.entries(data.parametros_operativos).forEach(([key, val]) => {
                     const input = document.querySelector(`.param-informativo[data-nombre="${key}"]`);
@@ -314,7 +301,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
             }
 
-            // Copiar mezcla
             if (data.mezcla && data.mezcla.length > 0) {
                 const tbody = document.getElementById('tbody-materias-dinamica');
                 tbody.innerHTML = '';
@@ -322,16 +308,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 data.mezcla.forEach(m => agregarFilaMateria(paramLista, m));
                 calcularTotalMezcla();
             }
-
-            alert('Parámetros copiados del turno anterior. Revisa y ajusta si hubo cambios.');
         } catch (e) {
             console.error(e);
-            alert('Error al intentar copiar datos del turno anterior.');
+            alert('Error al copiar datos.');
         }
     };
 
     // --- CARGAR DATOS EXISTENTES ---
-
     async function cargarDatosExistentes() {
         try {
             const res = await fetch(`/api/bitacora/proceso-data?bitacora_id=${currentBitacora.id}&proceso_id=${procesoId}`);
@@ -345,16 +328,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('secciones-operativas').style.display = 'none';
             }
 
-            // Muestras
             if (data.muestras_estructuradas && data.muestras_estructuradas.length > 0) {
                 data.muestras_estructuradas.forEach(m => agregarFilaMuestra(contrato, m));
             } else {
-                // Si es nuevo, agregar 3 vacías si el contrato lo sugiere (mínimo de frecuencia)
                 const min = contrato.frecuenciaMuestreo?.muestrasMinTurno || 1;
                 for(let i=0; i<min; i++) agregarFilaMuestra(contrato);
             }
 
-            // Parámetros operativos
             if (data.parametros_operativos) {
                 Object.entries(data.parametros_operativos).forEach(([key, val]) => {
                     const input = document.querySelector(`.param-informativo[data-nombre="${key}"]`);
@@ -362,7 +342,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
             }
 
-            // Mezcla
             if (data.mezcla && data.mezcla.length > 0) {
                 const tbody = document.getElementById('tbody-materias-dinamica');
                 tbody.innerHTML = '';
@@ -371,7 +350,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 calcularTotalMezcla();
             }
 
-            // Datos comunes
             data.produccion?.forEach(p => agregarProduccion(p));
             data.desperdicio?.forEach(d => agregarDesperdicio(d));
             data.incidentes?.forEach(inc => agregarIncidente(inc));
@@ -379,20 +357,39 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (data.solo_lectura) {
                 document.querySelectorAll('input, select, textarea, button').forEach(el => {
-                    if (el.id !== 'theme-toggle' && !el.closest('.sidebar')) el.disabled = true;
+                    if (!el.closest('.sidebar') && el.id !== 'theme-toggle') el.disabled = true;
                 });
-                document.querySelectorAll('.btn-eliminar-fila, #btn-guardar, #btn-guardar-volver, #btn-copiar-ultimo-turno, [id^="btn-agregar"]').forEach(el => {
-                    el.style.display = 'none';
+                document.querySelectorAll('.btn-secondary, .btn-primary').forEach(el => {
+                    if (el.id !== 'theme-toggle') el.style.display = 'none';
                 });
             }
+
+            await updateBalanceTiempos();
             checkObservacionesObligatorias();
+
         } catch (e) {
-            console.error("Error al cargar datos existentes:", e);
+            console.error("Error cargando datos:", e);
         }
     }
 
-    // --- GUARDAR ---
+    async function updateBalanceTiempos() {
+        const res = await fetch(`/api/bitacora/resumen-tiempo?bitacora_id=${currentBitacora.id}&proceso_id=${procesoId}`);
+        const result = await res.json();
+        const data = result.data;
+        if (!data) return;
 
+        document.getElementById('tiempo-prog').textContent = `${data.tiempo_programado} min`;
+        document.getElementById('tiempo-paro').textContent = `${data.total_paros} min`;
+        document.getElementById('tiempo-efectivo').textContent = `${data.tiempo_efectivo} min`;
+
+        const badge = document.getElementById('badge-estado-proceso');
+        if (data.total_paros > data.tiempo_programado) {
+            badge.className = 'badge badge-error';
+            badge.textContent = 'EXCESO DE PARO';
+        }
+    }
+
+    // --- GUARDADO ---
     async function guardar(volver = false) {
         const isNoOperativo = document.getElementById('select-operatividad').value === 'no_operativo';
         const motivoNoOperativo = document.getElementById('motivo-no-operativo').value;
@@ -402,16 +399,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        let data = {
+        let dataPayload = {
             bitacora_id: currentBitacora.id,
             proceso_id: procesoId,
             no_operativo: isNoOperativo,
-            motivo_no_operativo: motivoNoOperativo,
-            usuario: auth.getUser().nombre || auth.getUser().username
+            motivo_no_operativo: motivoNoOperativo
         };
 
         if (!isNoOperativo) {
-            // Recolectar Muestras de calidad
             const muestras_estructuradas = Array.from(document.querySelectorAll('#tbody-calidad-dinamica tr')).map(tr => {
                 const obj = {};
                 contrato.parametrosCalidad.forEach(p => {
@@ -422,13 +417,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return obj;
             });
 
-            // Recolectar Parámetros operativos
             const parametros_operativos = {};
             document.querySelectorAll('.param-informativo').forEach(input => {
                 parametros_operativos[input.dataset.nombre] = input.value !== '' ? parseFloat(input.value) : null;
             });
 
-            // Recolectar Mezcla
             const mezcla = Array.from(document.querySelectorAll('#tbody-materias-dinamica tr')).map(tr => {
                 const obj = {};
                 const paramLista = contrato.parametrosInformativos.find(p => p.tipo === 'lista_dinamica');
@@ -439,38 +432,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return obj;
             }).filter(m => Object.values(m).some(v => v !== '' && v !== 0));
 
-            if (mezcla.length > 0 && Math.abs(calcularTotalMezcla() - 100) > 0.1) {
-                if (!confirm('La mezcla no suma 100%. ¿Desea guardar de todas formas?')) return;
-            }
-
-            // Recolectar Producción
             const produccion = Array.from(document.getElementById('tbody-produccion').querySelectorAll('tr')).map(tr => {
-                const inputs = tr.querySelectorAll('input, select');
                 return {
-                    maquina: inputs[0].value,
-                    orden_id: inputs[1].value,
-                    cantidad: parseFloat(inputs[2].value) || 0
+                    maquina_id: tr.querySelector('select').value,
+                    maquina: tr.querySelector('select option:checked').text,
+                    orden_id: tr.querySelectorAll('select')[1].value,
+                    cantidad: parseFloat(tr.querySelector('input').value) || 0
                 };
             });
 
-            // Recolectar Desperdicio
             const desperdicio = Array.from(document.getElementById('tbody-desperdicio').querySelectorAll('tr')).map(tr => {
-                const inputs = tr.querySelectorAll('input, select');
                 return {
-                    maquina: inputs[0].value,
-                    orden_id: inputs[1].value,
-                    kg: parseFloat(inputs[2].value) || 0,
-                    motivo: inputs[3].value
+                    maquina_id: tr.querySelector('select').value,
+                    orden_id: tr.querySelectorAll('select')[1].value,
+                    kg: parseFloat(tr.querySelector('input').value) || 0,
+                    motivo: tr.querySelectorAll('input')[1].value
                 };
             });
 
-            // Incidentes
             const incidentes = Array.from(document.getElementById('tbody-incidentes').querySelectorAll('tr')).map(tr => {
-                const inputs = tr.querySelectorAll('input, select');
                 return {
-                    tiempo: parseInt(inputs[0].value) || 0,
-                    motivo: inputs[1].value,
-                    clasificacion: inputs[2].value
+                    tiempo: parseInt(tr.querySelector('input').value) || 0,
+                    motivo: tr.querySelectorAll('input')[1].value,
+                    clasificacion: tr.querySelector('select').value
                 };
             });
 
@@ -480,16 +464,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            data = {
-                ...data,
+            dataPayload = {
+                ...dataPayload,
                 muestras_estructuradas,
                 parametros_operativos,
                 mezcla,
                 produccion,
                 desperdicio,
                 incidentes,
-                observaciones,
-                isExtrusorPP: false // Por compatibilidad backend
+                observaciones
             };
         }
 
@@ -497,43 +480,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             const response = await fetch('/api/bitacora/guardar-proceso', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify(dataPayload)
             });
 
             if (response.ok) {
-                if (volver) {
-                    window.location.href = '/bitacora.html';
-                } else {
-                    alert('Datos guardados correctamente.');
-                }
+                if (volver) window.location.href = '/bitacora.html';
+                else { alert('Guardado con éxito.'); await updateBalanceTiempos(); }
             } else {
-                const error = await response.json();
-                alert('Error al guardar: ' + (error.message || 'Error desconocido'));
+                const err = await response.json();
+                alert('Error al guardar: ' + (err.message || 'Error del servidor'));
             }
-        } catch (error) {
-            console.error('Error guardando:', error);
+        } catch (e) {
+            console.error(e);
         }
     }
 
     function checkObservacionesObligatorias() {
-        const selects = Array.from(document.querySelectorAll('.select-estado-muestra'));
-        const hasProblem = selects.some(s => s.value === 'Rechazo' || s.value === 'Observación');
+        const hasProblem = Array.from(document.querySelectorAll('.select-estado-muestra')).some(s => s.value !== 'Aceptable');
         const aviso = document.getElementById('aviso-obligatorio');
         if (aviso) aviso.style.display = hasProblem ? 'block' : 'none';
         return hasProblem;
     }
 
-    // --- FUNCIONES COMUNES DE TABLAS ---
-
+    // --- TABLAS DE PRODUCCIÓN ---
     function agregarProduccion(data = {}) {
         const tbody = document.getElementById('tbody-produccion');
         const tr = document.createElement('tr');
-        const orderOptions = orders.map(o => `<option value="${o.id}" ${data.orden_id == o.id ? 'selected' : ''}>${o.codigo_orden} - ${o.producto}</option>`).join('');
+        const maquinaOptions = maquinasAutorizadas.map(m => `<option value="${m.id}" ${data.maquina_id == m.id ? 'selected' : ''}>${m.nombre_visible}</option>`).join('');
+        const orderOptions = orders.map(o => `<option value="${o.id}" ${data.orden_id == o.id ? 'selected' : ''}>${o.codigo_orden}</option>`).join('');
+
         tr.innerHTML = `
-            <td><input type="text" class="form-control" placeholder="Máquina" value="${data.maquina || ''}"></td>
-            <td><select class="form-control">${orderOptions}</select></td>
-            <td><input type="number" class="form-control" placeholder="Kg" value="${data.cantidad || ''}"></td>
-            <td><button class="btn-eliminar-fila" style="color:var(--danger);border:none;background:none;cursor:pointer;">×</button></td>
+            <td><select class="form-control" style="padding: 4px;">${maquinaOptions}</select></td>
+            <td><select class="form-control" style="padding: 4px;">${orderOptions}</select></td>
+            <td><input type="number" class="form-control" value="${data.cantidad || ''}" style="padding: 4px;"></td>
+            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelector('.btn-eliminar-fila').onclick = () => tr.remove();
@@ -542,13 +522,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     function agregarDesperdicio(data = {}) {
         const tbody = document.getElementById('tbody-desperdicio');
         const tr = document.createElement('tr');
+        const maquinaOptions = maquinasAutorizadas.map(m => `<option value="${m.id}" ${data.maquina_id == m.id ? 'selected' : ''}>${m.nombre_visible}</option>`).join('');
         const orderOptions = orders.map(o => `<option value="${o.id}" ${data.orden_id == o.id ? 'selected' : ''}>${o.codigo_orden}</option>`).join('');
+
         tr.innerHTML = `
-            <td><input type="text" class="form-control" placeholder="Máquina" value="${data.maquina || ''}"></td>
-            <td><select class="form-control">${orderOptions}</select></td>
-            <td><input type="number" class="form-control" placeholder="Kg" value="${data.kg || ''}"></td>
-            <td><input type="text" class="form-control" placeholder="Motivo" value="${data.motivo || ''}"></td>
-            <td><button class="btn-eliminar-fila" style="color:var(--danger);border:none;background:none;cursor:pointer;">×</button></td>
+            <td><select class="form-control" style="padding: 4px;">${maquinaOptions}</select></td>
+            <td><select class="form-control" style="padding: 4px;">${orderOptions}</select></td>
+            <td><input type="number" class="form-control" value="${data.kg || ''}" style="padding: 4px;"></td>
+            <td><input type="text" class="form-control" value="${data.motivo || ''}" style="padding: 4px;"></td>
+            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelector('.btn-eliminar-fila').onclick = () => tr.remove();
@@ -558,23 +540,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tbody = document.getElementById('tbody-incidentes');
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><input type="number" class="form-control" placeholder="Minutos" value="${data.tiempo || ''}"></td>
-            <td><input type="text" class="form-control" placeholder="Motivo" value="${data.motivo || ''}"></td>
+            <td><input type="number" class="form-control" value="${data.tiempo || ''}" style="padding: 4px;"></td>
+            <td><input type="text" class="form-control" value="${data.motivo || ''}" style="padding: 4px;"></td>
             <td>
-                <select class="form-control">
+                <select class="form-control" style="padding: 4px;">
+                    <option value="Operativa" ${data.clasificacion === 'Operativa' ? 'selected' : ''}>Operativa</option>
                     <option value="Mecánica" ${data.clasificacion === 'Mecánica' ? 'selected' : ''}>Mecánica</option>
                     <option value="Eléctrica" ${data.clasificacion === 'Eléctrica' ? 'selected' : ''}>Eléctrica</option>
-                    <option value="Operativa" ${data.clasificacion === 'Operativa' ? 'selected' : ''}>Operativa</option>
                     <option value="Calidad" ${data.clasificacion === 'Calidad' ? 'selected' : ''}>Calidad</option>
                 </select>
             </td>
-            <td><button class="btn-eliminar-fila" style="color:var(--danger);border:none;background:none;cursor:pointer;">×</button></td>
+            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
         `;
         tbody.appendChild(tr);
-        tr.querySelector('.btn-eliminar-fila').onclick = () => tr.remove();
+        tr.querySelector('.btn-eliminar-fila').onclick = () => { tr.remove(); updateBalanceTiempos(); };
     }
 
-    // Botones globales
     document.getElementById('btn-agregar-produccion').onclick = () => agregarProduccion();
     document.getElementById('btn-agregar-desperdicio').onclick = () => agregarDesperdicio();
     document.getElementById('btn-agregar-incidente').onclick = () => agregarIncidente();
@@ -582,8 +563,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-guardar-volver').onclick = () => guardar(true);
 
     document.getElementById('select-operatividad').onchange = (e) => {
-        const isNoOperativo = e.target.value === 'no_operativo';
-        document.getElementById('group-motivo').style.display = isNoOperativo ? 'block' : 'none';
-        document.getElementById('secciones-operativas').style.display = isNoOperativo ? 'none' : 'block';
+        const isNo = e.target.value === 'no_operativo';
+        document.getElementById('group-motivo').style.display = isNo ? 'block' : 'none';
+        document.getElementById('secciones-operativas').style.display = isNo ? 'none' : 'block';
     };
 });

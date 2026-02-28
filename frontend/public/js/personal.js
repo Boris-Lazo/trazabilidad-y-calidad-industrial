@@ -250,10 +250,20 @@ const PersonalModule = {
 
                 if (procesoId) {
                     try {
-                        const res = await fetch(`/api/telares/maquinas?proceso_id=${procesoId}`);
+                        const res = await fetch(`/api/maquinas?proceso_id=${procesoId}`);
                         const result = await res.json();
                         if (result.success) {
-                            machineSelect.innerHTML += result.data.map(m => `<option value="${m.id}">${m.codigo}</option>`).join('');
+                            // Filtro de dominio: Bloquear máquinas en Baja o Fuera de Servicio para nuevas asignaciones
+                            const allowedStates = ['Disponible', 'Operativa', 'En mantenimiento'];
+                            const machines = result.data.filter(m => allowedStates.includes(m.estado_actual));
+
+                            machineSelect.innerHTML += machines.map(m =>
+                                `<option value="${m.id}">${m.nombre_visible} (${m.estado_actual})</option>`
+                            ).join('');
+
+                            if (machines.length === 0) {
+                                DesignSystem.showToast('No hay máquinas operativas disponibles para este proceso', 'warning');
+                            }
                         }
                     } catch (e) { console.error(e); }
                 }

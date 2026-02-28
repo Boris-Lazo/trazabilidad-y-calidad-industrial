@@ -5,23 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro por Proceso | PROD-SYS</title>
-        <link rel="stylesheet" href="/design-system/index.css">
+    <link rel="stylesheet" href="/design-system/index.css">
     <script src="js/auth.js?v=1.5"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/design-system/index.js" defer></script>
-<script src="js/auth.js"></script>
-    <style>
-        .grid-temps {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 1rem;
-        }
-        .section-extrusor { display: none; }
-    </style>
 </head>
 <body>
 
-        <div class="app-layout">
+    <div class="app-layout">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 PROD-SYS
@@ -32,14 +23,14 @@
                     <span>Dashboard</span>
                 </a>
 
-                <div class="nav-group ">
+                <div class="nav-group open">
                     <button class="nav-group-toggle">
                         <i data-lucide="clipboard-list" class="nav-icon"></i>
                         <span>Producción</span>
                         <i data-lucide="chevron-right" class="chevron"></i>
                     </button>
                     <div class="nav-group-items">
-                        <a href="/bitacora.html" class="nav-item ">Bitácora de Turno</a>
+                        <a href="/bitacora.html" class="nav-item active">Bitácora de Turno</a>
                         <a href="/ordenes.html" class="nav-item ">Órdenes</a>
                         <a href="/ejecucion.html" class="nav-item ">Ejecución</a>
                         <a href="/incidentes.html" class="nav-item ">Incidentes</a>
@@ -58,7 +49,7 @@
                     </div>
                 </div>
 
-                                <div class="nav-group " id="nav-group-admin">
+                <div class="nav-group " id="nav-group-admin">
                     <button class="nav-group-toggle">
                         <i data-lucide="settings" class="nav-icon"></i>
                         <span>Administración</span>
@@ -88,83 +79,96 @@
         </aside>
 
         <div class="main-container" id="main-content">
-            <header class="topbar">
-                <h1>Proceso</h1>
-                <div class="topbar-actions">
-                    <button id="theme-toggle" class="btn btn-secondary" style="padding: 4px 8px; min-height: 32px; border: none; background: transparent;" title="Cambiar tema">
-                        <i data-lucide="sun" class="sun-icon" style="width: 18px; height: 18px;"></i>
-                        <i data-lucide="moon" class="moon-icon" style="width: 18px; height: 18px;"></i>
-                    </button>
+            <!-- Header Contextual del Proceso -->
+            <header class="topbar" style="height: auto; padding: 1rem 1.5rem; flex-direction: column; align-items: flex-start; gap: 0.5rem; border-bottom: 2px solid var(--primary-color);">
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <a href="/bitacora.html" class="btn btn-secondary" style="padding: 4px; border: none; background: transparent;"><i data-lucide="chevron-left" style="width: 24px; height: 24px;"></i></a>
+                        <h1 id="proceso-titulo" style="margin: 0;">Proceso: -</h1>
+                    </div>
+                    <div style="text-align: right;">
+                        <div id="turno-label" style="font-size: 0.9rem; font-weight: bold;">Bitácora: Turno <span id="bread-turno">-</span> – <span id="bread-fecha">-</span></div>
+                        <div id="reloj-proceso" style="font-family: monospace; font-size: 0.8rem; color: var(--text-secondary);">--:--</div>
+                    </div>
+                </div>
+
+                <div id="barra-progreso-proceso" style="width: 100%; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.05); padding: 0.5rem 1rem; border-radius: 4px;">
+                    <div style="display: flex; gap: 2rem; font-size: 0.85rem;">
+                        <div>Tiempo Programado: <strong id="tiempo-prog">480 min</strong></div>
+                        <div>Tiempo de Paro: <strong id="tiempo-paro" class="text-error">0 min</strong></div>
+                        <div>Tiempo Efectivo: <strong id="tiempo-efectivo" class="text-success">480 min</strong></div>
+                    </div>
+                    <div id="proceso-estado-badge">
+                        <span class="badge badge-outline" id="badge-estado-proceso">SIN DATOS</span>
+                    </div>
                 </div>
             </header>
 
             <div class="page-content">
-
-                <!-- SECCIÓN: ESTADO DEL PROCESO -->
-                <div class="card" style="border-left: 5px solid var(--warning);">
-                    <div class="card-header">ESTADO DEL PROCESO</div>
-                    <div style="display: flex; gap: 2rem; align-items: flex-start;">
-                        <div class="form-group" style="flex: 1;">
-                            <label for="select-operatividad">Disponibilidad</label>
-                            <select class="form-control" id="select-operatividad" class="form__input">
+                <!-- Selector de Operatividad -->
+                <div class="card" style="border-left: 5px solid var(--warning); margin-bottom: 2rem;">
+                    <div class="card-header">Disponibilidad del Proceso</div>
+                    <div style="display: flex; gap: 2rem; align-items: flex-start; padding: 0.5rem 1rem;">
+                        <div class="form-group" style="flex: 1; margin: 0;">
+                            <label for="select-operatividad">Estado Operativo</label>
+                            <select class="form-control" id="select-operatividad">
                                 <option value="operativo">✅ Operativo (Producción normal)</option>
                                 <option value="no_operativo">🚫 No Operativo (Parada / Sin plan)</option>
                             </select>
                         </div>
-                        <div id="group-motivo" class="form-group" style="flex: 2; display: none;">
+                        <div id="group-motivo" class="form-group" style="flex: 2; display: none; margin: 0;">
                             <label for="motivo-no-operativo">Motivo de no operatividad</label>
-                            <input class="form-control" type="text" id="motivo-no-operativo" class="form__input" placeholder="Ej. Falta de personal, sin programación de órdenes...">
+                            <input class="form-control" type="text" id="motivo-no-operativo" placeholder="Ej. Falta de personal, sin programación, falla mayor...">
                         </div>
                     </div>
                 </div>
 
                 <div id="secciones-operativas">
-
-                    <!-- 1. CALIDAD -->
+                    <!-- 1. Calidad (Muestras) -->
                     <div class="card">
-                        <div class="card-header">1. CALIDAD (Muestras)</div>
+                        <div class="card-header">1. Control de Calidad (Muestras Obligatorias)</div>
                         <div id="seccion-calidad-dinamica"></div>
                     </div>
 
-                    <!-- 2. PARÁMETROS OPERATIVOS -->
+                    <!-- 2. Parámetros Operativos e Informativos -->
                     <div id="card-parametros-operativos" class="card" style="display:none;">
                         <div class="card-header">
-                            2. PARÁMETROS OPERATIVOS
+                            2. Parámetros Operativos
                             <button id="btn-copiar-ultimo-turno" class="btn btn-secondary" style="float: right; font-size: 0.75rem; padding: 4px 8px; min-height: 24px; margin-top: -4px;">
-                                Copiar del turno anterior
+                                Copiar último turno
                             </button>
                         </div>
                         <div id="seccion-parametros-dinamica"></div>
                     </div>
 
-                    <!-- 3. MATERIAS PRIMAS -->
+                    <!-- 3. Materias Primas / Mezcla -->
                     <div id="card-materias-primas" class="card" style="display:none;">
-                        <div class="card-header">3. MATERIAS PRIMAS / MEZCLA</div>
+                        <div class="card-header">3. Materias Primas y Mezcla (%)</div>
                         <div id="seccion-materias-dinamica"></div>
                     </div>
 
-                    <!-- 4. PRODUCCIÓN -->
+                    <!-- 4. Producción (Ejecución de Órdenes) -->
                     <div class="card">
-                        <div class="card-header"><span class="label-orden-seccion">4</span>. PRODUCCIÓN DEL TURNO</div>
+                        <div class="card-header">4. Producción del Turno</div>
                         <div class="table-container mb-4">
                             <table class="table" id="tabla-produccion">
                                 <thead>
                                     <tr>
-                                        <th>Máquina</th>
-                                        <th>Orden</th>
-                                        <th>Producción (kg)</th>
+                                        <th>Máquina (Activo)</th>
+                                        <th>Orden (SAP)</th>
+                                        <th>Cantidad Producción</th>
                                         <th style="width: 50px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbody-produccion"></tbody>
                             </table>
                         </div>
-                        <button id="btn-agregar-produccion" class="btn btn-secondary">+ Agregar Registro</button>
+                        <button id="btn-agregar-produccion" class="btn btn-secondary">+ Agregar Registro de Producción</button>
                     </div>
 
-                    <!-- 5. DESPERDICIO -->
+                    <!-- 5. Desperdicio / Merma -->
                     <div class="card">
-                        <div class="card-header"><span class="label-orden-seccion">5</span>. DESPERDICIO</div>
+                        <div class="card-header">5. Desperdicio y Merma</div>
                         <div class="table-container mb-4">
                             <table class="table" id="tabla-desperdicio">
                                 <thead>
@@ -172,25 +176,25 @@
                                         <th>Máquina</th>
                                         <th>Orden</th>
                                         <th>Desperdicio (kg)</th>
-                                        <th>Tipo/Motivo</th>
+                                        <th>Motivo / Clasificación</th>
                                         <th style="width: 50px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbody-desperdicio"></tbody>
                             </table>
                         </div>
-                        <button id="btn-agregar-desperdicio" class="btn btn-secondary">+ Agregar Desperdicio</button>
+                        <button id="btn-agregar-desperdicio" class="btn btn-secondary">+ Agregar Registro de Desperdicio</button>
                     </div>
 
-                    <!-- 6. INCIDENTES Y PAROS (Extrusor PP Only o General) -->
+                    <!-- 6. Paros e Incidentes (Afectan balance de tiempo) -->
                     <div id="seccion-incidentes" class="card">
-                        <div class="card-header"><span class="label-orden-seccion">6</span>. INCIDENTES Y PAROS</div>
+                        <div class="card-header">6. Registro de Paros e Incidentes</div>
                         <div class="table-container mb-4">
-                            <table>
+                            <table class="table">
                                 <thead>
                                     <tr>
                                         <th>Tiempo Paro (min)</th>
-                                        <th>Motivo</th>
+                                        <th>Motivo de Parada</th>
                                         <th>Clasificación</th>
                                         <th style="width: 50px;"></th>
                                     </tr>
@@ -198,29 +202,28 @@
                                 <tbody id="tbody-incidentes"></tbody>
                             </table>
                         </div>
-                        <button id="btn-agregar-incidente" class="btn btn-secondary">+ Registrar Paro/Incidente</button>
+                        <button id="btn-agregar-incidente" class="btn btn-secondary">+ Registrar Tiempo de Paro</button>
                     </div>
-
                 </div>
 
-                <!-- 7. OBSERVACIONES -->
+                <!-- 7. Notas y Observaciones -->
                 <div class="card">
-                    <div class="card-header"><span class="label-orden-seccion">7</span>. OBSERVACIONES</div>
+                    <div class="card-header">7. Notas y Observaciones de Auditoría</div>
                     <div class="form-group">
-                        <label for="observaciones">Notas del Inspector</label>
-                        <textarea class="form-control" id="observaciones" rows="4" placeholder="Escriba aquí cualquier desviación, rechazo o incidente..."></textarea>
+                        <label for="observaciones">Notas del Responsable</label>
+                        <textarea class="form-control" id="observaciones" rows="4" placeholder="Detalle cualquier evento inusual o justificación de desviaciones..."></textarea>
                     </div>
-                    <div id="aviso-obligatorio" class="text-error" style="display: none; font-size: 0.875rem; margin-top: -0.5rem; margin-bottom: 1rem;">
-                        ⚠ Las observaciones son obligatorias cuando hay rechazos o desviaciones.
+                    <div id="aviso-obligatorio" class="text-error" style="display: none; font-size: 0.875rem; background: rgba(239,68,68,0.1); padding: 0.5rem; border-radius: 4px;">
+                        <i data-lucide="info" style="width: 14px; height: 14px; vertical-align: middle;"></i>
+                        <strong>Obligatorio:</strong> Debe justificar los rechazos o tiempos de paro excedidos.
                     </div>
                 </div>
 
-                <!-- BOTONES FINALES -->
-                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-bottom: 4rem;">
-                    <button id="btn-guardar" class="btn btn-secondary">Guardar</button>
-                    <button id="btn-guardar-volver" class="btn btn-primary">Guardar y volver</button>
+                <!-- Footer de Acciones -->
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin: 3rem 0 5rem 0; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                    <button id="btn-guardar" class="btn btn-secondary">Solo Guardar</button>
+                    <button id="btn-guardar-volver" class="btn btn-primary" style="min-width: 200px;">Finalizar Registro y Volver</button>
                 </div>
-
             </div>
         </div>
     </div>
