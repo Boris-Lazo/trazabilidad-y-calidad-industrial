@@ -1,28 +1,50 @@
-// Almacenar el ID del intervalo en una variable global para poder detenerlo desde otros scripts.
+
 window.dashboardIntervalId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Referencias a elementos del DOM
     const elements = {
         countOrdenes: document.getElementById('count-ordenes-activas'),
         countIncidentes: document.getElementById('count-incidentes-activos'),
-        countProduccionDia: document.getElementById('count-produccion-dia'),
+        countProduccionTurno: document.getElementById('count-produccion-turno'),
         alertCountTotal: document.getElementById('alert-count-total'),
         tablaOrdenesBody: document.querySelector('#tabla-ordenes-activas tbody'),
         listaIncidentes: document.getElementById('lista-incidentes-criticos'),
-        lastUpdatedSpan: document.getElementById('last-updated')
+        lastUpdatedSpan: document.getElementById('last-updated'),
+
+        // Contexto Operativo
+        dashTurno: document.getElementById('dash-turno'),
+        dashFecha: document.getElementById('dash-fecha'),
+        dashEstadoBitacora: document.getElementById('dash-estado-bitacora'),
+        dashHora: document.getElementById('dash-hora'),
+        dashWarningBitacora: document.getElementById('dash-warning-bitacora')
     };
 
     async function cargarContexto() {
         try {
-            const response = await fetch('/api/bitacora/tiempo-actual');
-            if (response.ok) {
-                const result = await response.json();
-                const data = result.data || {};
-                if (elements.opDate) elements.opDate.textContent = data.fechaOperativa || data.fecha;
-                if (elements.opShift) elements.opShift.textContent = `Turno ${data.turno}`;
+            const resContexto = await fetch('/api/bitacora/tiempo-actual');
+            const resultContexto = await resContexto.json();
+            const dataContexto = resultContexto.data || {};
+
+            elements.dashTurno.textContent = dataContexto.turno;
+            elements.dashFecha.textContent = dataContexto.fechaOperativa || dataContexto.fecha;
+            elements.dashHora.textContent = dataContexto.hora;
+
+            const resBitacora = await fetch('/api/bitacora/estado');
+            const resultBitacora = await resBitacora.json();
+            const dataBitacora = resultBitacora.data || {};
+
+            if (dataBitacora.abierta) {
+                elements.dashEstadoBitacora.textContent = dataBitacora.bitacora.estado;
+                elements.dashEstadoBitacora.className = 'badge badge-success';
+                elements.dashWarningBitacora.style.display = 'none';
+            } else {
+                elements.dashEstadoBitacora.textContent = 'SIN BITÁCORA';
+                elements.dashEstadoBitacora.className = 'badge badge-outline';
+                elements.dashWarningBitacora.style.display = 'flex';
             }
-        } catch (e) { console.error("Error al cargar contexto:", e); }
+        } catch (e) {
+            console.error("Error al cargar contexto:", e);
+        }
     }
 
     async function cargarResumen() {
@@ -34,13 +56,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             const data = result.data || {};
 
-            // Actualizar contadores KPI
             if (elements.countOrdenes) elements.countOrdenes.textContent = data.ordenesActivas;
             if (elements.countIncidentes) elements.countIncidentes.textContent = data.incidentesActivos;
-            if (elements.countProduccionDia) elements.countProduccionDia.textContent = `${data.produccionDia} kg`;
+            if (elements.countProduccionTurno) elements.countProduccionTurno.textContent = `${data.produccionDia} kg`;
             if (elements.alertCountTotal) elements.alertCountTotal.textContent = data.criticalIncidents ? data.criticalIncidents.length : 0;
 
-            // Actualizar tabla de órdenes
             if (elements.tablaOrdenesBody) {
                 if (data.recentOrders && data.recentOrders.length > 0) {
                     elements.tablaOrdenesBody.innerHTML = data.recentOrders.map(orden => {
@@ -66,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Actualizar incidentes críticos
             if (elements.listaIncidentes) {
                 if (data.criticalIncidents && data.criticalIncidents.length > 0) {
                     elements.listaIncidentes.innerHTML = data.criticalIncidents.map(inc => `
@@ -83,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Actualizar tiempo de última actualización
             if (elements.lastUpdatedSpan) {
                 const now = new Date();
                 elements.lastUpdatedSpan.textContent = `Actualizado: ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
@@ -92,10 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.lucide) window.lucide.createIcons();
 
         } catch (error) {
-            console.error('Error en la carga del resumen del dashboard:', error);
-            if (window.dashboardIntervalId && error.message.includes('401')) {
-                clearInterval(window.dashboardIntervalId);
-            }
+            console.error('Error dashboard:', error);
         }
     }
 
@@ -105,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const now = new Date();
         const diffInMs = now - date;
         const diffInMins = Math.floor(diffInMs / 60000);
-
         if (diffInMins < 1) return 'Hace un momento';
         if (diffInMins < 60) return `Hace ${diffInMins} min`;
         const diffInHours = Math.floor(diffInMins / 60);
@@ -113,8 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return date.toLocaleDateString();
     }
 
+    cargarContexto();
     cargarResumen();
     window.dashboardIntervalId = setInterval(() => {
+        cargarContexto();
         cargarResumen();
-    }, 30000);
+    }, 60000);
 });
