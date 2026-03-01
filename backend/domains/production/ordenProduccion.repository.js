@@ -38,11 +38,45 @@ class OrdenProduccionRepository {
     return await this.db.get('SELECT * FROM orden_produccion WHERE id = ?', [id]);
   }
 
+  async findByCodigoOrden(codigoOrden) {
+    return await this.db.get('SELECT id, codigo_orden, estado FROM orden_produccion WHERE codigo_orden = ?', [codigoOrden]);
+  }
+
   async create(data) {
-    const { codigo_orden, producto, cantidad_objetivo, unidad, fecha_planificada, prioridad, observaciones, estado, fecha_creacion, especificaciones } = data;
+    const {
+      codigo_orden,
+      producto,
+      descripcion_producto,
+      cantidad_objetivo,
+      cantidad_planificada,
+      unidad,
+      fecha_planificada,
+      fecha_vencimiento,
+      prioridad,
+      observaciones,
+      estado,
+      fecha_creacion,
+      especificaciones
+    } = data;
+
+    const finalProducto = producto || descripcion_producto;
+    const finalCantidad = cantidad_objetivo !== undefined ? cantidad_objetivo : cantidad_planificada;
+    const finalFechaPlan = fecha_planificada || fecha_vencimiento;
+
     const result = await this.db.run(
       'INSERT INTO orden_produccion (codigo_orden, producto, cantidad_objetivo, unidad, fecha_planificada, prioridad, observaciones, estado, fecha_creacion, especificaciones) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [codigo_orden, producto, cantidad_objetivo, unidad, fecha_planificada, prioridad, observaciones, estado || 'Creada', fecha_creacion || new Date().toISOString(), especificaciones]
+      [
+        codigo_orden,
+        finalProducto,
+        finalCantidad,
+        unidad || 'Unidades',
+        finalFechaPlan,
+        prioridad || 'Media',
+        observaciones || '',
+        estado || 'Creada',
+        fecha_creacion || new Date().toISOString(),
+        typeof especificaciones === 'string' ? especificaciones : JSON.stringify(especificaciones)
+      ]
     );
     return result.lastID;
   }
