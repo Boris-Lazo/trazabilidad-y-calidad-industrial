@@ -4,11 +4,13 @@ const ValidationError = require('../../shared/errors/ValidationError');
 const NotFoundError = require('../../shared/errors/NotFoundError');
 
 class TelaresService {
-  constructor(telaresRepository, lineaEjecucionRepository, registroTrabajoRepository, muestraRepository) {
+  constructor(telaresRepository, lineaEjecucionRepository, registroTrabajoRepository, muestraRepository, incidenteRepository, loteRepository) {
     this.telaresRepository = telaresRepository;
     this.lineaEjecucionRepository = lineaEjecucionRepository;
     this.registroTrabajoRepository = registroTrabajoRepository;
     this.muestraRepository = muestraRepository;
+    this.incidenteRepository = incidenteRepository;
+    this.loteRepository = loteRepository;
   }
 
   async getResumen(bitacoraId) {
@@ -121,7 +123,7 @@ class TelaresService {
   }
 
   async saveDetalle(data, usuario) {
-    const { bitacora_id, maquina_id, produccion, calidad, visual, paros, observacion_advertencia } = data;
+    const { bitacora_id, maquina_id, produccion, calidad, visual, paros, observacion_advertencia, lotes_consumidos = [] } = data;
 
     // 1. Validaciones de dominio
     for (const p of paros) {
@@ -156,6 +158,21 @@ class TelaresService {
 
     if (calidad.ancho.length < 4 && (!observacion_advertencia || observacion_advertencia.trim().length === 0)) {
         throw new ValidationError('Debe justificar la omisión de mediciones de ancho.');
+    }
+
+    // Validación lotes consumidos
+    if (produccionTotal > 0 && lotes_consumidos.length === 0) {
+      throw new ValidationError('Debe declarar al menos un lote consumido cuando hay producción registrada.');
+    }
+
+    for (const lc of lotes_consumidos) {
+      const lote = await this.loteRepository.findById(lc.lote_id);
+      if (!lote) {
+        throw new ValidationError(`Lote ID ${lc.lote_id} no encontrado.`);
+      }
+      if (lote.estado === 'cerrado') {
+        throw new ValidationError(`El lote ${lote.codigo_lote} está cerrado y no puede declararse como consumido.`);
+      }
     }
 
     const colorNoCumple = calidad.color.some(c => c.resultado === 'No cumple');
@@ -256,6 +273,16 @@ class TelaresService {
               justificacion: p.justificacion,
               usuario_modificacion: usuario
           });
+      }
+
+      // Guardar Consumo de Lotes
+      for (const lc of lotes_consumidos) {
+        await this.loteRepository.saveConsumoTelar({
+          lote_id: lc.lote_id,
+          maquina_id,
+          bitacora_id,
+          registro_trabajo_id: null  // no hay registro_trabajo individual por lote en este modelo
+        });
       }
 
       // Calcular Estado Final

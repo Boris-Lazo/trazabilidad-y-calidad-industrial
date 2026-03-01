@@ -2,6 +2,7 @@
 const express = require('express');
 const path = require('path');
 const helmet = require('helmet');
+const crypto = require('crypto');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
@@ -24,6 +25,7 @@ const recursoRoutes = require('./domains/resources/recurso.routes');
 const consumoRoutes = require('./domains/resources/consumo.routes');
 const dashboardRoutes = require('./domains/dashboard/dashboard.routes');
 const telaresRoutes = require('./domains/production/telares.routes');
+const extrusorPPRoutes = require('./domains/production/extrusorPP.routes');
 const personalRoutes = require('./domains/personal/personal.routes');
 const gruposRoutes = require('./domains/grupos/grupos.routes');
 const procesosRoutes = require('./domains/production/procesos.routes');
@@ -33,19 +35,25 @@ const paroRoutes = require('./domains/production/paro.routes');
 const app = express();
 
 // --- MIDDLEWARES DE SEGURIDAD Y RENDIMIENTO ---
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "https://unpkg.com", "'unsafe-inline'"],
-      "script-src-attr": ["'unsafe-inline'"],
-      "connect-src": ["'self'"],
-      "img-src": ["'self'", "data:", "https://*"],
-      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      "font-src": ["'self'", "https://fonts.gstatic.com"]
-    },
-  },
-}));
+app.use((req, res, next) => {
+  res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  next();
+});
+
+app.use((req, res, next) => {
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "script-src": ["'self'", "https://unpkg.com", `'nonce-${res.locals.cspNonce}'`],
+        "script-src-attr": ["'none'"],
+        "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        "font-src": ["'self'", "https://fonts.gstatic.com"],
+        "img-src": ["'self'", "data:"],
+      }
+    }
+  })(req, res, next);
+});
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
@@ -87,6 +95,7 @@ app.use('/api/recursos', authMiddleware, recursoRoutes);
 app.use('/api/consumos', authMiddleware, consumoRoutes);
 app.use('/api/dashboard', authMiddleware, dashboardRoutes);
 app.use('/api/telares', authMiddleware, telaresRoutes);
+app.use('/api/extrusor-pp', authMiddleware, extrusorPPRoutes);
 app.use('/api/personal', authMiddleware, personalRoutes);
 app.use('/api/grupos', authMiddleware, gruposRoutes);
 app.use('/api/procesos', authMiddleware, procesosRoutes);
