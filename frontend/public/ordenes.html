@@ -159,6 +159,10 @@
                     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <span>Listado de Órdenes de Producción</span>
                         <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" id="btn-importar-sap" style="height: 32px; padding: 4px 12px; font-size: 13px;">
+                            <i data-lucide="upload" style="width:14px; height:14px; margin-right:6px; vertical-align:middle;"></i>
+                            Importar desde SAP
+                        </button>
                             <select id="filtro-estado" class="form-control" style="width: auto; padding: 4px 8px; height: 32px;">
                                 <option value="">Todos los estados</option>
                                 <option value="Creada">Creadas</option>
@@ -211,5 +215,79 @@
     </div>
 
     <script src="js/ordenes.js"></script>
+
+    <!-- Modal para Importación SAP -->
+    <div id="modal-importar" class="modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; overflow-y: auto; padding: 20px;">
+        <div class="card" style="max-width:950px; width:95vw; background: var(--bg-card, #1a1a1a); border: 1px solid var(--border-color, #333);">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="margin: 0; font-size: 1.25rem;">Importar Órdenes desde SAP</h2>
+                <button class="btn btn-secondary" id="btn-cerrar-modal" style="padding: 4px 8px; min-height: auto; border: none; background: transparent;">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div style="padding: 1.5rem;">
+
+                <!-- PASO 1: Subir archivo -->
+                <div id="paso-1">
+                    <p class="text-muted" style="margin-bottom: 1.5rem;">Selecciona el archivo Excel exportado de SAP (órdenes abiertas).</p>
+                    <div class="form-group">
+                        <input type="file" id="input-archivo-excel" accept=".xlsx,.xls" class="form-control" style="margin-bottom:16px; padding: 10px;">
+                    </div>
+                    <button class="btn btn-primary" id="btn-previsualizar" style="width: 200px;">
+                        <i data-lucide="eye" style="width:16px; height:16px; margin-right:8px; vertical-align:middle;"></i>
+                        Previsualizar
+                    </button>
+                </div>
+
+                <!-- PASO 2: Revisión y validación -->
+                <div id="paso-2" style="display:none">
+                    <div id="resumen-importacion" class="dashboard-summary" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+
+                    <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.9rem;">Revise los datos antes de confirmar. Los campos con <span style="color:var(--warning-color, #f59e0b)">●</span> requieren su atención.</p>
+
+                    <div class="table-container" style="max-height: 400px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.05);">
+                        <table class="table" id="tabla-previsualizacion">
+                            <thead style="position: sticky; top: 0; z-index: 10; background: var(--bg-card);">
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Proceso</th>
+                                    <th>Descripción</th>
+                                    <th>Cantidad</th>
+                                    <th>Vencimiento</th>
+                                    <th>Especificaciones</th>
+                                    <th>Pendientes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-preview"></tbody>
+                        </table>
+                    </div>
+
+                    <div style="margin-top: 1.5rem; display: flex; gap: 12px; justify-content: flex-end;">
+                        <button class="btn btn-secondary" id="btn-volver-paso1">
+                            <i data-lucide="arrow-left" style="width:14px; height:14px; margin-right:6px; vertical-align:middle;"></i>
+                            Cambiar archivo
+                        </button>
+                        <button class="btn btn-primary" id="btn-confirmar-importacion">
+                            <i data-lucide="check" style="width:14px; height:14px; margin-right:6px; vertical-align:middle;"></i>
+                            Confirmar e Importar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PASO 3: Resultado -->
+                <div id="paso-3" style="display:none">
+                    <div id="resultado-importacion" style="margin-bottom: 1.5rem;"></div>
+                    <button class="btn btn-primary" id="btn-cerrar-resultado">
+                        Finalizar
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="js/ordenes_importar.js"></script>
 </body>
 </html>
