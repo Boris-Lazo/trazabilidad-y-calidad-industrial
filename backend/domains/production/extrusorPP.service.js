@@ -22,9 +22,8 @@ class ExtrusorPPService {
     const procesoId = 1;
 
     // 1. Validar orden: verificar que orden_id existe, que su código empieza por 1 y que su estado no es Cancelada.
-    // Para simplificar y no añadir más dependencias, usaremos el loteService que ya tiene acceso indirecto o el repository.
-    // Pero el prompt dice que loteService tiene findOrdenCodigo.
-    const codigoOrden = await this.loteService.loteRepository.findOrdenCodigo(orden_id);
+    // Usamos el repository local para cumplir con la arquitectura.
+    const codigoOrden = await this.extrusorPPRepository.findOrdenCodigo(orden_id);
     if (!codigoOrden) {
         throw new ValidationError(`La orden ID ${orden_id} no existe.`);
     }
@@ -32,8 +31,7 @@ class ExtrusorPPService {
         throw new ValidationError(`La orden ${codigoOrden} no pertenece al proceso de Extrusión PP.`);
     }
 
-    // Verificar estado de la orden
-    const orden = await this.loteService.loteRepository.findOrdenById(orden_id);
+    const orden = await this.extrusorPPRepository.getOrdenById(orden_id);
     if (orden && orden.estado === 'Cancelada') {
         throw new ValidationError(`La orden ${codigoOrden} está cancelada.`);
     }
@@ -91,9 +89,7 @@ class ExtrusorPPService {
         });
 
         // c. Para cada muestra, calcular tenacidad y guardar
-        const resultadosMuestras = [];
         for (const m of muestras) {
-            // Calcular tenacidad
             let tenacidad = null;
             let resultadoTenacidad = null;
             if (m.denier > 0 && m.resistencia > 0) {
@@ -123,12 +119,6 @@ class ExtrusorPPService {
                     usuario_modificacion: usuario
                 });
             }
-
-            resultadosMuestras.push({
-                ...m,
-                tenacidad,
-                resultado_tenacidad: resultadoTenacidad
-            });
         }
 
         // d. Generar/obtener lote
@@ -136,12 +126,7 @@ class ExtrusorPPService {
         const lote = await this.loteService.generarOObtenerLote(orden_id, bitacora_id, fechaHoy, usuario);
 
         // e. Calcular estado del proceso
-        // Muestras del turno completo (pueden ser las que acabamos de insertar + las previas)
         const todasMuestras = await this.extrusorPPRepository.getMuestras(bitacora_id);
-        // Agrupar muestras por 'momento' (esto requiere que guardemos el momento en algún lugar o lo deduzcamos)
-        // El prompt sugiere que el estado depende de tener 3 muestras (inicio, mitad, dos_horas_antes)
-        // Dado que el esquema de muestras no tiene 'momento', usaremos la cantidad de sets de muestras.
-        // Un set tiene 5 parámetros (denier, resistencia, elongacion, ancho_cinta, tenacidad).
         const numSets = Math.floor(todasMuestras.length / 5);
 
         let estadoProceso = 'Parcial';
@@ -156,8 +141,8 @@ class ExtrusorPPService {
             estadoProceso = 'Con desviación';
         }
 
-        // f. Guardar estado en BITACORA_PROCESO
-        await this.extrusorPPRepository.saveEstadoProceso(bitacora_id, estadoProceso, produccion.observaciones || '', usuario);
+        // f. Guardar estado real en bitacora_maquina_status
+        await this.extrusorPPRepository.saveEstadoMaquina(bitacora_id, maquina.id, estadoProceso, produccion.observaciones || '');
 
         return {
             registro_id,
@@ -172,12 +157,10 @@ class ExtrusorPPService {
 
   async getDetalle(bitacoraId) {
     const maquina = await this.extrusorPPRepository.getMaquina();
-    const estadoProceso = await this.extrusorPPRepository.getEstadoProceso(bitacoraId);
+    const statusMaquina = await this.extrusorPPRepository.getEstadoMaquina(bitacoraId, maquina.id);
     const ultimoRegistro = await this.extrusorPPRepository.getUltimoRegistro(bitacoraId, maquina.id);
     const muestras = await this.extrusorPPRepository.getMuestras(bitacoraId);
 
-    // Obtener lote activo para esta bitácora
-    // Como el extrusor solo tiene una orden a la vez (normalmente), o queremos la última
     let lote = null;
     if (ultimoRegistro) {
         const le = await this.lineaEjecucionRepository.findById(ultimoRegistro.linea_ejecucion_id);
@@ -188,7 +171,7 @@ class ExtrusorPPService {
 
     return {
         maquina,
-        estado_proceso: estadoProceso ? (estadoProceso.no_operativo ? 'No operativo' : 'Operativo') : 'Sin datos',
+        estado_proceso: statusMaquina ? statusMaquina.estado : 'Sin datos',
         ultimo_registro: ultimoRegistro,
         muestras: muestras,
         lote: lote

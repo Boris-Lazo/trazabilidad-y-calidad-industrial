@@ -16,6 +16,19 @@ class ExtrusorPPRepository {
     return maquina;
   }
 
+  // Obtener la orden por ID (para evitar atravesar otros servicios/repositorios)
+  async getOrdenById(ordenId) {
+    const sql = `SELECT * FROM orden_produccion WHERE id = ?`;
+    return await this.db.get(sql, [ordenId]);
+  }
+
+  // Obtener el código de la orden
+  async findOrdenCodigo(ordenId) {
+    const sql = `SELECT codigo_orden FROM orden_produccion WHERE id = ?`;
+    const row = await this.db.get(sql, [ordenId]);
+    return row ? row.codigo_orden : null;
+  }
+
   // Obtener último registro de trabajo para esta bitácora+máquina
   // (para saber el acumulado anterior dentro del turno)
   async getUltimoRegistro(bitacora_id, maquina_id) {
@@ -107,31 +120,22 @@ class ExtrusorPPRepository {
     ]);
   }
 
-  // Guardar estado del proceso en bitácora
-  // Tabla: BITACORA_PROCESO
-  async saveEstadoProceso(bitacora_id, estado, observacion, usuario) {
-    // Nota: Seguiremos el esquema REAL de la base de datos (no_operativo, motivo_no_operativo)
-    // aunque el prompt indicaba otras columnas, para que el código funcione sin modificar la BD.
-    // Al no haber columnas 'estado' ni 'observacion' usaremos las existentes.
+  // Guardar estado de la máquina en la bitácora (donde reside el estado real: Parcial, Completo, etc.)
+  async saveEstadoMaquina(bitacora_id, maquina_id, estado, observacion) {
     const sql = `
-      INSERT INTO BITACORA_PROCESO (bitacora_id, proceso_id, no_operativo, motivo_no_operativo)
-      VALUES (?, 1, ?, ?)
-      ON CONFLICT(bitacora_id, proceso_id) DO UPDATE SET
-        no_operativo = EXCLUDED.no_operativo,
-        motivo_no_operativo = EXCLUDED.motivo_no_operativo
+      INSERT INTO bitacora_maquina_status (bitacora_id, maquina_id, estado, observacion_advertencia)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(bitacora_id, maquina_id) DO UPDATE SET
+        estado = EXCLUDED.estado,
+        observacion_advertencia = EXCLUDED.observacion_advertencia
     `;
-
-    return await this.db.run(sql, [
-      bitacora_id,
-      estado === 'No operativo' ? 1 : 0,
-      observacion
-    ]);
+    return await this.db.run(sql, [bitacora_id, maquina_id, estado, observacion]);
   }
 
-  // Obtener estado actual del proceso en bitácora
-  async getEstadoProceso(bitacora_id) {
-    const sql = `SELECT * FROM BITACORA_PROCESO WHERE bitacora_id = ? AND proceso_id = 1`;
-    return await this.db.get(sql, [bitacora_id]);
+  // Obtener estado actual de la máquina en la bitácora
+  async getEstadoMaquina(bitacora_id, maquina_id) {
+    const sql = `SELECT * FROM bitacora_maquina_status WHERE bitacora_id = ? AND maquina_id = ?`;
+    return await this.db.get(sql, [bitacora_id, maquina_id]);
   }
 
   // Obtener todas las muestras de la bitácora para el proceso 1
