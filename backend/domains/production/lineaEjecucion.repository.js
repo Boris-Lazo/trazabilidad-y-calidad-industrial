@@ -33,6 +33,10 @@ class LineaEjecucionRepository {
     async findActiveByMaquina(maquinaId) {
         return await this.db.get('SELECT * FROM lineas_ejecucion WHERE maquina_id = ? AND estado = ?', [maquinaId, 'ACTIVA']);
     }
+
+    async findById(id) {
+        return await this.db.get('SELECT * FROM lineas_ejecucion WHERE id = ?', [id]);
+    }
 }
 
 module.exports = LineaEjecucionRepository;

@@ -48,6 +48,11 @@ class LoteRepository {
     return row ? row.codigo_orden : null;
   }
 
+  async findOrdenById(ordenId) {
+    const sql = `SELECT * FROM orden_produccion WHERE id = ?`;
+    return await this.db.get(sql, [ordenId]);
+  }
+
   async create(data) {
     const { codigo_lote, orden_produccion_id, bitacora_id, correlativo, fecha_produccion, estado, created_by } = data;
     const sql = `
