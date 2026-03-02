@@ -8,6 +8,8 @@ const RegistroTrabajoRepository = require('./registroTrabajo.repository');
 const MuestraRepository = require('./muestra.repository');
 const LoteRepository = require('../quality/lote.repository');
 const LoteService = require('../quality/lote.service');
+const AuditService = require('../../shared/audit/AuditService');
+const AuditRepository = require('../../shared/audit/AuditRepository');
 const sqlite = require('../../database/sqlite');
 const authorize = require('../../middlewares/authorize');
 const { PERMISSIONS } = require('../../shared/auth/permissions');
@@ -17,7 +19,9 @@ const lineaRepo = new LineaEjecucionRepository(sqlite);
 const registroRepo = new RegistroTrabajoRepository(sqlite);
 const muestraRepo = new MuestraRepository(sqlite);
 const loteRepo = new LoteRepository(sqlite);
-const loteService = new LoteService(loteRepo);
+const auditRepo = new AuditRepository(sqlite);
+const auditService = new AuditService(auditRepo);
+const loteService = new LoteService(loteRepo, auditService);
 
 const laminadoService = new LaminadoService(
     laminadoRepo,

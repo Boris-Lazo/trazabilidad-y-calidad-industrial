@@ -187,15 +187,13 @@ class LaminadoService {
                     correlativoLaminado++;
                     const codigoLoteLaminado = `${rollo.codigo_rollo}-L${String(correlativoLaminado).padStart(3, '0')}`;
 
-                    await this.loteService.loteRepository.create({
-                        codigo_lote: codigoLoteLaminado,
+                    await this.loteService.crearLoteDirecto({
+                        codigo_lote:         codigoLoteLaminado,
                         orden_produccion_id: orden_id,
                         bitacora_id,
-                        correlativo: correlativoLaminado,
-                        fecha_produccion: new Date().toISOString().split('T')[0],
-                        estado: 'activo',
-                        created_by: usuario
-                    });
+                        correlativo:         correlativoLaminado,
+                        fecha_produccion:    new Date().toISOString().split('T')[0]
+                    }, usuario);
                 }
             }
 
