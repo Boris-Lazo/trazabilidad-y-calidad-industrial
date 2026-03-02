@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let orders = [];
     let paroTipos = [];
+    let lotesDisponibles = [];
     let currentSpecs = {
         ancho_nominal: null,
         construccion_urdido: null,
@@ -27,14 +28,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function init() {
         try {
-            const [ordersRes, parosRes, detailRes] = await Promise.all([
+            const [ordersRes, parosRes, detailRes, lotesRes] = await Promise.all([
                 fetch('/api/ordenes-produccion?estado=Liberada&proceso_id=2').then(r => r.json()),
                 fetch('/api/telares/paro-tipos').then(r => r.json()),
-                fetch(`/api/telares/detalle/${maquinaId}?bitacora_id=${bitacoraId}`).then(r => r.json())
+                fetch(`/api/telares/detalle/${maquinaId}?bitacora_id=${bitacoraId}`).then(r => r.json()),
+                fetch('/api/lotes').then(r => r.json())
             ]);
 
             orders = ordersRes.data || [];
             paroTipos = parosRes.data || [];
+            lotesDisponibles = lotesRes.data || [];
 
             if (detailRes.success) {
                 renderData(detailRes.data);
@@ -92,6 +95,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Paros
         data.paros.forEach(p => agregarFilaParo(p));
+
+        // Lotes consumidos
+        document.getElementById('tbody-lotes-consumidos').innerHTML = '';
+        if (data.lotes_consumidos && data.lotes_consumidos.length > 0) {
+            data.lotes_consumidos.forEach(lc => agregarFilaLote(lc));
+        }
 
         document.getElementById('input-justificacion').value = data.observacion_advertencia || '';
 
@@ -227,6 +236,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('tbody-paros').appendChild(tr);
     }
 
+    function agregarFilaLote(data = {}) {
+        const tr = document.createElement('tr');
+        const options = lotesDisponibles
+            .map(l => `<option value="${l.id}"
+                ${data.lote_id == l.id ? 'selected' : ''}>
+                ${l.codigo_lote} — ${l.codigo_orden || ''}
+            </option>`)
+            .join('');
+
+        tr.innerHTML = `
+            <td>
+                <select class="select-lote">
+                    <option value="">Seleccione lote...</option>
+                    ${options}
+                </select>
+            </td>
+            <td class="td-codigo-lote">${data.codigo_lote || '--'}</td>
+            <td class="td-orden-lote">${data.codigo_orden || '--'}</td>
+            <td>
+                <button class="button button-outline btn-del" title="Eliminar">×</button>
+            </td>
+        `;
+
+        tr.querySelector('.select-lote').addEventListener('change', (e) => {
+            const lote = lotesDisponibles.find(l => l.id == e.target.value);
+            tr.querySelector('.td-codigo-lote').textContent = lote ? lote.codigo_lote : '--';
+            tr.querySelector('.td-orden-lote').textContent = lote ? (lote.codigo_orden || '--') : '--';
+        });
+
+        tr.querySelector('.btn-del').addEventListener('click', () => tr.remove());
+        document.getElementById('tbody-lotes-consumidos').appendChild(tr);
+    }
+
     function recalculateAll() {
         // Recalcular metros producidos
         let prevAcumulado = baseAcumulado;
@@ -295,6 +337,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-agregar-produccion').addEventListener('click', () => agregarFilaProduccion());
     document.getElementById('btn-agregar-visual').addEventListener('click', () => agregarFilaVisual());
     document.getElementById('btn-agregar-paro').addEventListener('click', () => agregarFilaParo());
+    document.getElementById('btn-agregar-lote').addEventListener('click', () => agregarFilaLote());
 
     document.querySelectorAll('.input-ancho').forEach(input => {
         input.addEventListener('input', (e) => {
@@ -375,6 +418,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        const lotes_consumidos = Array.from(
+            document.querySelectorAll('#tbody-lotes-consumidos tr')
+        )
+            .map(tr => ({ lote_id: parseInt(tr.querySelector('.select-lote').value) }))
+            .filter(lc => !isNaN(lc.lote_id) && lc.lote_id > 0);
+
+        if (metrosTotales > 0 && lotes_consumidos.length === 0) {
+            alert('Debe declarar al menos un lote consumido cuando hay producción registrada.');
+            return;
+        }
+
         const anchoMuestras = Array.from(document.querySelectorAll('#tbody-ancho tr')).map(tr => ({
             indice: parseInt(tr.dataset.indice),
             valor: parseFloat(tr.querySelector('.input-ancho').value),
@@ -427,6 +481,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             },
             visual,
             paros,
+            lotes_consumidos,
             observacion_advertencia: document.getElementById('input-justificacion').value
         };
 
