@@ -139,14 +139,13 @@ class ImprentaService {
                     correlativoImprenta++;
                     const codigoLoteImprenta = `${rollo.codigo_rollo}-I${String(correlativoImprenta).padStart(3, '0')}`;
 
-                    const newLoteId = await this.loteService.crearLoteDirecto({
+                    existingLote = await this.loteService.crearLoteDirecto({
                         codigo_lote:         codigoLoteImprenta,
                         orden_produccion_id: orden_id,
                         bitacora_id,
                         correlativo:         correlativoImprenta,
                         fecha_produccion:    new Date().toISOString().split('T')[0]
                     }, usuario);
-                    existingLote = { id: newLoteId };
                 }
 
                 await this.imprentaRepository.saveConsumoRollo({
