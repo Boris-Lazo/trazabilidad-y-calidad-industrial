@@ -7,6 +7,9 @@ const TelaresRepository = require('./telares.repository');
 const LineaEjecucionRepository = require('./lineaEjecucion.repository');
 const RegistroTrabajoRepository = require('./registroTrabajo.repository');
 const MuestraRepository = require('./muestra.repository');
+const ParoService = require('./paro.service');
+const ParoRepository = require('./paro.repository');
+const BitacoraRepository = require('./bitacora.repository');
 const LoteRepository = require('../quality/lote.repository');
 const LoteService = require('../quality/lote.service');
 const AuditService = require('../../shared/audit/AuditService');
@@ -20,6 +23,9 @@ const telaresRepo = new TelaresRepository(sqlite);
 const lineaRepo = new LineaEjecucionRepository(sqlite);
 const registroRepo = new RegistroTrabajoRepository(sqlite);
 const muestraRepo = new MuestraRepository(sqlite);
+const paroRepo = new ParoRepository(sqlite);
+const bitacoraRepo = new BitacoraRepository(sqlite);
+const paroService = new ParoService(paroRepo, bitacoraRepo);
 const loteRepo = new LoteRepository(sqlite);
 const auditRepo = new AuditRepository(sqlite);
 const auditSvc = new AuditService(auditRepo);
@@ -30,7 +36,9 @@ const telaresService = new TelaresService(
   lineaRepo,
   registroRepo,
   muestraRepo,
-  loteService
+  loteService,
+  paroService,
+  auditSvc
 );
 const telaresController = new TelaresController(telaresService);
 

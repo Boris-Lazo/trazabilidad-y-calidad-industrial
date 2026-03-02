@@ -37,7 +37,7 @@ class TelaresRepository {
   }
 
   async getParoTipos() {
-    return await this.db.query("SELECT * FROM PARO_TIPO WHERE activo = 1");
+    return await this.db.query("SELECT * FROM CATALOGO_MOTIVO_PARO WHERE activo = 1 ORDER BY nombre ASC");
   }
 
   async saveMaquinaStatus(bitacoraId, maquinaId, estado, observacion) {
@@ -56,12 +56,26 @@ class TelaresRepository {
     return await this.db.get("SELECT especificaciones FROM orden_produccion WHERE id = ?", [ordenId]);
   }
 
-  async deleteMachineRecords(bitacoraId, maquinaId) {
-    await this.db.run("DELETE FROM registros_trabajo WHERE bitacora_id = ? AND maquina_id = ?", [bitacoraId, maquinaId]);
-    await this.db.run("DELETE FROM muestras WHERE bitacora_id = ? AND maquina_id = ?", [bitacoraId, maquinaId]);
-    await this.db.run("DELETE FROM calidad_telares_visual WHERE bitacora_id = ? AND maquina_id = ?", [bitacoraId, maquinaId]);
-    await this.db.run("DELETE FROM paros WHERE bitacora_id = ? AND maquina_id = ?", [bitacoraId, maquinaId]);
-    await this.db.run("DELETE FROM incidentes WHERE bitacora_id = ? AND maquina_id = ?", [bitacoraId, maquinaId]);
+  async deleteMuestrasByMaquinaYBitacora(maquinaId, bitacoraId, procesoId) {
+    await this.db.run("DELETE FROM muestras WHERE maquina_id = ? AND bitacora_id = ? AND proceso_id = ?", [maquinaId, bitacoraId, procesoId]);
+  }
+
+  async deleteDefectosVisualesByMaquinaYBitacora(maquinaId, bitacoraId) {
+    await this.db.run("DELETE FROM calidad_telares_visual WHERE maquina_id = ? AND bitacora_id = ?", [maquinaId, bitacoraId]);
+  }
+
+  async getBitacoraById(bitacoraId) {
+    return await this.db.get("SELECT * FROM bitacora_turno WHERE id = ?", [bitacoraId]);
+  }
+
+  async getUltimoRegistroHistorico(maquinaId, bitacoraId) {
+    return await this.db.get(`
+      SELECT rt.*, bt.fecha_operativa
+      FROM registros_trabajo rt
+      JOIN bitacora_turno bt ON rt.bitacora_id = bt.id
+      WHERE rt.maquina_id = ? AND rt.bitacora_id != ?
+      ORDER BY rt.fecha_hora DESC LIMIT 1
+    `, [maquinaId, bitacoraId]);
   }
 
   async getUltimoAcumulado(maquinaId, bitacoraId) {
@@ -81,24 +95,6 @@ class TelaresRepository {
     }
   }
 
-  async getParosByMaquina(bitacoraId, maquinaId) {
-    return await this.db.query(`
-      SELECT p.*, pt.nombre as tipo_nombre
-      FROM paros p
-      JOIN PARO_TIPO pt ON p.paro_tipo_id = pt.id
-      WHERE p.bitacora_id = ? AND p.maquina_id = ?
-    `, [bitacoraId, maquinaId]);
-  }
-
-  async saveParo(data) {
-    const { bitacora_id, maquina_id, paro_tipo_id, minutos, justificacion, usuario_modificacion } = data;
-    return await this.db.run(`
-      INSERT INTO paros (bitacora_id, maquina_id, proceso_id,
-      paro_tipo_id, minutos, justificacion, usuario_modificacion,
-      created_at)
-      VALUES (?, ?, 2, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `, [bitacora_id, maquina_id, paro_tipo_id, minutos, justificacion, usuario_modificacion]);
-  }
 
   async getMuestrasByMaquina(bitacoraId, maquinaId) {
     return await this.db.query("SELECT * FROM muestras WHERE bitacora_id = ? AND maquina_id = ? AND proceso_id = 2", [bitacoraId, maquinaId]);
