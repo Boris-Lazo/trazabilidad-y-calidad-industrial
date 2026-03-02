@@ -42,6 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderParametrosOperativos(contrato);
         renderMateriasPrimas(contrato);
 
+        initProcesoUI(procesoId);
+
         await cargarDatosExistentes();
         updateReloj();
         setInterval(updateReloj, 60000);
@@ -98,8 +100,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             return `<td><input type="number" class="form-control input-calidad" data-nombre="${p.nombre}" value="${val}" step="0.01" ${readonly} style="padding: 4px; font-size: 0.9rem;"></td>`;
         }).join('');
 
+        let extraTd = '';
+        if (parseInt(procesoId) === 4) {
+            extraTd = `<td>
+                <select class="form-control input-inspeccion" style="padding: 4px; font-size: 0.8rem;">
+                    <option value="1" ${data.inspeccion_indice == 1 ? 'selected' : ''}>1</option>
+                    <option value="2" ${data.inspeccion_indice == 2 ? 'selected' : ''}>2</option>
+                    <option value="3" ${data.inspeccion_indice == 3 ? 'selected' : ''}>3</option>
+                </select>
+            </td>`;
+        }
+
         tr.innerHTML = `
             <td>${index}</td>
+            ${extraTd}
             ${inputsHtml}
             <td>
                 <select class="form-control select-estado-muestra" style="padding: 4px; font-size: 0.8rem;">
@@ -386,12 +400,141 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    // --- UI ESPECÍFICA POR PROCESO ---
+    function initProcesoUI(procesoId) {
+        const pId = parseInt(procesoId);
+        const specificProcesses = [1, 3, 4];
+
+        document.getElementById('section-orden-especifica').style.display = 'none';
+        document.getElementById('section-extrusor-pp').style.display = 'none';
+        document.getElementById('section-laminado').style.display = 'none';
+        document.getElementById('section-imprenta').style.display = 'none';
+        document.getElementById('section-produccion-generica').style.display = 'block';
+
+        if (specificProcesses.includes(pId)) {
+            document.getElementById('section-orden-especifica').style.display = 'block';
+            document.getElementById('section-produccion-generica').style.display = 'none';
+
+            const selectOrden = document.getElementById('select-orden-proceso');
+            selectOrden.innerHTML = '<option value="">— Seleccione Orden —</option>' +
+                orders.map(o => `<option value="${o.id}">${o.codigo_orden}</option>`).join('');
+
+            if (pId === 1) {
+                document.getElementById('section-extrusor-pp').style.display = 'block';
+            } else if (pId === 3) {
+                document.getElementById('section-laminado').style.display = 'block';
+                document.getElementById('btn-agregar-rollo-laminado').onclick = () => agregarFilaRolloLaminado();
+            } else if (pId === 4) {
+                document.getElementById('section-imprenta').style.display = 'block';
+                document.getElementById('btn-agregar-rollo-imprenta').onclick = () => agregarFilaRolloImprenta();
+                document.getElementById('btn-agregar-tinta').onclick = () => agregarFilaTinta();
+
+                const headerTr = document.querySelector('#tabla-calidad-dinamica thead tr');
+                if (headerTr && !headerTr.querySelector('.col-inspeccion')) {
+                     const th = document.createElement('th');
+                     th.className = 'col-inspeccion';
+                     th.textContent = 'Inspección';
+                     th.style.fontSize = '0.8rem';
+                     headerTr.insertBefore(th, headerTr.children[1]);
+                }
+            }
+        }
+    }
+
+    function agregarFilaRolloLaminado(data = {}) {
+        const tbody = document.getElementById('tbody-rollos-laminado');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" class="form-control codigo-rollo" value="${data.codigo_rollo || ''}" placeholder="R-XXXX"></td>
+            <td><input type="number" class="form-control metros-laminados" value="${data.metros_laminados || ''}" step="0.01"></td>
+            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
+        `;
+        tbody.appendChild(tr);
+        tr.querySelector('.btn-eliminar-fila').onclick = () => tr.remove();
+    }
+
+    function agregarFilaRolloImprenta(data = {}) {
+        const tbody = document.getElementById('tbody-rollos-imprenta');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" class="form-control codigo-rollo" value="${data.codigo_rollo || ''}" placeholder="R-XXXX"></td>
+            <td><input type="number" class="form-control metros-consumidos" value="${data.metros_consumidos || ''}" step="0.01"></td>
+            <td><input type="number" class="form-control impresiones-producidas" value="${data.impresiones_producidas || ''}"></td>
+            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
+        `;
+        tbody.appendChild(tr);
+        tr.querySelector('.btn-eliminar-fila').onclick = () => tr.remove();
+    }
+
+    function agregarFilaTinta(data = {}) {
+        const tbody = document.getElementById('tbody-tintas');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="number" class="form-control tinta-pos" value="${data.posicion || ''}" style="width:50px;"></td>
+            <td><input type="text" class="form-control tinta-num" value="${data.numero_color || ''}"></td>
+            <td><input type="text" class="form-control tinta-pantone" value="${data.codigo_pantone || ''}"></td>
+            <td><input type="text" class="form-control tinta-tipo" value="${data.tipo || ''}"></td>
+            <td><input type="text" class="form-control tinta-marca" value="${data.marca || ''}"></td>
+            <td><input type="text" class="form-control tinta-lote" value="${data.lote || ''}"></td>
+            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
+        `;
+        tbody.appendChild(tr);
+        tr.querySelector('.btn-eliminar-fila').onclick = () => tr.remove();
+    }
+
     // --- CARGAR DATOS EXISTENTES ---
     async function cargarDatosExistentes() {
         try {
-            const res = await fetch(`/api/bitacora/proceso-data?bitacora_id=${currentBitacora.id}&proceso_id=${procesoId}`);
-            const result = await res.json();
-            const data = result.data || {};
+            const pId = parseInt(procesoId);
+            const DETALLE_ENDPOINTS = {
+                1: `/api/extrusor-pp/detalle/${currentBitacora.id}`,
+                3: `/api/laminado/detalle/0?bitacora_id=${currentBitacora.id}`,
+                4: `/api/imprenta/detalle/0?bitacora_id=${currentBitacora.id}`,
+            };
+
+            let data = {};
+            if (DETALLE_ENDPOINTS[pId]) {
+                const res = await fetch(DETALLE_ENDPOINTS[pId]);
+                const result = await res.json();
+                data = result.data || {};
+
+                // Mapeo específico de vuelta al formato que espera cargarDatosExistentes
+                if (pId === 1) {
+                    data.muestras_estructuradas = data.muestras;
+                    if (data.produccion) {
+                        document.getElementById('input-acumulado-contador').value = data.produccion.acumulado_contador || '';
+                        document.getElementById('observaciones').value = data.produccion.observaciones || '';
+                    }
+                    if (data.parametros_operativos && data.parametros_operativos.materias_primas) {
+                        data.mezcla = data.parametros_operativos.materias_primas;
+                    }
+                } else if (pId === 3) {
+                    // Mapear muestras de Laminado (parametro, valor) a filas
+                    // Laminado suele tener parámetros fijos por contrato, hay que reconstruir las filas
+                    // Si el backend devuelve muestras planas, agrupamos por algo si es posible,
+                    // o simplemente asumimos que cada N muestras es una fila si el contrato tiene N params.
+                    // Para simplificar, si el servicio no las devuelve estructuradas, las dejamos vacías para que el usuario las llene,
+                    // o intentamos un mapeo básico.
+                    if (data.rollos) data.rollos.forEach(r => agregarFilaRolloLaminado(r));
+                    document.getElementById('input-pelicula-impresa').value = data.pelicula_impresa || '';
+                    if (data.muestras) {
+                        // Mapeo rudimentario: si todas las muestras tienen el mismo timestamp o algo, pero aquí no hay.
+                        // Usaremos el endpoint genérico como fallback para muestras si el específico es muy complejo de mapear.
+                    }
+                } else if (pId === 4) {
+                    if (data.rollos) data.rollos.forEach(r => agregarFilaRolloImprenta(r));
+                    if (data.tintas) data.tintas.forEach(t => agregarFilaTinta(t));
+                }
+
+                if (data.orden_id) document.getElementById('select-orden-proceso').value = data.orden_id;
+            }
+
+            const resGen = await fetch(`/api/bitacora/proceso-data?bitacora_id=${currentBitacora.id}&proceso_id=${procesoId}`);
+            const resultGen = await resGen.json();
+            const dataGen = resultGen.data || {};
+
+            // Mezclar datos genéricos con específicos
+            data = { ...dataGen, ...data };
 
             if (data.no_operativo) {
                 document.getElementById('select-operatividad').value = 'no_operativo';
@@ -462,23 +605,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- GUARDADO ---
-    async function guardar(volver = false) {
+    function buildPayload(pId) {
         const isNoOperativo = document.getElementById('select-operatividad').value === 'no_operativo';
         const motivoNoOperativo = document.getElementById('motivo-no-operativo').value;
+        const ordenId = parseInt(document.getElementById('select-orden-proceso').value) || null;
+        const observaciones = document.getElementById('observaciones').value;
 
-        if (isNoOperativo && !motivoNoOperativo.trim()) {
-            alert('Debe indicar el motivo por el cual el proceso no es operativo.');
-            return;
+        if (isNoOperativo) {
+            return {
+                bitacora_id: currentBitacora.id,
+                proceso_id: pId,
+                no_operativo: true,
+                motivo_no_operativo: motivoNoOperativo
+            };
         }
 
-        let dataPayload = {
-            bitacora_id: currentBitacora.id,
-            proceso_id: procesoId,
-            no_operativo: isNoOperativo,
-            motivo_no_operativo: motivoNoOperativo
-        };
-
-        if (!isNoOperativo) {
+        const getGenericData = () => {
             const muestras_estructuradas = Array.from(document.querySelectorAll('#tbody-calidad-dinamica tr')).map(tr => {
                 const obj = {};
                 contrato.parametrosCalidad.forEach(p => {
@@ -486,6 +628,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     obj[p.nombre] = val !== '' ? parseFloat(val) : null;
                 });
                 obj.estado = tr.querySelector('.select-estado-muestra').value;
+                if (pId === 4) obj.inspeccion_indice = parseInt(tr.querySelector('.input-inspeccion').value);
                 return obj;
             });
 
@@ -504,23 +647,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return obj;
             }).filter(m => Object.values(m).some(v => v !== '' && v !== 0));
 
-            const produccion = Array.from(document.getElementById('tbody-produccion').querySelectorAll('tr')).map(tr => {
-                return {
-                    maquina_id: tr.querySelector('select').value,
-                    maquina: tr.querySelector('select option:checked').text,
-                    orden_id: tr.querySelectorAll('select')[1].value,
-                    cantidad: parseFloat(tr.querySelector('input').value) || 0
-                };
-            });
-
-            const desperdicio = Array.from(document.getElementById('tbody-desperdicio').querySelectorAll('tr')).map(tr => {
-                return {
-                    maquina_id: tr.querySelector('select').value,
-                    orden_id: tr.querySelectorAll('select')[1].value,
-                    kg: parseFloat(tr.querySelector('input').value) || 0,
-                    motivo: tr.querySelectorAll('input')[1].value
-                };
-            });
+            const desperdicio_total = Array.from(document.getElementById('tbody-desperdicio').querySelectorAll('tr')).reduce((sum, tr) => {
+                return sum + (parseFloat(tr.querySelector('input').value) || 0);
+            }, 0);
 
             const incidentes = Array.from(document.getElementById('tbody-incidentes').querySelectorAll('tr')).map(tr => {
                 return {
@@ -530,29 +659,150 @@ document.addEventListener('DOMContentLoaded', async () => {
                 };
             });
 
-            const observaciones = document.getElementById('observaciones').value;
-            if (checkObservacionesObligatorias() && !observaciones.trim()) {
-                alert('Las observaciones son obligatorias si hay rechazos o desviaciones.');
-                return;
-            }
+            return { muestras_estructuradas, parametros_operativos, mezcla, desperdicio_total, incidentes };
+        };
 
-            dataPayload = {
-                ...dataPayload,
-                muestras_estructuradas,
-                parametros_operativos,
-                mezcla,
-                produccion,
-                desperdicio,
-                incidentes,
-                observaciones
+        const generic = getGenericData();
+
+        if (pId === 1) { // Extrusor PP
+            return {
+                bitacora_id: currentBitacora.id,
+                orden_id: ordenId,
+                produccion: {
+                    acumulado_contador: parseFloat(document.getElementById('input-acumulado-contador').value) || 0,
+                    desperdicio_kg: generic.desperdicio_total,
+                    observaciones: observaciones
+                },
+                muestras: generic.muestras_estructuradas.map(m => ({
+                    denier: m.denier,
+                    resistencia: m.resistencia,
+                    elongacion: m.elongacion,
+                    ancho_cinta: m.ancho_cinta,
+                    resultado_denier: m.denier_res, // Estos campos dependen del contrato
+                    resultado_resistencia: m.resistencia_res,
+                    resultado_elongacion: m.elongacion_res,
+                    resultado_ancho_cinta: m.ancho_cinta_res
+                })),
+                parametros_operativos: {
+                    materias_primas: generic.mezcla,
+                    ...generic.parametros_operativos
+                }
             };
         }
 
+        if (pId === 3) { // Laminado
+            return {
+                bitacora_id: currentBitacora.id,
+                orden_id: ordenId,
+                rollos: Array.from(document.getElementById('tbody-rollos-laminado').children).map(tr => ({
+                    codigo_rollo: tr.querySelector('.codigo-rollo').value,
+                    metros_laminados: parseFloat(tr.querySelector('.metros-laminados').value) || 0
+                })),
+                muestras: generic.muestras_estructuradas.flatMap(m => {
+                    // Mapear de objeto a lista de muestras planas (parametro, valor, resultado)
+                    return contrato.parametrosCalidad.filter(p => !p.calculado).map(p => ({
+                        parametro: p.nombre,
+                        valor: m[p.nombre],
+                        resultado: m.estado,
+                        valor_nominal: p.valorNominal || 0
+                    }));
+                }),
+                parametros_operativos: generic.parametros_operativos,
+                materias_primas: generic.mezcla,
+                pelicula_impresa: document.getElementById('input-pelicula-impresa').value || null,
+                desperdicio_kg: generic.desperdicio_total,
+                observaciones: observaciones
+            };
+        }
+
+        if (pId === 4) { // Imprenta
+            return {
+                bitacora_id: currentBitacora.id,
+                orden_id: ordenId,
+                rollos: Array.from(document.getElementById('tbody-rollos-imprenta').children).map(tr => ({
+                    codigo_rollo: tr.querySelector('.codigo-rollo').value,
+                    metros_consumidos: parseFloat(tr.querySelector('.metros-consumidos').value) || 0,
+                    impresiones_producidas: parseInt(tr.querySelector('.impresiones-producidas').value) || 0
+                })),
+                tintas: Array.from(document.getElementById('tbody-tintas').children).map(tr => ({
+                    posicion: parseInt(tr.querySelector('.tinta-pos').value),
+                    numero_color: tr.querySelector('.tinta-num').value,
+                    codigo_pantone: tr.querySelector('.tinta-pantone').value,
+                    tipo: tr.querySelector('.tinta-tipo').value,
+                    marca: tr.querySelector('.tinta-marca').value,
+                    lote: tr.querySelector('.tinta-lote').value
+                })),
+                muestras: generic.muestras_estructuradas.flatMap(m => {
+                    return contrato.parametrosCalidad.filter(p => !p.calculado).map(p => ({
+                        inspeccion_indice: m.inspeccion_indice,
+                        parametro: p.nombre,
+                        valor: m[p.nombre],
+                        resultado: m.estado,
+                        // Tintas se asocian si el parametro de calidad coincide con el color?
+                        // El contrato de Imprenta en el backend es dinámico.
+                    }));
+                }),
+                desperdicio_kg: generic.desperdicio_total,
+                tipo_desperdicio: 'General',
+                parametros_operativos: generic.parametros_operativos,
+                observaciones: observaciones
+            };
+        }
+
+        // Fallback genérico
+        const produccion = Array.from(document.getElementById('tbody-produccion').querySelectorAll('tr')).map(tr => {
+            return {
+                maquina_id: tr.querySelector('select').value,
+                maquina: tr.querySelector('select option:checked').text,
+                orden_id: tr.querySelectorAll('select')[1].value,
+                cantidad: parseFloat(tr.querySelector('input').value) || 0
+            };
+        });
+
+        const desperdicio = Array.from(document.getElementById('tbody-desperdicio').querySelectorAll('tr')).map(tr => {
+            return {
+                maquina_id: tr.querySelector('select').value,
+                orden_id: tr.querySelectorAll('select')[1].value,
+                kg: parseFloat(tr.querySelector('input').value) || 0,
+                motivo: tr.querySelectorAll('input')[1].value
+            };
+        });
+
+        return {
+            bitacora_id: currentBitacora.id,
+            proceso_id: pId,
+            no_operativo: false,
+            muestras_estructuradas: generic.muestras_estructuradas,
+            parametros_operativos: generic.parametros_operativos,
+            mezcla: generic.mezcla,
+            produccion,
+            desperdicio,
+            incidentes: generic.incidentes,
+            observaciones
+        };
+    }
+
+    async function guardar(volver = false) {
+        const pId = parseInt(procesoId);
+        const PROCESO_ENDPOINTS = {
+            1: '/api/extrusor-pp/guardar',
+            3: '/api/laminado/guardar',
+            4: '/api/imprenta/guardar',
+        };
+
+        const endpoint = PROCESO_ENDPOINTS[pId] || '/api/bitacora/guardar-proceso';
+        const payload = buildPayload(pId);
+
+        if (checkObservacionesObligatorias() && !payload.observaciones?.trim()) {
+            alert('Las observaciones son obligatorias si hay rechazos o desviaciones.');
+            return;
+        }
+
         try {
-            const response = await fetch('/api/bitacora/guardar-proceso', {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dataPayload)
+                body: JSON.stringify(payload)
             });
 
             if (response.ok) {
