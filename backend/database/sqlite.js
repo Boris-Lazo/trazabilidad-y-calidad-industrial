@@ -726,6 +726,63 @@ const runFullSchema = () => {
         UNIQUE(tipo, marca, lote_material)
     );`);
 
+    db.run(`CREATE TABLE IF NOT EXISTS imprenta_consumo_rollo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id INTEGER NOT NULL,
+        maquina_id INTEGER NOT NULL,
+        orden_id INTEGER NOT NULL,
+        codigo_rollo TEXT NOT NULL,
+        origen_proceso_id INTEGER NOT NULL,
+        metros_consumidos REAL NOT NULL,
+        impresiones_producidas INTEGER NOT NULL,
+        lote_id INTEGER,
+        registro_trabajo_id INTEGER,
+        usuario_modificacion TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id),
+        FOREIGN KEY (lote_id) REFERENCES lotes(id),
+        FOREIGN KEY (registro_trabajo_id) REFERENCES registros_trabajo(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS imprenta_tintas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id INTEGER NOT NULL,
+        maquina_id INTEGER NOT NULL,
+        orden_id INTEGER NOT NULL,
+        posicion TEXT NOT NULL CHECK(posicion IN ('frente','dorso')),
+        numero_color INTEGER NOT NULL,
+        codigo_pantone TEXT NOT NULL,
+        tipo TEXT,
+        marca TEXT,
+        lote TEXT,
+        usuario_modificacion TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS imprenta_muestras_calidad (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id INTEGER NOT NULL,
+        maquina_id INTEGER NOT NULL,
+        orden_id INTEGER NOT NULL,
+        inspeccion_indice INTEGER NOT NULL,
+        parametro TEXT NOT NULL,
+        valor REAL,
+        resultado TEXT NOT NULL,
+        tinta_posicion TEXT,
+        tinta_numero_color INTEGER,
+        tinta_codigo_pantone TEXT,
+        usuario_modificacion TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id)
+    );`);
+
     db.run(`CREATE TABLE IF NOT EXISTS RECURSO (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         codigo TEXT UNIQUE,
