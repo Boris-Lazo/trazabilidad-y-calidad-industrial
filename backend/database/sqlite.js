@@ -849,6 +849,90 @@ const runFullSchema = () => {
         FOREIGN KEY (orden_id) REFERENCES orden_produccion(id)
     );`);
 
+    db.run(`CREATE TABLE IF NOT EXISTS vestidos_consumo_rollo_saco (
+        id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id          INTEGER NOT NULL,
+        maquina_id           INTEGER NOT NULL,
+        orden_id             INTEGER NOT NULL,
+        codigo_rollo         TEXT NOT NULL,
+        origen_proceso_id    INTEGER NOT NULL,
+        sacos_producidos     INTEGER NOT NULL,
+        lote_id              INTEGER,
+        registro_trabajo_id  INTEGER,
+        usuario_modificacion TEXT,
+        created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id),
+        FOREIGN KEY (lote_id) REFERENCES lotes(id),
+        FOREIGN KEY (registro_trabajo_id) REFERENCES registros_trabajo(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS vestidos_consumo_rollo_pe (
+        id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id          INTEGER NOT NULL,
+        maquina_id           INTEGER NOT NULL,
+        orden_id             INTEGER NOT NULL,
+        codigo_lote_pe       TEXT NOT NULL,
+        lote_pe_id           INTEGER,
+        registro_trabajo_id  INTEGER,
+        usuario_modificacion TEXT,
+        created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id),
+        FOREIGN KEY (lote_pe_id) REFERENCES lotes(id),
+        FOREIGN KEY (registro_trabajo_id) REFERENCES registros_trabajo(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS vestidos_muestras_calidad (
+        id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id          INTEGER NOT NULL,
+        maquina_id           INTEGER NOT NULL,
+        orden_id             INTEGER NOT NULL,
+        inspeccion_indice    INTEGER NOT NULL,
+        parametro            TEXT NOT NULL,
+        valor                REAL,
+        valor_nominal        REAL,
+        resultado            TEXT NOT NULL,
+        usuario_modificacion TEXT,
+        created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS vestidos_muestra_fisica (
+        id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id          INTEGER NOT NULL,
+        maquina_id           INTEGER NOT NULL,
+        orden_id             INTEGER NOT NULL,
+        ancho_muestra        REAL NOT NULL,
+        largo_muestra        REAL NOT NULL,
+        peso_muestra_gramos  REAL NOT NULL,
+        observaciones        TEXT,
+        usuario_modificacion TEXT,
+        created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS vestidos_defectos (
+        id                        INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id               INTEGER NOT NULL,
+        maquina_id                INTEGER NOT NULL,
+        orden_id                  INTEGER NOT NULL,
+        origen_id                 TEXT NOT NULL CHECK(origen_id IN ('DEF-TELAR','DEF-IMPRENTA','DEF-LAMINADO')),
+        descripcion_defecto       TEXT NOT NULL,
+        cantidad_sacos_afectados  INTEGER NOT NULL,
+        usuario_modificacion      TEXT,
+        created_at                DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id)
+    );`);
+
     db.run(`CREATE TABLE IF NOT EXISTS RECURSO (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         codigo TEXT UNIQUE,
