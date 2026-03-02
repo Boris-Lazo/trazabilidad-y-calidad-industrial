@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('link-resumen').href = `telares_resumen.html?id=${bitacoraId}`;
 
     let orders = [];
+    let lotesDisponibles = [];
     let paroTipos = [];
     let lotesDisponibles = [];
     let currentSpecs = {
@@ -192,6 +193,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         resTd.style.color = ok ? 'var(--success)' : 'var(--danger)';
     }
 
+    function agregarFilaLote(data = {}) {
+        const tr = document.createElement('tr');
+        const options = lotesDisponibles
+            .map(l => `<option value="${l.id}" ${data.lote_id == l.id ? 'selected' : ''}>${l.codigo_lote} — ${l.codigo_orden || ''}</option>`)
+            .join('');
+
+        tr.innerHTML = `
+            <td>
+                <select class="select-lote">
+                    <option value="">Seleccione lote...</option>
+                    ${options}
+                </select>
+            </td>
+            <td class="td-codigo-lote">${data.codigo_lote || '--'}</td>
+            <td class="td-orden-lote">${data.codigo_orden || '--'}</td>
+            <td>
+                <button class="button button-outline btn-del" title="Eliminar">×</button>
+            </td>
+        `;
+
+        tr.querySelector('.select-lote').addEventListener('change', (e) => {
+            const lote = lotesDisponibles.find(l => l.id == e.target.value);
+            tr.querySelector('.td-codigo-lote').textContent = lote ? lote.codigo_lote : '--';
+            tr.querySelector('.td-orden-lote').textContent = lote ? (lote.codigo_orden || '--') : '--';
+        });
+
+        tr.querySelector('.btn-del').addEventListener('click', () => tr.remove());
+        document.getElementById('tbody-lotes-consumidos').appendChild(tr);
+    }
+
     function agregarFilaVisual(data = {}) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -223,12 +254,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function agregarFilaParo(data = {}) {
         const tr = document.createElement('tr');
-        const options = paroTipos.map(t => `<option value="${t.id}" ${data.paro_tipo_id == t.id ? 'selected' : ''}>${t.nombre}</option>`).join('');
+        const options = paroTipos.map(t => `<option value="${t.id}" ${data.motivo_id == t.id ? 'selected' : ''}>${t.nombre}</option>`).join('');
 
         tr.innerHTML = `
             <td><select class="select-paro-tipo"><option value="">Seleccione...</option>${options}</select></td>
-            <td><input type="number" class="input-minutos" value="${data.minutos || ''}"></td>
-            <td><input type="text" class="input-justificacion-paro" value="${data.justificacion || ''}"></td>
+            <td><input type="number" class="input-minutos" value="${data.minutos_perdidos || ''}"></td>
+            <td><input type="text" class="input-justificacion-paro" value="${data.observacion || ''}"></td>
             <td><button class="button button-outline btn-del">×</button></td>
         `;
         tr.querySelector('.btn-del').addEventListener('click', () => { tr.remove(); recalculateAll(); });
@@ -397,21 +428,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!validProd) return;
 
+        const lotes_consumidos = Array.from(
+            document.querySelectorAll('#tbody-lotes-consumidos tr')
+        )
+            .map(tr => ({ lote_id: parseInt(tr.querySelector('.select-lote').value) }))
+            .filter(lc => !isNaN(lc.lote_id) && lc.lote_id > 0);
+
         const paros = Array.from(document.querySelectorAll('#tbody-paros tr')).map(tr => ({
-            paro_tipo_id: tr.querySelector('.select-paro-tipo').value,
-            minutos: parseInt(tr.querySelector('.input-minutos').value),
-            justificacion: tr.querySelector('.input-justificacion-paro').value
-        })).filter(p => p.paro_tipo_id && !isNaN(p.minutos));
+            motivo_id: parseInt(tr.querySelector('.select-paro-tipo').value),
+            minutos_perdidos: parseInt(tr.querySelector('.input-minutos').value),
+            observacion: tr.querySelector('.input-justificacion-paro').value
+        })).filter(p => p.motivo_id && !isNaN(p.minutos_perdidos));
 
         for (const p of paros) {
-            if (p.minutos <= 0) { alert('Los minutos de paro deben ser mayores a 0.'); return; }
-            if (p.justificacion.trim().length < 10) { alert('La justificación del paro debe tener al menos 10 caracteres.'); return; }
+            if (p.minutos_perdidos <= 0) { alert('Los minutos de paro deben ser mayores a 0.'); return; }
+            if (!p.observacion || p.observacion.trim().length < 10) {
+                alert('La justificación del paro debe tener al menos 10 caracteres.');
+                return;
+            }
         }
 
         const metrosTotales = produccion.reduce((acc, p, i) => {
             const ant = (i === 0) ? baseAcumulado : produccion[i-1].acumulado_contador;
             return acc + (p.acumulado_contador - ant);
         }, 0);
+
+        if (metrosTotales > 0 && lotes_consumidos.length === 0) {
+            alert('Debe declarar al menos un lote consumido cuando hay producción registrada.');
+            return;
+        }
 
         if (metrosTotales === 0 && paros.length === 0) {
             alert('Debe registrar al menos un paro si no hubo producción.');
