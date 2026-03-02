@@ -10,7 +10,9 @@ class ExtrusorPPContract extends ProcessContract {
             descripcionProducto: 'cinta rafia para saco de PP',
             patronCodigoOrden: '1\\d{6}',
             origenesOrden: ['masivo_excel', 'manual'],
-            maquinasPermitidas: [],
+            // Máquina única. Sin número de serie — no existe otro extrusor PP en planta.
+            // El repository la resuelve dinámicamente por proceso_id = 1.
+            maquinasPermitidas: ['EXTPP'],
             esInicioCadena: true,
             procesosAguasAbajo: [2],
             restriccionesInicio: [

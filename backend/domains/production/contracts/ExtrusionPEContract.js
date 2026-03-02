@@ -10,7 +10,7 @@ class ExtrusionPEContract extends ProcessContract {
             descripcionProducto: 'Bobinas de película tubular (manga de PE) para liner de sacos',
             patronCodigoOrden: '6\\d{6}',
             origenesOrden: ['masivo_excel', 'manual'],
-            maquinasPermitidas: ['EXT-PE-01', 'EXT-PE-02'],
+            maquinasPermitidas: ['EXTPE01', 'EXTPE02'],
             esInicioCadena: true,
             procesosAguasAbajo: [7, 9],
             restriccionesInicio: [
@@ -139,7 +139,7 @@ class ExtrusionPEContract extends ProcessContract {
             componentesFormato: {
                 codigo_orden: '7 dígitos de la orden (ej: 6000123)',
                 EXTPE:        'Prefijo fijo del proceso',
-                NN:           'Número de máquina sin guión (01 o 02)',
+                NN:           'Número de máquina (01 o 02), coincide con el sufijo de EXTPE01 / EXTPE02',
                 correlativo:  '3 dígitos con cero a la izquierda (001, 002...)'
             },
             correlativo: {
