@@ -25,6 +25,25 @@ class AuditRepository {
     const sql = `SELECT * FROM auditoria WHERE entidad = ? AND entidad_id = ? ORDER BY fecha_hora DESC`;
     return await this.db.query(sql, [entidad, entidad_id]);
   }
+
+  async findAll({ usuario, entidad, fecha } = {}) {
+    let sql = 'SELECT * FROM auditoria WHERE 1=1';
+    const params = [];
+    if (usuario) {
+      sql += ' AND usuario LIKE ?';
+      params.push(`%${usuario}%`);
+    }
+    if (entidad) {
+      sql += ' AND entidad = ?';
+      params.push(entidad);
+    }
+    if (fecha) {
+      sql += ' AND DATE(fecha_hora) = ?';
+      params.push(fecha);
+    }
+    sql += ' ORDER BY fecha_hora DESC LIMIT 200';
+    return await this.db.query(sql, params);
+  }
 }
 
 module.exports = AuditRepository;

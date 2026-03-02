@@ -84,6 +84,10 @@ class AuditService {
           categoria_motivo: categoria
       });
   }
+
+  async getAll(filtros = {}) {
+    return await this.auditRepository.findAll(filtros);
+  }
 }
 
 module.exports = AuditService;

@@ -1,59 +1,33 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const formCrearLote = document.getElementById('form-crear-lote');
     const tablaLotesBody = document.querySelector('#tabla-lotes tbody');
-    const mensajeCreacion = document.getElementById('mensaje-creacion');
-    const selectOrdenes = document.getElementById('orden-produccion-id');
 
-    // Función para cargar las órdenes de producción en el selector
-    async function cargarOrdenes() {
-        try {
-            const response = await fetch('/api/ordenes-produccion');
-            if (!response.ok) throw new Error('No se pudieron cargar las órdenes.');
-            
-            const result = await response.json();
-            const ordenes = result.data || [];
-
-            selectOrdenes.innerHTML = '<option value="">Seleccione una orden</option>'; // Opción por defecto
-
-            if (ordenes.length === 0) {
-                selectOrdenes.innerHTML = '<option value="">No hay órdenes disponibles</option>';
-                return;
-            }
-
-            ordenes.forEach(orden => {
-                const option = document.createElement('option');
-                option.value = orden.id;
-                option.textContent = `Orden #${orden.id} - ${orden.producto}`;
-                selectOrdenes.appendChild(option);
-            });
-
-        } catch (error) {
-            console.error('Error cargando órdenes:', error);
-            selectOrdenes.innerHTML = '<option value="">Error al cargar órdenes</option>';
-        }
-    }
-
-    // Función para cargar y mostrar los lotes de producción
     async function cargarLotes() {
         try {
-            const response = await fetch('/api/lotes');
+            const response = await fetch('/api/lotes/disponibles');
             if (!response.ok) throw new Error('Error al cargar los lotes.');
 
             const result = await response.json();
             const lotes = result.data || [];
-            tablaLotesBody.innerHTML = ''; // Limpiar la tabla
+            tablaLotesBody.innerHTML = '';
 
             if (lotes.length === 0) {
-                tablaLotesBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No hay lotes de producción registrados.</td></tr>';
+                tablaLotesBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay lotes de producción registrados.</td></tr>';
                 return;
             }
 
             lotes.forEach(lote => {
                 const fila = `
                     <tr>
-                        <td><strong>Lote #${lote.id}</strong></td>
-                        <td>Orden #${lote.orden_produccion_id}</td>
-                        <td style="color: var(--text-muted);">${new Date(lote.fecha_creacion).toLocaleString()}</td>
+                        <td><strong>${lote.codigo_lote}</strong></td>
+                        <td>${lote.proceso_nombre}</td>
+                        <td>Orden #${lote.orden_id}</td>
+                        <td><span class="badge ${lote.estado === 'activo' ? 'badge-success' : (lote.estado === 'pausado' ? 'badge-warning' : 'badge-info')}">${lote.estado}</span></td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-secondary btn-sm" onclick="verTrazabilidad(${lote.id})">Trazabilidad</button>
+                                ${lote.estado !== 'cerrado' ? `<button class="btn btn-outline btn-sm" onclick="cambiarEstado(${lote.id})">Estado</button>` : ''}
+                            </div>
+                        </td>
                     </tr>
                 `;
                 tablaLotesBody.innerHTML += fila;
@@ -61,47 +35,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Error cargando lotes:', error);
-            tablaLotesBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--danger);">Error al cargar los datos.</td></tr>';
+            tablaLotesBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger);">Error al cargar los datos.</td></tr>';
         }
     }
 
-    // Manejar el envío del formulario para crear un nuevo lote
-    formCrearLote.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        mensajeCreacion.textContent = '';
-        
-        const orden_produccion_id = selectOrdenes.value;
+    window.verTrazabilidad = (id) => {
+        window.location.href = `/trazabilidad.html?lote_id=${id}`;
+    };
 
-        if (!orden_produccion_id) {
-            mensajeCreacion.innerHTML = '<span style="color: var(--danger);">Por favor, seleccione una orden de producción.</span>';
+    window.cambiarEstado = async (id) => {
+        const nuevoEstado = prompt("Nuevo estado (activo, pausado, cerrado):");
+        if (!nuevoEstado || !['activo', 'pausado', 'cerrado'].includes(nuevoEstado.toLowerCase())) {
+            if (nuevoEstado) alert("Estado inválido.");
             return;
         }
 
+        const comentario = prompt("Comentario/Motivo del cambio:");
+        if (comentario === null) return;
+
         try {
-            const response = await fetch('/api/lotes', {
-                method: 'POST',
+            const res = await fetch(`/api/lotes/${id}/estado`, {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orden_produccion_id: parseInt(orden_produccion_id) })
+                body: JSON.stringify({ estado: nuevoEstado.toLowerCase(), comentario })
             });
 
-            const result = await response.json();
-
-            if (!response.ok || !result.success) {
-                throw new Error(result.error || 'No se pudo crear el lote.');
+            if (res.ok) {
+                cargarLotes();
+            } else {
+                const err = await res.json();
+                alert(err.error || "Error al cambiar estado");
             }
-
-            const resultado = result.data;
-            mensajeCreacion.innerHTML = `<span style="color: var(--success); font-weight: 500;">¡Lote #${resultado.id} creado con éxito para la orden #${resultado.orden_produccion_id}!</span>`;
-            formCrearLote.reset();
-            cargarLotes(); // Recargar la lista de lotes
-
-        } catch (error) {
-            console.error('Error al crear el lote:', error);
-            mensajeCreacion.innerHTML = `<span style="color: var(--danger);">Error: ${error.message}</span>`;
+        } catch (e) {
+            alert("Error de red");
         }
-    });
+    };
 
-    // Carga inicial de datos
-    cargarOrdenes();
     cargarLotes();
 });

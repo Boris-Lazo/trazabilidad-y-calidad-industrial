@@ -9,7 +9,6 @@
     <script src="js/auth.js?v=1.5"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/design-system/index.js" defer></script>
-<script src="js/auth.js"></script>
 </head>
 <body>
 
@@ -92,28 +91,16 @@
 
             <div class="page-content">
                 <div class="card">
-                    <div class="card-header">Crear Nuevo Lote</div>
-                    <form id="form-crear-lote">
-                        <div class="form-group">
-                            <label for="orden-produccion-id">Orden de Producción</label>
-                            <select class="form-control" id="orden-produccion-id" name="orden-produccion-id" required>
-                                <option value="">Cargando órdenes...</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Crear Lote</button>
-                    </form>
-                    <div id="mensaje-creacion" class="mt-4"></div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">Lotes Registrados</div>
+                    <div class="card-header">Listado General de Lotes</div>
                     <div class="table-container">
                         <table class="table" id="tabla-lotes">
                             <thead>
                                 <tr>
-                                    <th>ID del Lote</th>
-                                    <th>ID de Orden</th>
-                                    <th>Fecha de Creación</th>
+                                    <th>Código Lote</th>
+                                    <th>Proceso</th>
+                                    <th>Orden</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
