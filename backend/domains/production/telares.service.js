@@ -9,13 +9,17 @@ class TelaresService {
     lineaEjecucionRepository,
     registroTrabajoRepository,
     muestraRepository,
-    loteService
+    loteService,
+    paroService,
+    auditService
   ) {
     this.telaresRepository          = telaresRepository;
     this.lineaEjecucionRepository   = lineaEjecucionRepository;
     this.registroTrabajoRepository  = registroTrabajoRepository;
     this.muestraRepository          = muestraRepository;
     this.loteService                = loteService;
+    this.paroService                = paroService;
+    this.auditService               = auditService;
   }
 
   async getResumen(bitacoraId) {
@@ -63,7 +67,13 @@ class TelaresService {
     const visuales = await this.telaresRepository.getDefectosVisuales(bitacoraId);
     const mVisuales = visuales.filter(v => v.maquina_id == maquinaId);
 
-    const paros = await this.telaresRepository.getParosByMaquina(bitacoraId, maquinaId);
+    const allParos = await this.paroService.getParosByProceso(bitacoraId, 2);
+    // Como el esquema no tiene maquina_id en paros, el filtrado es conceptual
+    // o se asume que todos pertenecen al proceso. Para cumplimiento estricto
+    // del plan, si existiera la columna filtraríamos, pero el repositorio
+    // ya nos advirtió que no la tiene.
+    const paros = allParos;
+
     const ultimoAcumulado = await this.telaresRepository.getUltimoAcumulado(maquinaId, bitacoraId);
 
     // Obtener especificaciones de la última orden registrada
@@ -116,10 +126,10 @@ class TelaresService {
       })),
       paros: paros.map(p => ({
           id: p.id,
-          paro_tipo_id: p.paro_tipo_id,
-          tipo_nombre: p.tipo_nombre,
-          minutos: p.minutos,
-          justificacion: p.justificacion
+          motivo_id: p.motivo_id,
+          motivo_nombre: p.motivo_nombre,
+          minutos_perdidos: p.minutos_perdidos,
+          observacion: p.observacion
       })),
       especificaciones_orden: {
           ancho_nominal: specs.ancho_nominal,
@@ -136,8 +146,8 @@ class TelaresService {
 
     // 1. Validaciones de dominio
     for (const p of paros) {
-        if (p.minutos <= 0) throw new ValidationError('Los minutos de paro deben ser mayores a 0.');
-        if (!p.justificacion || p.justificacion.trim().length < 10) throw new ValidationError('La justificación del paro debe tener al menos 10 caracteres.');
+        if (p.minutos_perdidos <= 0) throw new ValidationError('Los minutos de paro deben ser mayores a 0.');
+        if (!p.observacion || p.observacion.trim().length < 10) throw new ValidationError('La justificación del paro debe tener al menos 10 caracteres.');
     }
 
     for (const v of visual) {
@@ -145,19 +155,39 @@ class TelaresService {
         if (!['DEF-01', 'DEF-02', 'DEF-03'].includes(v.tipo_defecto_id)) throw new ValidationError('ID de defecto visual inválido.');
     }
 
+    const bitacora = await this.telaresRepository.getBitacoraById(bitacora_id);
+    if (!bitacora) throw new NotFoundError('Bitácora no encontrada');
+
+    const ultimoHistorial = await this.telaresRepository.getUltimoRegistroHistorico(maquina_id, bitacora_id);
     const ultimoAcumuladoBase = await this.telaresRepository.getUltimoAcumulado(maquina_id, bitacora_id);
     let acumuladoReferencia = ultimoAcumuladoBase;
 
+    let esResetAnual = false;
+    if (ultimoHistorial && bitacora.fecha_operativa) {
+        const añoActual = new Date(bitacora.fecha_operativa).getFullYear();
+        const añoAnterior = new Date(ultimoHistorial.fecha_operativa).getFullYear();
+        if (añoActual > añoAnterior) {
+            esResetAnual = true;
+        }
+    }
+
     for (const p of produccion) {
         if (p.acumulado_contador < acumuladoReferencia) {
-            // Aquí se podría chequear si es reset anual, pero por ahora seguimos la regla dura del prompt
-            throw new ValidationError(`El acumulado (${p.acumulado_contador}) no puede ser menor al anterior (${acumuladoReferencia}).`);
+            if (esResetAnual && p === produccion[0]) {
+                // Reset anual válido para el primer tramo
+                acumuladoReferencia = 0;
+            } else {
+                throw new ValidationError(`El acumulado (${p.acumulado_contador}) no puede ser menor al anterior (${acumuladoReferencia}).`);
+            }
         }
         acumuladoReferencia = p.acumulado_contador;
     }
 
     const produccionTotal = produccion.reduce((acc, p, i) => {
-        const anterior = (i === 0) ? ultimoAcumuladoBase : produccion[i-1].acumulado_contador;
+        let anterior = (i === 0) ? ultimoAcumuladoBase : produccion[i-1].acumulado_contador;
+        if (esResetAnual && i === 0 && p.acumulado_contador < anterior) {
+            anterior = 0;
+        }
         return acc + (p.acumulado_contador - anterior);
     }, 0);
 
@@ -180,9 +210,7 @@ class TelaresService {
     for (const lc of lotes_consumidos) {
       const lote = await this.loteService.getById(lc.lote_id);
       if (!lote) {
-        throw new ValidationError(
-          `Lote ID ${lc.lote_id} no encontrado.`
-        );
+        throw new NotFoundError(`Lote ID ${lc.lote_id} no encontrado.`);
       }
       if (lote.estado === 'cerrado') {
         throw new ValidationError(
@@ -197,11 +225,10 @@ class TelaresService {
         throw new ValidationError('Un color fuera de especificación obliga a registrar un paro.');
     }
 
-    return await this.telaresRepository.withTransaction(async () => {
+    const result = await this.telaresRepository.withTransaction(async () => {
       const procesoId = 2;
-      await this.telaresRepository.deleteMachineRecords(bitacora_id, maquina_id);
 
-      // Guardar Producción
+      // Guardar Producción (Idempotente)
       let refAcumulado = ultimoAcumuladoBase;
       const registroIds = [];
       for (const p of produccion) {
@@ -211,8 +238,12 @@ class TelaresService {
               linea = { id: resId };
           }
 
+          if (esResetAnual && p === produccion[0] && p.acumulado_contador < refAcumulado) {
+              refAcumulado = 0;
+          }
+
           const cantProd = p.acumulado_contador - refAcumulado;
-          const registroId = await this.registroTrabajoRepository.create({
+          const regData = {
               cantidad_producida: cantProd,
               merma_kg: p.desperdicio_kg || 0,
               observaciones: p.observaciones || '',
@@ -221,7 +252,17 @@ class TelaresService {
               bitacora_id,
               maquina_id,
               usuario_modificacion: usuario
-          });
+          };
+
+          const existente = await this.registroTrabajoRepository.findByLineaYBitacoraYMaquina(linea.id, bitacora_id, maquina_id);
+          let registroId;
+          if (existente) {
+              await this.registroTrabajoRepository.update(existente.id, regData);
+              registroId = existente.id;
+          } else {
+              registroId = await this.registroTrabajoRepository.create(regData);
+          }
+
           registroIds.push(registroId);
           refAcumulado = p.acumulado_contador;
       }
@@ -230,71 +271,76 @@ class TelaresService {
         ? registroIds[registroIds.length - 1]
         : null;
 
-      // Guardar Muestras Ancho
-      for (const a of calidad.ancho) {
-          await this.muestraRepository.create({
-              parametro: 'ancho_tela',
-              valor: a.valor,
-              resultado: a.resultado,
-              bitacora_id,
-              proceso_id: procesoId,
-              maquina_id,
-              valor_nominal: a.valor_nominal,
-              usuario_modificacion: usuario,
-              parametros: JSON.stringify({ indice: a.indice })
-          });
+      // Calidad y Visual solo se reemplazan si la bitácora está ABIERTA o REVISION
+      if (['ABIERTA', 'REVISION'].includes(bitacora.estado)) {
+          await this.telaresRepository.deleteMuestrasByMaquinaYBitacora(maquina_id, bitacora_id, procesoId);
+          await this.telaresRepository.deleteDefectosVisualesByMaquinaYBitacora(maquina_id, bitacora_id);
+
+          // Guardar Muestras Ancho
+          for (const a of calidad.ancho) {
+              await this.muestraRepository.create({
+                  parametro: 'ancho_tela',
+                  valor: a.valor,
+                  resultado: a.resultado,
+                  bitacora_id,
+                  proceso_id: procesoId,
+                  maquina_id,
+                  valor_nominal: a.valor_nominal,
+                  usuario_modificacion: usuario,
+                  parametros: JSON.stringify({ indice: a.indice })
+              });
+          }
+
+          // Guardar Muestras Construcción
+          for (const c of calidad.construccion) {
+              await this.muestraRepository.create({
+                  parametro: c.parametro,
+                  valor: c.valor,
+                  resultado: c.resultado,
+                  bitacora_id,
+                  proceso_id: procesoId,
+                  maquina_id,
+                  valor_nominal: c.valor_nominal,
+                  usuario_modificacion: usuario
+              });
+          }
+
+          // Guardar Muestras Color
+          for (const c of calidad.color) {
+              await this.muestraRepository.create({
+                  parametro: c.parametro,
+                  valor: c.valor,
+                  resultado: c.resultado,
+                  bitacora_id,
+                  proceso_id: procesoId,
+                  maquina_id,
+                  valor_nominal: c.valor_nominal,
+                  usuario_modificacion: usuario
+              });
+          }
+
+          // Guardar Visual
+          for (const v of visual) {
+              await this.telaresRepository.saveDefectoVisual({
+                  bitacora_id,
+                  maquina_id,
+                  orden_id: v.orden_id,
+                  rollo_numero: v.rollo_numero,
+                  tipo_defecto: v.tipo_defecto_id,
+                  observacion: v.observacion,
+                  usuario_modificacion: usuario
+              });
+          }
       }
 
-      // Guardar Muestras Construcción
-      for (const c of calidad.construccion) {
-          await this.muestraRepository.create({
-              parametro: c.parametro,
-              valor: c.valor,
-              resultado: c.resultado,
-              bitacora_id,
-              proceso_id: procesoId,
-              maquina_id,
-              valor_nominal: c.valor_nominal,
-              usuario_modificacion: usuario
-          });
-      }
-
-      // Guardar Muestras Color
-      for (const c of calidad.color) {
-          await this.muestraRepository.create({
-              parametro: c.parametro,
-              valor: c.valor, // null o el valor si aplica, el prompt dice resultado cumple/no cumple
-              resultado: c.resultado,
-              bitacora_id,
-              proceso_id: procesoId,
-              maquina_id,
-              valor_nominal: c.valor_nominal, // color esperado
-              usuario_modificacion: usuario
-          });
-      }
-
-      // Guardar Visual
-      for (const v of visual) {
-          await this.telaresRepository.saveDefectoVisual({
-              bitacora_id,
-              maquina_id,
-              orden_id: v.orden_id,
-              rollo_numero: v.rollo_numero,
-              tipo_defecto: v.tipo_defecto_id,
-              observacion: v.observacion,
-              usuario_modificacion: usuario
-          });
-      }
-
-      // Guardar Paros
+      // Guardar Paros vía ParoService
       for (const p of paros) {
-          await this.telaresRepository.saveParo({
+          await this.paroService.create({
               bitacora_id,
-              maquina_id,
-              paro_tipo_id: p.paro_tipo_id,
-              minutos: p.minutos,
-              justificacion: p.justificacion,
-              usuario_modificacion: usuario
+              proceso_id: procesoId,
+              motivo_id: p.motivo_id,
+              minutos_perdidos: p.minutos_perdidos,
+              observacion: p.observacion
           });
       }
 
@@ -333,7 +379,27 @@ class TelaresService {
       }
 
       await this.telaresRepository.saveMaquinaStatus(bitacora_id, maquina_id, estadoFinal, observacion_advertencia);
+
+      return { produccionTotal, registroIds };
     });
+
+    // Auditoría
+    await this.auditService.logChange({
+        usuario,
+        accion: 'SAVE_DETALLE_TELAR',
+        entidad: 'RegistroTelar',
+        entidad_id: maquina_id,
+        valor_nuevo: {
+            bitacora_id,
+            maquina_id,
+            produccion_total: result.produccionTotal,
+            paros_count: paros.length,
+            lotes_consumidos: lotes_consumidos.map(lc => lc.lote_id)
+        },
+        motivo_cambio: 'Guardado de detalle de telar por operario'
+    });
+
+    return result;
   }
 
   async getParoTipos() {

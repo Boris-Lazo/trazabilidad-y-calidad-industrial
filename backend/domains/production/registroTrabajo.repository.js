@@ -11,6 +11,13 @@ class RegistroTrabajoRepository {
         return await this.db.query('SELECT * FROM registros_trabajo WHERE linea_ejecucion_id = ?', [lineaId]);
     }
 
+    async findByLineaYBitacoraYMaquina(lineaId, bitacoraId, maquinaId) {
+        return await this.db.get(
+            'SELECT * FROM registros_trabajo WHERE linea_ejecucion_id = ? AND bitacora_id = ? AND maquina_id = ? LIMIT 1',
+            [lineaId, bitacoraId, maquinaId]
+        );
+    }
+
     async create(data) {
         const { cantidad_producida, merma_kg, observaciones, parametros, linea_ejecucion_id, bitacora_id, maquina_id, usuario_modificacion } = data;
         const result = await this.db.run(

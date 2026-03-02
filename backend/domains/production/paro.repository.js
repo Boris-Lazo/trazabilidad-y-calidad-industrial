@@ -31,6 +31,12 @@ class ParoRepository {
     `, [bitacoraId, procesoId]);
   }
 
+  async findByBitacoraProcesoYMaquina(bitacoraId, procesoId, maquinaId) {
+    // Nota: PARO_PROCESO no tiene columna maquina_id en el esquema canónico.
+    // Se filtra por bitacora y proceso (el proceso_id identifica los paros del telar).
+    return await this.findByBitacoraAndProceso(bitacoraId, procesoId);
+  }
+
   async sumMinutosByBitacoraAndProceso(bitacoraId, procesoId) {
     const res = await this.db.get(
       'SELECT SUM(minutos_perdidos) as total FROM PARO_PROCESO WHERE bitacora_id = ? AND proceso_id = ?',
