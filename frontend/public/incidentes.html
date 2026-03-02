@@ -9,7 +9,6 @@
     <script src="js/auth.js?v=1.5"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/design-system/index.js" defer></script>
-<script src="js/auth.js"></script>
 </head>
 <body>
 
@@ -108,12 +107,8 @@
                                     <option value="alta">Alta (Parada de línea)</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label for="linea_ejecucion_id">Línea Asociada</label>
-                                <select class="form-control" id="linea_ejecucion_id" name="linea_ejecucion_id">
-                                    <option value="">Ninguna / General</option>
-                                </select>
-                            </div>
+                            <!-- Campo Línea Asociada deshabilitado (no hay endpoint /api/lineas-ejecucion) -->
+                            <input type="hidden" name="linea_ejecucion_id" value="">
                             <div class="form-group">
                                 <label for="descripcion">Descripción del Problema</label>
                                 <textarea class="form-control" id="descripcion" name="descripcion" rows="3" required></textarea>

@@ -4,17 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabla = document.getElementById('tabla-incidentes');
     const lineaSelect = document.getElementById('linea_ejecucion_id');
 
-    async function cargarLineas() {
-        try {
-            const res = await fetch('/api/lineas-ejecucion');
-            const result = await res.json();
-            const data = result.data || [];
-            data.forEach(l => {
-                lineaSelect.innerHTML += `<option value="${l.id}">Línea #${l.id} (OP #${l.orden_produccion_id})</option>`;
-            });
-        } catch (e) {}
-    }
-
     async function cargarIncidentes() {
         try {
             const res = await fetch('/api/incidentes');
@@ -53,7 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
-        if (data.linea_ejecucion_id === "") delete data.linea_ejecucion_id;
+
+        // El backend lo acepta como NULL, no es requerido.
+        delete data.linea_ejecucion_id;
 
         try {
             const res = await fetch('/api/incidentes', {
@@ -82,6 +73,5 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {}
     };
 
-    cargarLineas();
     cargarIncidentes();
 });
