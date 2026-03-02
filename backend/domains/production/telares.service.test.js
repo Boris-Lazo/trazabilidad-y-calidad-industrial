@@ -80,17 +80,35 @@ describe('TelaresService', () => {
                 lotes_consumidos: [{ lote_id: 1 }]
             };
 
-            // Bitácora actual es 2025
-            mockRepo.getBitacoraById.mockResolvedValue({ id: 2, fecha_operativa: '2025-01-01', estado: 'ABIERTA' });
-            // Último registro fue en 2024
-            mockRepo.getUltimoRegistroHistorico.mockResolvedValue({ id: 1, bitacora_id: 1, fecha_operativa: '2024-12-31' });
+            // Bitácora actual es 2025, pero la apertura fue en 2024
+            mockRepo.getBitacoraById.mockResolvedValue({
+                id: 2,
+                fecha_operativa: '2025-01-01',
+                fecha_apertura: '2024-12-31T23:00:00Z',
+                estado: 'ABIERTA'
+            });
             // Acumulado era 5000
             mockRepo.getUltimoAcumulado.mockResolvedValue(5000);
+
+            // Mock de fecha actual para que coincida con el año 2025
+            const realDate = Date;
+            global.Date = class extends realDate {
+                constructor(date) {
+                    if (date) return new realDate(date);
+                    return new realDate('2025-01-01T08:00:00Z');
+                }
+                static now() {
+                    return new realDate('2025-01-01T08:00:00Z').getTime();
+                }
+            };
 
             mockLoteSvc.getById.mockResolvedValue({ id: 1, estado: 'activo' });
             mockLineaRepo.findByOrdenAndProceso.mockResolvedValue({ id: 10 });
 
             await service.saveDetalle(data, 'user');
+
+            // Restaurar Date
+            global.Date = realDate;
 
             // Verificamos que se creó un registro con cantidad_producida = 100 (y no 100 - 5000)
             expect(mockRegRepo.create).toHaveBeenCalledWith(expect.objectContaining({

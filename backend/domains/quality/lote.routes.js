@@ -16,6 +16,11 @@ const loteRepository = new LoteRepository(sqlite);
 const loteService = new LoteService(loteRepository, auditService);
 const loteController = new LoteController(loteService);
 
+// Listar todos los lotes
+router.get('/',
+  authMiddleware, authorize(PERMISSIONS.VIEW_QUALITY),
+  loteController.getAll);
+
 // Lotes disponibles para consumo en telares (activos + pausados)
 router.get('/disponibles',
   authMiddleware, authorize(PERMISSIONS.VIEW_QUALITY),
