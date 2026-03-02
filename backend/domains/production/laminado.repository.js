@@ -178,6 +178,16 @@ class LaminadoRepository {
         return row ? (row.total || 0) : 0;
     }
 
+    async findLoteExistentePorRollo(ordenId, codigoRollo) {
+        // Busca si ya existe un lote para este rollo en esta orden.
+        // Se usa para evitar duplicados al re-guardar el turno.
+        return await this.db.get(
+            `SELECT * FROM lotes
+             WHERE orden_produccion_id = ? AND codigo_lote LIKE ?`,
+            [ordenId, `${codigoRollo}-L%`]
+        );
+    }
+
     // ── Desperdicio ───────────────────────────────────────────────────────
     async getDesperdicioByBitacora(bitacoraId, maquinaId) {
         const row = await this.db.get(`
