@@ -173,6 +173,41 @@ class LoteService {
   async getByBitacoraYOrden(bitacoraId, ordenId) {
     return await this.loteRepository.findByBitacoraYOrden(bitacoraId, ordenId);
   }
+
+  async getById(loteId) {
+    return await this.loteRepository.findById(loteId);
+  }
+
+  async crearLoteDirecto(data, usuario) {
+    // Crear un lote con código ya calculado externamente.
+    // Se usa cuando el servicio que llama necesita
+    // controlar el formato del código (ej: Laminado
+    // genera {codigo_rollo}-L{correlativo}).
+    // No genera correlativo automático — el llamador
+    // es responsable de calcularlo y pasarlo.
+    const nuevoId = await this.loteRepository.create({
+      codigo_lote:         data.codigo_lote,
+      orden_produccion_id: data.orden_produccion_id,
+      bitacora_id:         data.bitacora_id,
+      correlativo:         data.correlativo,
+      fecha_produccion:    data.fecha_produccion,
+      estado:              'activo',
+      created_by:          usuario
+    });
+
+    if (this.auditService) {
+      await this.auditService.logChange({
+        usuario,
+        accion:        'CREATE',
+        entidad:       'Lote',
+        entidad_id:    nuevoId,
+        valor_nuevo:   { codigo_lote: data.codigo_lote },
+        motivo_cambio: 'Generación de lote por proceso de Laminado'
+      });
+    }
+
+    return await this.loteRepository.findById(nuevoId);
+  }
 }
 
 module.exports = LoteService;

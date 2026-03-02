@@ -4,13 +4,18 @@ const ValidationError = require('../../shared/errors/ValidationError');
 const NotFoundError = require('../../shared/errors/NotFoundError');
 
 class TelaresService {
-  constructor(telaresRepository, lineaEjecucionRepository, registroTrabajoRepository, muestraRepository, incidenteRepository, loteRepository) {
-    this.telaresRepository = telaresRepository;
-    this.lineaEjecucionRepository = lineaEjecucionRepository;
-    this.registroTrabajoRepository = registroTrabajoRepository;
-    this.muestraRepository = muestraRepository;
-    this.incidenteRepository = incidenteRepository;
-    this.loteRepository = loteRepository;
+  constructor(
+    telaresRepository,
+    lineaEjecucionRepository,
+    registroTrabajoRepository,
+    muestraRepository,
+    loteService
+  ) {
+    this.telaresRepository          = telaresRepository;
+    this.lineaEjecucionRepository   = lineaEjecucionRepository;
+    this.registroTrabajoRepository  = registroTrabajoRepository;
+    this.muestraRepository          = muestraRepository;
+    this.loteService                = loteService;
   }
 
   async getResumen(bitacoraId) {
@@ -67,11 +72,15 @@ class TelaresService {
         specs = JSON.parse(mRegistros[mRegistros.length - 1].especificaciones);
     }
 
+    const lotesConsumidos = await this.loteService
+      .getConsumoTelar(maquinaId, bitacoraId);
+
     return {
       maquina,
       estado: mStatus ? mStatus.estado : 'Sin datos',
       observacion_advertencia: mStatus ? mStatus.observacion_advertencia : '',
       ultimoAcumulado,
+      lotes_consumidos: lotesConsumidos,
       produccion: mRegistros.map(r => {
           let acumulado = 0;
           try {
@@ -162,16 +171,24 @@ class TelaresService {
 
     // Validación lotes consumidos
     if (produccionTotal > 0 && lotes_consumidos.length === 0) {
-      throw new ValidationError('Debe declarar al menos un lote consumido cuando hay producción registrada.');
+      throw new ValidationError(
+        'Debe declarar al menos un lote consumido cuando ' +
+        'hay producción registrada.'
+      );
     }
 
     for (const lc of lotes_consumidos) {
-      const lote = await this.loteRepository.findById(lc.lote_id);
+      const lote = await this.loteService.getById(lc.lote_id);
       if (!lote) {
-        throw new ValidationError(`Lote ID ${lc.lote_id} no encontrado.`);
+        throw new ValidationError(
+          `Lote ID ${lc.lote_id} no encontrado.`
+        );
       }
       if (lote.estado === 'cerrado') {
-        throw new ValidationError(`El lote ${lote.codigo_lote} está cerrado y no puede declararse como consumido.`);
+        throw new ValidationError(
+          `El lote ${lote.codigo_lote} está cerrado y no ` +
+          `puede declararse como consumido.`
+        );
       }
     }
 
@@ -186,6 +203,7 @@ class TelaresService {
 
       // Guardar Producción
       let refAcumulado = ultimoAcumuladoBase;
+      const registroIds = [];
       for (const p of produccion) {
           let linea = await this.lineaEjecucionRepository.findByOrdenAndProceso(p.orden_id, procesoId, maquina_id);
           if (!linea) {
@@ -194,7 +212,7 @@ class TelaresService {
           }
 
           const cantProd = p.acumulado_contador - refAcumulado;
-          await this.registroTrabajoRepository.create({
+          const registroId = await this.registroTrabajoRepository.create({
               cantidad_producida: cantProd,
               merma_kg: p.desperdicio_kg || 0,
               observaciones: p.observaciones || '',
@@ -204,8 +222,13 @@ class TelaresService {
               maquina_id,
               usuario_modificacion: usuario
           });
+          registroIds.push(registroId);
           refAcumulado = p.acumulado_contador;
       }
+
+      const ultimoRegistroId = registroIds.length > 0
+        ? registroIds[registroIds.length - 1]
+        : null;
 
       // Guardar Muestras Ancho
       for (const a of calidad.ancho) {
@@ -276,13 +299,17 @@ class TelaresService {
       }
 
       // Guardar Consumo de Lotes
-      for (const lc of lotes_consumidos) {
-        await this.loteRepository.saveConsumoTelar({
-          lote_id: lc.lote_id,
+      // registro_trabajo_id apunta al último registro del
+      // telar en este turno — representa el vínculo de
+      // trazabilidad lote → producción del turno.
+      if (ultimoRegistroId) {
+        await this.loteService.guardarConsumoTelar(
           maquina_id,
           bitacora_id,
-          registro_trabajo_id: null  // no hay registro_trabajo individual por lote en este modelo
-        });
+          lotes_consumidos.map(lc => lc.lote_id),
+          ultimoRegistroId,
+          usuario
+        );
       }
 
       // Calcular Estado Final
