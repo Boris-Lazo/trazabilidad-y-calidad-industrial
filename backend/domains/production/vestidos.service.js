@@ -29,6 +29,16 @@ class VestidosService {
 
         const defectos = await this.vestidosRepository.getDefectosByBitacora(bitacoraId, maquinaId);
 
+        // Extraer parámetros del último registro si existe
+        let params = {};
+        if (ultimoRegistro && ultimoRegistro.parametros) {
+            try {
+                params = JSON.parse(ultimoRegistro.parametros);
+            } catch (e) {
+                params = {};
+            }
+        }
+
         return {
             maquina,
             estado_proceso: estadoMaquina ? estadoMaquina.estado : 'Sin datos',
@@ -37,7 +47,10 @@ class VestidosService {
             rollos_pe: rollosPE,
             muestras_calidad: muestrasCalidad,
             muestra_fisica: mFisica,
-            defectos
+            defectos,
+            desperdicio_tela_kg: params.desperdicio_tela_kg || 0,
+            destino_desperdicio_tela: params.destino_desperdicio_tela || null,
+            retorno_liner_kg: params.retorno_liner_kg || 0
         };
     }
 
@@ -53,8 +66,9 @@ class VestidosService {
             muestras = [],
             muestra_fisica = null,
             defectos = [],
-            desperdicio_kg = 0,
-            destino_desperdicio = null,
+            desperdicio_tela_kg = 0,
+            destino_desperdicio_tela = null,
+            retorno_liner_kg = 0,
             observaciones = ''
         } = data;
 
@@ -78,8 +92,8 @@ class VestidosService {
         const maquinaId = maquina.id;
 
         // 3. REGLA DURA DE ASIGNACIÓN
-        const especificaciones = JSON.parse(orden.especificaciones || '{}');
-        if (especificaciones.con_fuelle === true || especificaciones.microperforado === true) {
+        const specs = JSON.parse(orden.especificaciones || '{}');
+        if (specs.con_fuelle === true || specs.microperforado === true) {
             throw new ValidationError('CONV#03 no puede procesar sacos con fuelle o microperforados.');
         }
 
@@ -168,13 +182,15 @@ class VestidosService {
             // b. Guardar registro de trabajo
             const parametrosJSON = {
                 sacos_total,
-                destino_desperdicio,
+                desperdicio_tela_kg,
+                destino_desperdicio_tela,
+                retorno_liner_kg,
                 observaciones
             };
 
             const registroId = await this.registroTrabajoRepository.create({
                 cantidad_producida: sacos_total,
-                merma_kg: desperdicio_kg,
+                merma_kg: desperdicio_tela_kg,
                 observaciones,
                 parametros: JSON.stringify(parametrosJSON),
                 linea_ejecucion_id: linea.id,
@@ -238,13 +254,12 @@ class VestidosService {
             }
 
             // e. Calcular resultados de muestras en el service
-            const especificaciones = JSON.parse(orden.especificaciones || '{}');
             for (const m of muestras) {
                 let resultado = 'Cumple';
                 let valorNominal = null;
 
                 if (['ancho_saco', 'largo_saco', 'doble_costura'].includes(m.parametro)) {
-                    valorNominal = especificaciones[m.parametro];
+                    valorNominal = specs[m.parametro];
                     const tolerancia = (m.parametro === 'doble_costura') ? 0.125 : 0.25;
                     if (valorNominal !== null && valorNominal !== undefined) {
                         if (Math.abs(m.valor - valorNominal) > tolerancia) {
@@ -308,7 +323,7 @@ class VestidosService {
             const tieneRollosPE = rollos_pe.length > 0;
             const tieneMuestras = muestrasGuardadas.length > 0;
 
-            if (tieneProduccion || tieneMuestras || defectos.length > 0 || desperdicio_kg > 0) {
+            if (tieneProduccion || tieneMuestras || defectos.length > 0 || desperdicio_tela_kg > 0 || retorno_liner_kg > 0) {
                 estado = 'Parcial';
 
                 // Completo: al menos 1 rollo_saco + 1 rollo_pe + 4 inspecciones (1,2,3,4) con 5 parámetros cada una

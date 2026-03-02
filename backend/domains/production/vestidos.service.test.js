@@ -76,6 +76,32 @@ describe('VestidosService', () => {
             expect(result.estado_proceso).toBe('Completo');
             expect(result.rollos_saco).toHaveLength(1);
             expect(result.rollos_pe).toHaveLength(1);
+            expect(result.desperdicio_tela_kg).toBe(0);
+            expect(result.retorno_liner_kg).toBe(0);
+        });
+
+        test('debe retornar desperdicio y retorno desde parametros del ultimo registro', async () => {
+            const bitacoraId = 1;
+            vestidosRepositoryMock.getMaquina.mockResolvedValue({ id: 10 });
+            vestidosRepositoryMock.getUltimoRegistro.mockResolvedValue({
+                id: 5,
+                orden_id: 100,
+                parametros: JSON.stringify({
+                    desperdicio_tela_kg: 10.5,
+                    destino_desperdicio_tela: 'Peletizado',
+                    retorno_liner_kg: 4.2
+                })
+            });
+            vestidosRepositoryMock.getConsumoRollosSacoByBitacora.mockResolvedValue([]);
+            vestidosRepositoryMock.getConsumoRollosPEByBitacora.mockResolvedValue([]);
+            vestidosRepositoryMock.getMuestrasCalidadByBitacora.mockResolvedValue([]);
+            vestidosRepositoryMock.getDefectosByBitacora.mockResolvedValue([]);
+
+            const result = await vestidosService.getDetalle(bitacoraId);
+
+            expect(result.desperdicio_tela_kg).toBe(10.5);
+            expect(result.destino_desperdicio_tela).toBe('Peletizado');
+            expect(result.retorno_liner_kg).toBe(4.2);
         });
     });
 
@@ -147,8 +173,9 @@ describe('VestidosService', () => {
                     { inspeccion_indice: 1, parametro: 'puntadas_costura', valor: 13 },
                     { inspeccion_indice: 1, parametro: 'sello_liner', resultado: 'Cumple' }
                 ],
-                desperdicio_kg: 5,
-                destino_desperdicio: 'Peletizado',
+                desperdicio_tela_kg: 5,
+                destino_desperdicio_tela: 'Peletizado',
+                retorno_liner_kg: 2,
                 observaciones: 'Test'
             };
 
@@ -158,6 +185,11 @@ describe('VestidosService', () => {
             expect(vestidosRepositoryMock.saveConsumoRolloSaco).toHaveBeenCalled();
             expect(vestidosRepositoryMock.saveConsumoRolloPE).toHaveBeenCalled();
             expect(vestidosRepositoryMock.saveMuestraCalidad).toHaveBeenCalledTimes(5);
+
+            // Verificar que merma_kg es solo desperdicio_tela_kg
+            expect(registroTrabajoRepositoryMock.create).toHaveBeenCalledWith(expect.objectContaining({
+                merma_kg: 5
+            }));
         });
     });
 });

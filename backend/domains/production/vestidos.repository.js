@@ -32,19 +32,6 @@ class VestidosRepository {
 
     // ── Producción ──
     // Afecta tabla: registros_trabajo
-    async saveRegistroTrabajo(data) {
-        const { cantidad_producida, merma_kg, observaciones, parametros,
-                linea_ejecucion_id, bitacora_id, maquina_id, usuario_modificacion } = data;
-        const result = await this.db.run(`
-            INSERT INTO registros_trabajo
-            (cantidad_producida, merma_kg, observaciones, parametros,
-             linea_ejecucion_id, bitacora_id, maquina_id, usuario_modificacion)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [cantidad_producida, merma_kg, observaciones, parametros,
-            linea_ejecucion_id, bitacora_id, maquina_id, usuario_modificacion]);
-        return result.lastID;
-    }
-
     async getUltimoRegistro(bitacoraId, maquinaId) {
         return await this.db.get(`
             SELECT rt.*, le.orden_produccion_id as orden_id
