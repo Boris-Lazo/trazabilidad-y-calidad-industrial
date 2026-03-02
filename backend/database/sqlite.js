@@ -933,6 +933,40 @@ const runFullSchema = () => {
         FOREIGN KEY (orden_id) REFERENCES orden_produccion(id)
     );`);
 
+    db.run(`CREATE TABLE IF NOT EXISTS liner_pe_consumo_rollo (
+        id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id          INTEGER NOT NULL,
+        maquina_id           INTEGER NOT NULL,
+        orden_id             INTEGER NOT NULL,
+        codigo_lote_pe       TEXT NOT NULL,
+        lote_pe_id           INTEGER,
+        registro_trabajo_id  INTEGER,
+        usuario_modificacion TEXT,
+        created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id),
+        FOREIGN KEY (lote_pe_id) REFERENCES lotes(id),
+        FOREIGN KEY (registro_trabajo_id) REFERENCES registros_trabajo(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS liner_pe_muestras_calidad (
+        id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id          INTEGER NOT NULL,
+        maquina_id           INTEGER NOT NULL,
+        orden_id             INTEGER NOT NULL,
+        inspeccion_indice    INTEGER NOT NULL,
+        parametro            TEXT NOT NULL,
+        valor                REAL,
+        valor_nominal        REAL,
+        resultado            TEXT NOT NULL,
+        usuario_modificacion TEXT,
+        created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id)
+    );`);
+
     db.run(`CREATE TABLE IF NOT EXISTS RECURSO (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         codigo TEXT UNIQUE,
