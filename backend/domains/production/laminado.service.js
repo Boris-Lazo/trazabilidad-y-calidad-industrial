@@ -180,8 +180,8 @@ class LaminadoService {
                 // Sin embargo, Laminado genera MULTIPLES lotes por bitácora (uno por rollo).
 
                 // Buscamos si ya existe el lote con el patrón {rollo.codigo_rollo}-L...
-                const sqlCheckLote = `SELECT * FROM lotes WHERE orden_produccion_id = ? AND codigo_lote LIKE ?`;
-                const existingLote = await this.laminadoRepository.db.get(sqlCheckLote, [orden_id, `${rollo.codigo_rollo}-L%`]);
+                const existingLote = await this.laminadoRepository
+                    .findLoteExistentePorRollo(orden_id, rollo.codigo_rollo);
 
                 if (!existingLote) {
                     correlativoLaminado++;
