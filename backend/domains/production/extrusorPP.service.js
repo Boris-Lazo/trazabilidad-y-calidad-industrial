@@ -165,7 +165,7 @@ class ExtrusorPPService {
     if (ultimoRegistro) {
         const le = await this.lineaEjecucionRepository.findById(ultimoRegistro.linea_ejecucion_id);
         if (le) {
-            lote = await this.loteService.loteRepository.findByBitacoraYOrden(bitacoraId, le.orden_produccion_id);
+            lote = await this.loteService.getByBitacoraYOrden(bitacoraId, le.orden_produccion_id);
         }
     }
 

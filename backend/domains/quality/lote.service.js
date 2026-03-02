@@ -169,6 +169,10 @@ class LoteService {
     const historial = await this.loteRepository.getHistorialEstado(loteId);
     return { lote, consumos, historial };
   }
+
+  async getByBitacoraYOrden(bitacoraId, ordenId) {
+    return await this.loteRepository.findByBitacoraYOrden(bitacoraId, ordenId);
+  }
 }
 
 module.exports = LoteService;
