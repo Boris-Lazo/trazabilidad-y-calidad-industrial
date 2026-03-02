@@ -252,9 +252,34 @@
                         </div>
                         <button class="button button-outline" id="btn-agregar-paro" style="margin-top: 12px;">+ Registrar Paro</button>
                     </div>
+
+                    <!-- 7. LOTES CONSUMIDOS -->
+                    <div class="card form-section" style="grid-column: span 2;">
+                        <div class="card-header">7. LOTES CONSUMIDOS</div>
+                        <p class="text-muted mb-2">
+                            Declare los lotes de materia prima utilizados en este turno.
+                            Obligatorio cuando hay producción registrada.
+                        </p>
+                        <div class="table-container">
+                            <table class="table" id="tabla-lotes-consumidos">
+                                <thead>
+                                    <tr>
+                                        <th>Lote</th>
+                                        <th>Código</th>
+                                        <th>Orden</th>
+                                        <th style="width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-lotes-consumidos"></tbody>
+                            </table>
+                        </div>
+                        <button class="button button-outline" id="btn-agregar-lote" style="margin-top: 12px;">
+                            + Agregar Lote Consumido
+                        </button>
+                    </div>
                 </div>
 
-                <!-- 7. JUSTIFICACION -->
+                <!-- 8. JUSTIFICACION -->
                 <div id="section-justificacion" class="card mt-4" style="border-left: 4px solid var(--danger); display: none;">
                     <div class="card-body">
                         <strong>Justificación por omisión de mediciones (obligatoria)</strong>
