@@ -158,37 +158,40 @@ class TelaresService {
     const bitacora = await this.telaresRepository.getBitacoraById(bitacora_id);
     if (!bitacora) throw new NotFoundError('Bitácora no encontrada');
 
-    const ultimoHistorial = await this.telaresRepository.getUltimoRegistroHistorico(maquina_id, bitacora_id);
+    function esResetAnual(acumuladoNuevo, acumuladoAnterior, bitacoraFecha) {
+      if (acumuladoNuevo >= acumuladoAnterior) return false;
+      // Solo es reset válido si el acumulado nuevo es pequeño (< 10% del anterior)
+      // y si la fecha de la bitácora es de un año diferente al año actual
+      const dateBitacora = new Date(bitacoraFecha);
+      const añoBitacora = dateBitacora.getFullYear();
+      const añoActual = new Date().getFullYear();
+      const esNuevoAño = añoActual > añoBitacora;
+      const esValorPequeño = acumuladoNuevo < (acumuladoAnterior * 0.1);
+      return esNuevoAño && esValorPequeño;
+    }
+
     const ultimoAcumuladoBase = await this.telaresRepository.getUltimoAcumulado(maquina_id, bitacora_id);
     let acumuladoReferencia = ultimoAcumuladoBase;
 
-    let esResetAnual = false;
-    if (ultimoHistorial && bitacora.fecha_operativa) {
-        const añoActual = new Date(bitacora.fecha_operativa).getFullYear();
-        const añoAnterior = new Date(ultimoHistorial.fecha_operativa).getFullYear();
-        if (añoActual > añoAnterior) {
-            esResetAnual = true;
-        }
-    }
-
     for (const p of produccion) {
         if (p.acumulado_contador < acumuladoReferencia) {
-            if (esResetAnual && p === produccion[0]) {
-                // Reset anual válido para el primer tramo
-                acumuladoReferencia = 0;
-            } else {
-                throw new ValidationError(`El acumulado (${p.acumulado_contador}) no puede ser menor al anterior (${acumuladoReferencia}).`);
+            // Verificar si es un reset anual legítimo
+            if (!esResetAnual(p.acumulado_contador, acumuladoReferencia, bitacora.fecha_apertura)) {
+                throw new ValidationError(
+                    `El acumulado (${p.acumulado_contador}) no puede ser menor al anterior ` +
+                    `(${acumuladoReferencia}). Si es un reset de contador de año nuevo, ` +
+                    `el nuevo valor debe ser menor al 10% del anterior.`
+                );
             }
         }
         acumuladoReferencia = p.acumulado_contador;
     }
 
     const produccionTotal = produccion.reduce((acc, p, i) => {
-        let anterior = (i === 0) ? ultimoAcumuladoBase : produccion[i-1].acumulado_contador;
-        if (esResetAnual && i === 0 && p.acumulado_contador < anterior) {
-            anterior = 0;
-        }
-        return acc + (p.acumulado_contador - anterior);
+        const anterior = (i === 0) ? ultimoAcumuladoBase : produccion[i-1].acumulado_contador;
+        const diff = p.acumulado_contador - anterior;
+        // Si diff es negativo (reset anual), usar el acumulado nuevo como producción del período
+        return acc + (diff >= 0 ? diff : p.acumulado_contador);
     }, 0);
 
     if (produccionTotal === 0 && paros.length === 0) {
@@ -238,7 +241,7 @@ class TelaresService {
               linea = { id: resId };
           }
 
-          if (esResetAnual && p === produccion[0] && p.acumulado_contador < refAcumulado) {
+          if (p.acumulado_contador < refAcumulado && esResetAnual(p.acumulado_contador, refAcumulado, bitacora.fecha_apertura)) {
               refAcumulado = 0;
           }
 

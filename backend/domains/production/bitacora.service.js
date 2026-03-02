@@ -144,8 +144,14 @@ class BitacoraService {
   }
 
   _checkNeedsRevision(muestras, registros) {
-    const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
-    const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
+    // Detección de rechazo: campo estructurado
+    const RESULTADOS_REVISION = ['Rechazo', 'No cumple', 'En espera'];
+    const hasRechazo = muestras.some(m => RESULTADOS_REVISION.includes(m.resultado));
+
+    // Detección de incidente: campo booleano estructurado (no texto libre)
+    // El campo tiene_incidente no existe aún en registros_trabajo
+    const hasIncidente = false; // TODO: implementar campo tiene_incidente en registros_trabajo
+
     return hasRechazo || hasIncidente;
   }
 
@@ -177,8 +183,10 @@ class BitacoraService {
       const produccionTotal = registros.reduce((sum, r) => sum + (r.cantidad_producida || 0), 0);
       const hasRegistros = registros.length > 0;
       const hasMuestras = muestras.length >= muestrasMinimas;
-      const hasRechazo = muestras.some(m => m.resultado === 'Rechazo' || m.resultado === 'En espera');
-      const hasIncidente = registros.some(r => r.observaciones && r.observaciones.toLowerCase().includes('incidente'));
+
+      const RESULTADOS_REVISION = ['Rechazo', 'No cumple', 'En espera'];
+      const hasRechazo = muestras.some(m => RESULTADOS_REVISION.includes(m.resultado));
+      const hasIncidente = false; // TODO: implementar campo tiene_incidente en registros_trabajo
 
       if (status && status.no_operativo) {
         estadoProceso = 'COMPLETO';

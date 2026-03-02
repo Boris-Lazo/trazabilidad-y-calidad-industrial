@@ -2,28 +2,82 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <script src="/design-system/theme/index.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Telar - Sistema de Control Industrial</title>
-    <link rel="stylesheet" href="design-system/index.css">
-    <link rel="stylesheet" href="css/main.css">
-    <style>
-        .form-section { margin-bottom: 24px; }
-        .table input, .table select { width: 100%; background: transparent; border: 1px solid transparent; color: inherit; padding: 4px; }
-        .table input:focus, .table select:focus { border-color: var(--primary-base); outline: none; background: rgba(255,255,255,0.05); }
-        .badge-status { padding: 4px 12px; border-radius: 4px; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
-        .status-sin-datos { background: #6b7280; color: white; }
-        .status-parcial { background: #f59e0b; color: white; }
-        .status-completo { background: #10b981; color: white; }
-        .status-desviacion { background: #ef4444; color: white; }
-        .spec-label { font-size: 0.875rem; color: var(--text-muted); }
-        .spec-value { font-weight: 600; }
-        .alert-color { background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #ef4444; padding: 12px; border-radius: 4px; margin-top: 12px; display: none; }
-    </style>
+    <link rel="stylesheet" href="/design-system/index.css">
+    <link rel="stylesheet" href="/css/telares.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="industrial-theme">
-    <div class="layout">
-        <div class="main-content">
+<body>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                PROD-SYS
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item nav-item-single ">
+                    <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-group open">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="clipboard-list" class="nav-icon"></i>
+                        <span>Producción</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/bitacora.html" class="nav-item active">Bitácora de Turno</a>
+                        <a href="/ordenes.html" class="nav-item ">Órdenes</a>
+                        <a href="/ejecucion.html" class="nav-item ">Ejecución</a>
+                        <a href="/incidentes.html" class="nav-item ">Incidentes</a>
+                    </div>
+                </div>
+
+                <div class="nav-group ">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="shield-check" class="nav-icon"></i>
+                        <span>Control</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <a href="/calidad.html" class="nav-item ">Calidad</a>
+                        <a href="/trazabilidad.html" class="nav-item ">Trazabilidad</a>
+                    </div>
+                </div>
+
+                <div class="nav-group " id="nav-group-admin">
+                    <button class="nav-group-toggle">
+                        <i data-lucide="settings" class="nav-icon"></i>
+                        <span>Administración</span>
+                        <i data-lucide="chevron-right" class="chevron"></i>
+                    </button>
+                    <div class="nav-group-items">
+                        <div class="nav-section-label">Colaboradores</div>
+                        <a href="/personal.html" class="nav-item ">Lista</a>
+                        <a href="/grupos.html" class="nav-item ">Grupos</a>
+                        <div class="nav-section-label">Sistema</div>
+                        <a href="/maquinas.html" class="nav-item">Máquinas</a>
+                        <a href="/auditoria.html" class="nav-item ">Auditoría</a>
+                        <a href="/procesos.html" class="nav-item ">Procesos</a>
+                    </div>
+                </div>
+            </nav>
+            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
+                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+                    <span id="user-name-label">Usuario: -</span>
+                </div>
+                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
+                    <i data-lucide="log-out" class="nav-icon"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </aside>
+
+        <div class="main-container" id="main-content">
             <header class="topbar">
                 <div class="breadcrumb">
                     <a href="bitacora.html">Bitácora</a> / <a id="link-resumen" href="#">Telares</a> / <span id="label-maquina">T-XX</span>
@@ -213,7 +267,7 @@
     </div>
 
     <script src="js/auth.js"></script>
-    <script src="design-system/index.js"></script>
+    <script src="/design-system/index.js"></script>
     <script src="js/telares_detalle.js"></script>
 </body>
 </html>

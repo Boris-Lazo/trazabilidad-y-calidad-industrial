@@ -6,6 +6,15 @@ class LoteController {
     this.loteService = loteService;
   }
 
+  getAll = async (req, res, next) => {
+    try {
+      const lotes = await this.loteService.getDisponibles();
+      return sendSuccess(res, lotes);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getByOrdenId = async (req, res, next) => {
     try {
       const lotes = await this.loteService.getByOrdenId(req.params.id);

@@ -1,0 +1,103 @@
+
+/* === Estilos Compartidos de Telares (Resumen y Detalle) === */
+
+/* --- Resumen de Telares --- */
+.telares-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+}
+.telar-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    border-radius: 4px;
+    transition: transform 0.2s;
+    cursor: pointer;
+    position: relative;
+}
+.telar-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-base);
+}
+.telar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.telar-id {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-base);
+}
+.telar-info {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+.telar-metrics {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+}
+.metric-item {
+    text-align: center;
+}
+.metric-value {
+    font-weight: 600;
+    display: block;
+}
+.metric-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.alert-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--danger);
+    border-radius: 50%;
+    display: none;
+}
+
+/* --- Detalle de Telar --- */
+.form-section { margin-bottom: 24px; }
+.table input, .table select {
+    width: 100%;
+    background: transparent;
+    border: 1px solid transparent;
+    color: inherit;
+    padding: 4px;
+}
+.table input:focus, .table select:focus {
+    border-color: var(--primary-base);
+    outline: none;
+    background: rgba(255,255,255,0.05);
+}
+.badge-status {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+}
+.status-sin-datos { background: #6b7280; color: white; }
+.status-parcial { background: #f59e0b; color: white; }
+.status-completo { background: #10b981; color: white; }
+.status-desviacion { background: #ef4444; color: white; }
+.spec-label { font-size: 0.875rem; color: var(--text-muted); }
+.spec-value { font-weight: 600; }
+.alert-color {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid #ef4444;
+    color: #ef4444;
+    padding: 12px;
+    border-radius: 4px;
+    margin-top: 12px;
+    display: none;
+}

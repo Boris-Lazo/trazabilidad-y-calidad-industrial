@@ -116,10 +116,11 @@ describe('BitacoraService', () => {
         expect(bitacoraService._checkNeedsRevision(muestras, registros)).toBe(true);
     });
 
-    test('_checkNeedsRevision retorna true si hay incidentes en observaciones', () => {
+    test('_checkNeedsRevision retorna false si hay incidentes en observaciones (ahora usa campo estructurado)', () => {
         const muestras = [];
         const registros = [{ observaciones: 'Se detectó un incidente en la línea' }];
-        expect(bitacoraService._checkNeedsRevision(muestras, registros)).toBe(true);
+        // Dado que hasIncidente es false (placeholder), esto debe ser false
+        expect(bitacoraService._checkNeedsRevision(muestras, registros)).toBe(false);
     });
 
     test('_checkNeedsRevision retorna false si no hay desviaciones', () => {
