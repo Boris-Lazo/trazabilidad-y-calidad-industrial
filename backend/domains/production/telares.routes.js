@@ -42,9 +42,9 @@ const telaresService = new TelaresService(
 );
 const telaresController = new TelaresController(telaresService);
 
-router.get('/resumen', telaresController.getResumen);
-router.get('/paro-tipos', telaresController.getParoTipos);
-router.get('/detalle/:maquinaId', telaresController.getDetalle);
-router.post('/guardar', authorize(PERMISSIONS.MANAGE_QUALITY), telaresController.guardarDetalle);
+router.get('/resumen', authMiddleware, telaresController.getResumen);
+router.get('/paro-tipos', authMiddleware, telaresController.getParoTipos);
+router.get('/detalle/:maquinaId', authMiddleware, telaresController.getDetalle);
+router.post('/guardar', authMiddleware, authorize(PERMISSIONS.MANAGE_QUALITY), telaresController.guardarDetalle);
 
 module.exports = router;
