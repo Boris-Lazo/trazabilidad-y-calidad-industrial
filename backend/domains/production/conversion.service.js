@@ -179,13 +179,14 @@ class ConversionService {
                     correlativoConversion++;
                     const codigoLoteConversion = `${rollo.codigo_rollo}-C${String(correlativoConversion).padStart(3, '0')}`;
 
-                    existingLote = await this.loteService.crearLoteDirecto({
+                    const newLoteId = await this.loteService.crearLoteDirecto({
                         codigo_lote:         codigoLoteConversion,
                         orden_produccion_id: orden_id,
                         bitacora_id,
                         correlativo:         correlativoConversion,
                         fecha_produccion:    new Date().toISOString().split('T')[0]
                     }, usuario);
+                    existingLote = { id: newLoteId };
                 }
 
                 await this.conversionRepository.saveConsumoRollo({
