@@ -4,176 +4,28 @@
     <script src="/design-system/theme/index.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ejecución de Producción | PROD-SYS</title>
-        <link rel="stylesheet" href="/design-system/index.css">
+    <title>Redirección | PROD-SYS</title>
+    <link rel="stylesheet" href="/design-system/index.css">
     <script src="js/auth.js?v=1.5"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/design-system/index.js" defer></script>
-<script src="js/auth.js"></script>
 </head>
 <body>
-
-            <div class="app-layout">
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                PROD-SYS
-            </div>
-            <nav class="sidebar-nav">
-                <a href="/" class="nav-item nav-item-single ">
-                    <i data-lucide="layout-dashboard" class="nav-icon"></i>
-                    <span>Dashboard</span>
-                </a>
-
-                <div class="nav-group open">
-                    <button class="nav-group-toggle">
-                        <i data-lucide="clipboard-list" class="nav-icon"></i>
-                        <span>Producción</span>
-                        <i data-lucide="chevron-right" class="chevron"></i>
-                    </button>
-                    <div class="nav-group-items">
-                        <a href="/bitacora.html" class="nav-item ">Bitácora de Turno</a>
-                        <a href="/ordenes.html" class="nav-item ">Órdenes</a>
-                        <a href="/ejecucion.html" class="nav-item active">Ejecución</a>
-                        <a href="/incidentes.html" class="nav-item ">Incidentes</a>
-                    </div>
+    <div class="app-layout">
+        <div class="main-container" style="display: flex; align-items: center; justify-content: center; height: 100vh;">
+            <div class="card" style="text-align: center; padding: 3rem; max-width: 500px;">
+                <div style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1.5rem;">
+                    <i data-lucide="info" style="width: 64px; height: 64px;"></i>
                 </div>
-
-                <div class="nav-group ">
-                    <button class="nav-group-toggle">
-                        <i data-lucide="shield-check" class="nav-icon"></i>
-                        <span>Control</span>
-                        <i data-lucide="chevron-right" class="chevron"></i>
-                    </button>
-                    <div class="nav-group-items">
-                        <a href="/calidad.html" class="nav-item ">Calidad</a>
-                        <a href="/trazabilidad.html" class="nav-item ">Trazabilidad</a>
-                    </div>
-                </div>
-
-                                <div class="nav-group " id="nav-group-admin">
-                    <button class="nav-group-toggle">
-                        <i data-lucide="settings" class="nav-icon"></i>
-                        <span>Administración</span>
-                        <i data-lucide="chevron-right" class="chevron"></i>
-                    </button>
-                    <div class="nav-group-items">
-                        <div class="nav-section-label">Colaboradores</div>
-                        <a href="/personal.html" class="nav-item ">Lista</a>
-                        <a href="/grupos.html" class="nav-item ">Grupos</a>
-                        <div class="nav-section-label">Sistema</div>
-                        <a href="/maquinas.html" class="nav-item">Máquinas</a>
-                        <a href="/auditoria.html" class="nav-item ">Auditoría</a>
-                        <a href="/procesos.html" class="nav-item ">Procesos</a>
-                    </div>
-                </div>
-            </nav>
-            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
-                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
-                    <span id="user-name-label">Usuario: -</span>
-                </div>
-                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
-                    <i data-lucide="log-out" class="nav-icon"></i>
-                    <span>Cerrar Sesión</span>
-                </a>
-            </div>
-        </aside>
-
-        <div class="main-container" id="main-content">
-            <header class="topbar">
-                <h1>Ejecucion</h1>
-                <div class="topbar-actions">
-                    <button id="theme-toggle" class="btn btn-secondary" style="padding: 4px 8px; min-height: 32px; border: none; background: transparent;" title="Cambiar tema">
-                        <i data-lucide="sun" class="sun-icon" style="width: 18px; height: 18px;"></i>
-                        <i data-lucide="moon" class="moon-icon" style="width: 18px; height: 18px;"></i>
-                    </button>
-                </div>
-            </header>
-
-            <div class="page-content">
-                <div id="selection-screen" class="card">
-                    <div class="card-header">Seleccionar Línea de Trabajo</div>
-                    <div class="form-group">
-                        <label for="linea-select">Línea en Ejecución</label>
-                        <select class="form-control" id="linea-select">
-                            <option value="">Cargando líneas activas...</option>
-                        </select>
-                    </div>
-                    <button id="start-work" class="btn btn-primary">Iniciar Registro</button>
-                </div>
-
-                <div id="wizard-screen" class="card" style="display: none;">
-                    <div class="card-header" id="wizard-title">Registro de Producción</div>
-
-                    <div class="progress-bar">
-                        <div class="progress-step active" data-step="1"></div>
-                        <div class="progress-step" data-step="2"></div>
-                        <div class="progress-step" data-step="3"></div>
-                    </div>
-
-                    <form id="wizard-form">
-                        <!-- Paso 1: Consumos y Parámetros -->
-                        <div class="step active" data-step="1">
-                            <h3>Paso 1: Insumos y Parámetros</h3>
-                            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Verifique los consumos iniciales y registre los parámetros de la máquina.</p>
-
-                            <div class="form-group">
-                                <label>Temperatura de Operación (°C)</label>
-                                <input class="form-control" type="number" name="param_temp" placeholder="Ej: 85">
-                            </div>
-                            <div class="form-group">
-                                <label>Presión (bar)</label>
-                                <input class="form-control" type="number" name="param_presion" placeholder="Ej: 2.4">
-                            </div>
-                            <div class="form-group">
-                                <label>Observaciones de Inicio</label>
-                                <textarea class="form-control" name="obs_inicio" rows="2"></textarea>
-                            </div>
-                        </div>
-
-                        <!-- Paso 2: Producción -->
-                        <div class="step" data-step="2">
-                            <h3>Paso 2: Resultados de Producción</h3>
-                            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Registre la cantidad final producida y la merma identificada.</p>
-
-                            <div class="form-group">
-                                <label>Cantidad Producida</label>
-                                <input class="form-control" type="number" name="cantidad_producida" required placeholder="0.00">
-                            </div>
-                            <div class="form-group">
-                                <label>Merma (kg)</label>
-                                <input class="form-control" type="number" name="merma_kg" placeholder="0.00">
-                            </div>
-                        </div>
-
-                        <!-- Paso 3: Confirmación -->
-                        <div class="step" data-step="3">
-                            <h3>Paso 3: Confirmación y Cierre</h3>
-                            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Revise los datos antes de finalizar el registro de trabajo.</p>
-
-                            <div id="summary-review" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem;">
-                                <!-- Se llena por JS -->
-                            </div>
-                        </div>
-
-                        <div class="wizard-nav">
-                            <button type="button" id="prev-step" class="btn btn-secondary" style="visibility: hidden;">Anterior</button>
-                            <button type="button" id="next-step" class="btn btn-primary">Siguiente</button>
-                            <button type="submit" id="submit-work" class="btn btn-primary" style="display: none;">Finalizar Registro</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div id="success-screen" class="card" style="display: none; text-align: center; padding: 3rem;">
-                    <div style="font-size: 3rem; color: var(--success); margin-bottom: 1rem;">✓</div>
-                    <h2>¡Registro Completado!</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 2rem;">Los datos han sido guardados en el sistema de trazabilidad.</p>
-                    <button onclick="location.reload()" class="btn btn-primary">Nuevo Registro</button>
-                </div>
+                <h2>Módulo en Transición</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 2rem; line-height: 1.6;">
+                    El flujo de ejecución ahora se gestiona directamente desde la <strong>Bitácora de Turno</strong>, ingresando a la máquina o proceso correspondiente.
+                </p>
+                <a href="/bitacora.html" class="btn btn-primary" style="width: 100%;">Ir a Bitácora</a>
+                <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted);">Redirigiendo automáticamente...</p>
             </div>
         </div>
     </div>
-
     <script src="js/ejecucion.js"></script>
 </body>
 </html>
