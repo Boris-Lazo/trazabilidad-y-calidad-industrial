@@ -587,6 +587,7 @@ const runFullSchema = () => {
         estado TEXT DEFAULT 'completado',
         usuario_modificacion TEXT,
         fecha_modificacion DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (linea_ejecucion_id) REFERENCES lineas_ejecucion(id),
         FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
         FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
@@ -649,6 +650,8 @@ const runFullSchema = () => {
         valor_nominal REAL,
         usuario_modificacion TEXT,
         fecha_modificacion DATETIME,
+        parametros TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (lote_id) REFERENCES lotes(id),
         FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
         FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
@@ -677,6 +680,50 @@ const runFullSchema = () => {
         FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
         FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
         FOREIGN KEY (orden_id) REFERENCES orden_produccion(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS laminado_consumo_rollo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id INTEGER NOT NULL,
+        maquina_id INTEGER NOT NULL,
+        orden_id INTEGER NOT NULL,
+        codigo_rollo TEXT NOT NULL,
+        metros_laminados REAL NOT NULL,
+        registro_trabajo_id INTEGER,
+        usuario_modificacion TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id),
+        FOREIGN KEY (registro_trabajo_id) REFERENCES registros_trabajo(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS laminado_materias_primas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id INTEGER NOT NULL,
+        maquina_id INTEGER NOT NULL,
+        tipo TEXT NOT NULL,
+        marca TEXT NOT NULL,
+        lote_material TEXT NOT NULL,
+        porcentaje REAL NOT NULL,
+        pdf_hoja_tecnica BLOB,
+        pdf_nombre_archivo TEXT,
+        usuario_modificacion TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id) REFERENCES MAQUINAS(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS laminado_pdf_materiales (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT NOT NULL,
+        marca TEXT NOT NULL,
+        lote_material TEXT NOT NULL,
+        pdf_hoja_tecnica BLOB NOT NULL,
+        pdf_nombre_archivo TEXT NOT NULL,
+        subido_por TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(tipo, marca, lote_material)
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS RECURSO (
@@ -1040,10 +1087,13 @@ const runFullSchema = () => {
       { table: 'registros_trabajo', column: 'maquina_id', type: 'INTEGER' },
       { table: 'registros_trabajo', column: 'usuario_modificacion', type: 'TEXT' },
       { table: 'registros_trabajo', column: 'fecha_modificacion', type: 'DATETIME' },
+      { table: 'registros_trabajo', column: 'created_at', type: 'DATETIME DEFAULT CURRENT_TIMESTAMP' },
       { table: 'muestras', column: 'maquina_id', type: 'INTEGER' },
       { table: 'muestras', column: 'valor_nominal', type: 'REAL' },
       { table: 'muestras', column: 'usuario_modificacion', type: 'TEXT' },
       { table: 'muestras', column: 'fecha_modificacion', type: 'DATETIME' },
+      { table: 'muestras', column: 'parametros', type: 'TEXT' },
+      { table: 'muestras', column: 'created_at', type: 'DATETIME DEFAULT CURRENT_TIMESTAMP' },
       { table: 'calidad_telares_visual', column: 'usuario_modificacion', type: 'TEXT' },
       { table: 'calidad_telares_visual', column: 'fecha_modificacion', type: 'DATETIME' },
       { table: 'orden_produccion', column: 'especificaciones', type: 'TEXT' },
