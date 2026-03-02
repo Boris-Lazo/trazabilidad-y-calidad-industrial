@@ -11,7 +11,8 @@ class ConversionLinerPEContract extends ProcessContract {
                                  'longitud nominal y sellada en un extremo',
             patronCodigoOrden: '7\\d{6}',
             origenesOrden: ['masivo_excel', 'manual'],
-            maquinasPermitidas: ['CONV-LI-01'],
+            // Máquina única. Sin número — no existe otra convertidora de liner.
+            maquinasPermitidas: ['CONV-LI'],
             esInicioCadena: false,
             procesosAguasAbajo: [],
             restriccionesInicio: [
@@ -101,7 +102,7 @@ class ConversionLinerPEContract extends ProcessContract {
                 permiteCopiarMuestraAnterior: false
             },
             motivo: 'Contrato inicial completo para proceso de Conversión de Liner PE. ' +
-                    'Define 1 máquina (CONV-LI-01), producción por contador de unidades, ' +
+                    'Define 1 máquina (CONV-LI), producción por contador de unidades, ' +
                     '3 parámetros de calidad (ancho ±¼", largo ±¼", sello de fondo), ' +
                     '2 parámetros operativos (temperatura de sellado y velocidad), ' +
                     'consumo de rollos del Extrusor PE por código de lote, y generación ' +

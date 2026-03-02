@@ -13,7 +13,8 @@ class PeletizadoContract extends ProcessContract {
                                  'Laminado (proceso 3), o venta como producto terminado.',
             patronCodigoOrden: '8\\d{6}',
             origenesOrden: ['masivo_excel', 'manual'],
-            maquinasPermitidas: ['PELET-01'],
+            // Máquina única. Sin número — no existe otra peletizadora.
+            maquinasPermitidas: ['PELET'],
             esInicioCadena: false,
             procesosAguasAbajo: [],
             restriccionesInicio: [
@@ -56,7 +57,7 @@ class PeletizadoContract extends ProcessContract {
                 permiteCopiarMuestraAnterior: false
             },
             motivo: 'Contrato inicial completo para proceso de Peletizado. ' +
-                    'Define 1 máquina (PELET-01), producción por pesaje de pelet ' +
+                    'Define 1 máquina (PELET), producción por pesaje de pelet ' +
                     'de salida en kg con registro de merma, 2 parámetros de calidad ' +
                     'cualitativos (color y tipo de material), 2 inspecciones por turno ' +
                     '(inicio y cierre), sin gestión de lotes. ' +

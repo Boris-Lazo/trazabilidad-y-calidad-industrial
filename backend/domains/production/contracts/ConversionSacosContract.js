@@ -31,7 +31,7 @@ class ConversionSacosContract extends ProcessContract {
                 'Cambio de orden en proceso',
                 'Rotura de hilo de costura'
             ],
-            maquinasPermitidas: ['CONV-01', 'CONV-02', 'CONV-03'],
+            maquinasPermitidas: ['CONV#01', 'CONV#02', 'CONV#03'],
             parametrosCalidad: [
                 {
                     nombre: 'ancho_saco',
@@ -98,29 +98,35 @@ class ConversionSacosContract extends ProcessContract {
         this.procesosAguasArriba = [4];
 
         this.reglasAsignacionMaquina = {
-            'CONV-01': {
+            'CONV#01': {
                 descripcion: 'Convertidora 1. Disponible para cualquier orden del proceso 5 sin restricciones.',
                 restricciones: []
             },
-            'CONV-02': {
+            'CONV#02': {
                 descripcion: 'Convertidora 2. Disponible para cualquier orden del proceso 5 sin restricciones.',
                 restricciones: []
             },
-            'CONV-03': {
-                descripcion: 'Vestidora. Disponible para proceso 5 únicamente cuando el saco no lleva fuelle Y no es microperforado. En cualquier otro caso pertenece al proceso 9.',
+            'CONV#03': {
+                descripcion: 'Máquina perteneciente al proceso 9 (Conversión Sacos Vestidos), ' +
+                             'disponible en préstamo para proceso 5 únicamente cuando la orden ' +
+                             'no lleva fuelle Y no es microperforada. ' +
+                             'Su proceso base es el 9 — en el seed tiene proceso_id = 9.',
                 restricciones: [
                     {
                         campo: 'con_fuelle',
                         valorRequerido: false,
-                        descripcion: 'CONV-03 no puede usarse si el saco lleva fuelle.'
+                        descripcion: 'CONV#03 no puede usarse si el saco lleva fuelle.',
+                        mensajeBloqueo: 'Esta máquina no está disponible para sacos con fuelle.'
                     },
                     {
                         campo: 'microperforado',
                         valorRequerido: false,
-                        descripcion: 'CONV-03 no puede usarse si el saco es microperforado.'
+                        descripcion: 'CONV#03 no puede usarse si el saco es microperforado.',
+                        mensajeBloqueo: 'Esta máquina no está disponible para sacos microperforados.'
                     }
                 ],
-                nota: 'Si con_fuelle = true O microperforado = true, el sistema debe bloquear la selección de CONV-03 y mostrar mensaje explicativo al operario: "Esta máquina no está disponible para sacos con fuelle o microperforados."'
+                nota: 'Si con_fuelle = true O microperforado = true, el sistema debe bloquear ' +
+                      'la selección de CONV#03 con mensaje explicativo al operario.'
             }
         };
 

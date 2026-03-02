@@ -983,9 +983,8 @@ const runFullSchema = () => {
         if (row && row.count === 0) {
             const stmtM = db.prepare("INSERT INTO MAQUINAS (nombre_visible, proceso_id, estado_actual) VALUES (?, ?, 'Disponible')");
 
-            // 1: Extrusor PP
-            stmtM.run(['EXT-01', 1]);
-            stmtM.run(['EXT-02', 1]);
+            // 1: Extrusor PP — máquina única, sin número
+            stmtM.run(['EXTPP', 1]);
 
             // 2: Telares
             for (let i = 1; i <= 13; i++) {
@@ -995,26 +994,27 @@ const runFullSchema = () => {
             // 3: Laminado
             stmtM.run(['LAM-01', 3]);
 
-            // 4: Imprenta
+            // 4: Imprenta — máquina única
             stmtM.run(['IMP-01', 4]);
-            stmtM.run(['IMP-02', 4]);
 
-            // 5: Conversión
-            stmtM.run(['CONV-01', 5]);
-            stmtM.run(['CONV-02', 5]);
-            stmtM.run(['CONV-03', 5]);
+            // 5: Conversión de Sacos — CONV#03 pertenece al proceso 9, no se inserta aquí
+            stmtM.run(['CONV#01', 5]);
+            stmtM.run(['CONV#02', 5]);
 
-            // 6: Extrusión PE
-            stmtM.run(['EXT-PE-01', 6]);
+            // 6: Extrusión PE — dos máquinas
+            stmtM.run(['EXTPE01', 6]);
+            stmtM.run(['EXTPE02', 6]);
 
-            // 7: Conv. Liner
-            stmtM.run(['LIN-01', 7]);
+            // 7: Conversión Liner PE
+            stmtM.run(['CONV-LI', 7]);
 
             // 8: Peletizado
-            stmtM.run(['PEL-01', 8]);
+            stmtM.run(['PELET', 8]);
 
-            // 9: Sacos Vestidos
-            stmtM.run(['VEST-01', 9]);
+            // 9: Conversión Sacos Vestidos
+            // CONV#03 pertenece a este proceso. Se presta al proceso 5 bajo
+            // condiciones restringidas (sin fuelle, sin microperforado).
+            stmtM.run(['CONV#03', 9]);
 
             stmtM.finalize();
             logger.info('Catálogo inicial de máquinas cargado.');
