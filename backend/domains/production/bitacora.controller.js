@@ -11,6 +11,18 @@ class BitacoraController {
     this.bitacoraService = bitacoraService;
   }
 
+  getBitacoraActiva = async (req, res, next) => {
+    try {
+      const bitacora = await this.bitacoraService.getActiveBitacora();
+      if (!bitacora) {
+        return sendSuccess(res, null);
+      }
+      return sendSuccess(res, bitacora);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getEstadoActual = async (req, res, next) => {
     try {
       let bitacora = await this.bitacoraService.getActiveBitacora();
