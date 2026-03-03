@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 paso1.style.display = 'none';
                 paso2.style.display = 'block';
             } else {
-                DesignSystem.showErrorModal('Error de Procesamiento', 'No se pudo procesar el archivo SAP: ' + result.error);
+                DesignSystem.showErrorModal('Error de Procesamiento', 'No se pudo procesar el archivo SAP: ' + (result.error || 'Error desconocido'));
             }
         } catch (error) {
             console.error('Error:', error);
@@ -144,12 +144,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const result = await response.json();
             if (result.success) {
+                const totalModificadas = (result.data.guardadas || 0) + (result.data.actualizadas || 0);
                 resultadoImportacion.innerHTML = `
                     <div class="alert alert-success" style="display:flex; align-items:center; gap:12px;">
                         <i data-lucide="check-circle" style="width:24px; height:24px;"></i>
                         <div>
                             <h4 style="margin:0">Importación Exitosa</h4>
-                            <p style="margin:4px 0 0 0">Se importaron <strong>${result.data.guardadas}</strong> órdenes correctamente.</p>
+                            <p style="margin:4px 0 0 0">Se procesaron <strong>${totalModificadas}</strong> órdenes correctamente.</p>
+                            <p style="font-size:12px; margin:4px 0 0 0; opacity:0.8;">(Nuevas: ${result.data.guardadas || 0}, Actualizadas: ${result.data.actualizadas || 0})</p>
                         </div>
                     </div>
                 `;
@@ -182,30 +184,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderizarPrevisualizacion(data) {
-        ordenesNuevasCache = data.nuevas;
+        // Combinar nuevas y a_actualizar para la tabla
+        ordenesNuevasCache = [...data.nuevas, ...data.a_actualizar];
 
         // Renderizar resumen
         resumenImportacion.innerHTML = `
-            <div class="stat-card" style="padding:12px; flex:1; min-width:150px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
-                <span style="font-size:12px; color:rgba(255,255,255,0.5)">NUEVAS</span>
-                <div style="font-size:20px; font-weight:bold; color:var(--primary-color)">${data.nuevas.length}</div>
+            <div class="stat-card" style="padding:12px; flex:1; min-width:120px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
+                <span style="font-size:11px; color:rgba(255,255,255,0.5)">NUEVAS</span>
+                <div style="font-size:18px; font-weight:bold; color:var(--primary-color)">${data.nuevas.length}</div>
             </div>
-            <div class="stat-card" style="padding:12px; flex:1; min-width:150px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
-                <span style="font-size:12px; color:rgba(255,255,255,0.5)">YA EXISTENTES</span>
-                <div style="font-size:20px; font-weight:bold; color:rgba(255,255,255,0.4)">${data.ya_existentes.length}</div>
+            <div class="stat-card" style="padding:12px; flex:1; min-width:120px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
+                <span style="font-size:11px; color:rgba(255,255,255,0.5)">ACTUALIZAR</span>
+                <div style="font-size:18px; font-weight:bold; color:#0ea5e9">${data.a_actualizar.length}</div>
             </div>
-            <div class="stat-card" style="padding:12px; flex:1; min-width:150px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
-                <span style="font-size:12px; color:rgba(255,255,255,0.5)">REQUIEREN VALIDACIÓN</span>
-                <div style="font-size:20px; font-weight:bold; color:var(--warning-color)">${data.requieren_validacion}</div>
+            <div class="stat-card" style="padding:12px; flex:1; min-width:120px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
+                <span style="font-size:11px; color:rgba(255,255,255,0.5)">EN CURSO</span>
+                <div style="font-size:18px; font-weight:bold; color:rgba(255,255,255,0.3)">${data.ya_existentes.length}</div>
+            </div>
+            <div class="stat-card" style="padding:12px; flex:1; min-width:120px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
+                <span style="font-size:11px; color:rgba(255,255,255,0.5)">CON ALERTAS</span>
+                <div style="font-size:18px; font-weight:bold; color:var(--warning-color)">${data.requieren_validacion}</div>
             </div>
         `;
 
         // Renderizar tabla
         tbodyPreview.innerHTML = '';
-        data.nuevas.forEach((orden, index) => {
+        ordenesNuevasCache.forEach((orden, index) => {
             const tr = document.createElement('tr');
             if (orden.requiere_validacion) {
                 tr.style.borderLeft = '4px solid var(--warning-color)';
+            }
+            if (orden.es_actualizacion) {
+                tr.style.backgroundColor = 'rgba(14, 165, 233, 0.05)';
             }
 
             const fechaVenc = orden.fecha_vencimiento ? new Date(orden.fecha_vencimiento).toLocaleDateString() : '-';
@@ -252,7 +262,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             tr.innerHTML = `
-                <td>${orden.codigo_orden}</td>
+                <td>
+                    ${orden.codigo_orden}
+                    ${orden.es_actualizacion ? '<br><span style="font-size:9px; color:#0ea5e9; font-weight:bold;">ACTUALIZAR</span>' : ''}
+                </td>
                 <td style="font-size:11px">${NOMBRES_PROCESO[orden.proceso_id] || 'N/A'}</td>
                 <td style="max-width:200px; font-size:11px; white-space:normal">${orden.descripcion_producto}</td>
                 <td>${orden.cantidad_planificada}</td>

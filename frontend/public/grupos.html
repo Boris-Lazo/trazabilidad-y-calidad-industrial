@@ -106,25 +106,34 @@
 
                     <!-- Detalle del Grupo Seleccionado -->
                     <div id="detalle-grupo-container" class="card" style="display: none;">
-                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <h2 id="grupo-nombre-titulo" class="card-title">Seleccione un grupo</h2>
-                                <p id="grupo-tipo-badge" class="text-secondary" style="font-size: 12px; margin: 0;"></p>
+                        <div class="card-header" style="display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="background: var(--primary-bg); color: var(--primary); padding: 8px; border-radius: 8px;">
+                                    <i data-lucide="users" style="width: 24px; height: 24px;"></i>
+                                </div>
+                                <div>
+                                    <h2 id="grupo-nombre-titulo" class="card-title" style="margin-bottom: 2px;">Seleccione un grupo</h2>
+                                    <p id="grupo-tipo-badge" class="text-secondary" style="font-size: 12px; margin: 0;"></p>
+                                </div>
                             </div>
-                            <div id="turno-control" style="display: flex; align-items: center; gap: 12px;">
-                                <span class="badge badge-info" style="font-size: 14px; padding: 8px 12px;">
-                                    Turno Actual: <span id="grupo-turno-actual">-</span>
-                                </span>
-                                <button id="btn-rotar-turno" class="btn btn-secondary btn-sm" title="Rotar Turno">
-                                    <i data-lucide="rotate-cw" style="width:14px; height:14px;"></i>
+                            <div id="turno-control" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                    <span style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Turno Actual</span>
+                                    <span id="grupo-turno-actual" style="font-size: 16px; font-weight: 700; color: var(--info);">—</span>
+                                </div>
+                                <button id="btn-rotar-turno" class="btn btn-secondary btn-sm" title="Rotar Turno" style="width: 32px; height: 32px; padding: 0; min-height: auto;">
+                                    <i data-lucide="rotate-cw" style="width:16px; height:16px;"></i>
                                 </button>
                             </div>
                         </div>
                         <div class="card-body">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                                <h3 style="font-size: 16px; font-weight: 600;">Integrantes del Grupo</h3>
-                                <button id="btn-add-integrante" class="btn btn-primary btn-sm">
-                                    <i data-lucide="user-plus"></i> Añadir Integrante
+                                <h3 style="font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                    <i data-lucide="user-check" style="width:18px; height:18px; color: var(--success);"></i>
+                                    Integrantes Activos
+                                </h3>
+                                <button id="btn-add-integrante" class="btn btn-primary btn-sm" style="padding: 6px 12px;">
+                                    <i data-lucide="user-plus" style="width:14px; height:14px; margin-right:6px;"></i> Añadir Integrante
                                 </button>
                             </div>
                             <div class="table-container">
@@ -181,7 +190,7 @@
 
     <!-- Modal Añadir Integrante -->
     <div id="modal-integrante" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
                 <h2>Añadir Integrante al Grupo</h2>
                 <button class="btn-close" data-close="modal-integrante">&times;</button>
@@ -194,13 +203,10 @@
                             <!-- Colaboradores cargados dinámicamente -->
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Motivo de la Asignación</label>
-                        <textarea id="integrante-motivo" class="form-control" rows="3" placeholder="Ej: Rotación mensual, refuerzo de turno..." required></textarea>
-                    </div>
-                    <label class="form-check-label">
-                        <input type="checkbox" id="integrante-es-correccion"> Es una corrección de registro histórico
-                    </label>
+                    <p class="text-secondary" style="font-size: 13px; margin-top: 16px;">
+                        <i data-lucide="info" style="width:14px; height:14px; vertical-align:middle; margin-right:4px;"></i>
+                        El sistema registrará automáticamente esta asignación para trazabilidad.
+                    </p>
                 </form>
             </div>
             <div class="modal-footer">
@@ -234,13 +240,13 @@
 
     <!-- Modal Rol Operativo -->
     <div id="modal-rol" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
                 <h2>Cambiar Rol Operativo</h2>
                 <button class="btn-close" data-close="modal-rol">&times;</button>
             </div>
             <div class="modal-body">
-                <p id="rol-colaborador-nombre" style="font-weight: 600; margin-bottom: 16px;"></p>
+                <p id="rol-colaborador-nombre" style="font-weight: 600; margin-bottom: 16px; color: var(--primary);"></p>
                 <form id="form-rol">
                     <div class="form-group">
                         <label class="form-label">Nuevo Rol Operativo</label>
@@ -248,14 +254,10 @@
                             <!-- Roles cargados dinámicamente -->
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Motivo del Cambio</label>
-                        <textarea id="rol-motivo" class="form-control" rows="2" required></textarea>
-                    </div>
-                    <label class="form-check-label">
-                        <input type="checkbox" id="rol-es-correccion"> Es una corrección de registro histórico
-                    </label>
                 </form>
+                <p class="text-secondary" style="font-size: 13px; margin-top: 16px;">
+                    Se guardará el cambio de rol en el historial de trazabilidad del colaborador.
+                </p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-close="modal-rol">Cancelar</button>
@@ -266,24 +268,21 @@
 
     <!-- Modal Remoción -->
     <div id="modal-remove" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
                 <h2>Remover del Grupo</h2>
                 <button class="btn-close" data-close="modal-remove">&times;</button>
             </div>
-            <div class="modal-body">
-                <p id="remove-text">¿Está seguro de que desea remover a este colaborador del grupo?</p>
-                <div class="form-group mt-3">
-                    <label class="form-label">Motivo de la Salida</label>
-                    <textarea id="remove-motivo" class="form-control" rows="2" required></textarea>
+            <div class="modal-body text-center" style="padding-top: 24px;">
+                <div style="background: rgba(239, 68, 68, 0.1); color: var(--error); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                    <i data-lucide="user-x" style="width: 32px; height: 32px;"></i>
                 </div>
-                <label class="form-check-label">
-                    <input type="checkbox" id="remove-es-correccion"> Es una corrección de registro histórico
-                </label>
+                <p id="remove-text" style="font-weight: 500; font-size: 15px;"></p>
+                <p class="text-secondary" style="font-size: 13px; margin-top: 8px;">Esta acción liberará al colaborador para ser asignado a otro grupo.</p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-close="modal-remove">Cancelar</button>
-                <button type="button" id="btn-confirm-remove" class="btn btn-danger">Confirmar Salida</button>
+            <div class="modal-footer" style="background: transparent;">
+                <button type="button" class="btn btn-secondary" data-close="modal-remove" style="flex: 1;">Cancelar</button>
+                <button type="button" id="btn-confirm-remove" class="btn btn-danger" style="flex: 1;">Confirmar Salida</button>
             </div>
         </div>
     </div>

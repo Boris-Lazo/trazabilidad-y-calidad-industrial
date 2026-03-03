@@ -7,14 +7,19 @@ const NotFoundError = require('../../shared/errors/NotFoundError');
 
 const MAPEO_SAP = {
   'ExtruPP': 1,
+  'Extrusión PP': 1,
   'Telar': 2,
   'Laminado': 3,
   'Imprenta': 4,
   'ConverSA': 5,
+  'Conversión SA': 5,
   'ExtruPE': 6,
+  'Extrusión PE': 6,
   'ConverLI': 7,
+  'Conversión Liner PE': 7,
   'Peletiza': 8,
-  'VestidoM': 9
+  'VestidoM': 9,
+  'Sacos Vestidos': 9
 };
 
 class OrdenProduccionService {
@@ -147,6 +152,7 @@ class OrdenProduccionService {
     const resultado = {
       total_filas: 0,
       nuevas: [],
+      a_actualizar: [],
       ya_existentes: [],
       no_reconocidas: [],
       requieren_validacion: 0
@@ -173,7 +179,14 @@ class OrdenProduccionService {
 
       const existente = await this.ordenProduccionRepository.findByCodigoOrden(ordenParseada.codigo_orden);
       if (existente) {
-        resultado.ya_existentes.push(ordenParseada.codigo_orden);
+        // Si la orden existe y está en estado 'Creada', permitimos actualizarla con datos de SAP
+        if (existente.estado === 'Creada') {
+            ordenParseada.id = existente.id;
+            ordenParseada.es_actualizacion = true;
+            resultado.a_actualizar.push(ordenParseada);
+        } else {
+            resultado.ya_existentes.push(ordenParseada.codigo_orden);
+        }
       } else {
         if (ordenParseada.requiere_validacion) {
           resultado.requieren_validacion++;
@@ -227,19 +240,28 @@ class OrdenProduccionService {
     }
 
     let guardadas = 0;
+    let actualizadas = 0;
     const dbWrapper = this.ordenProduccionRepository.db;
 
     await dbWrapper.withTransaction(async () => {
       for (const orden of validadas) {
-        await this.ordenProduccionRepository.create({
-          ...orden,
-          created_by: usuario
-        });
-        guardadas++;
+        if (orden.es_actualizacion && orden.id) {
+            await this.ordenProduccionRepository.update(orden.id, {
+                ...orden,
+                updated_by: usuario
+            });
+            actualizadas++;
+        } else {
+            await this.ordenProduccionRepository.create({
+                ...orden,
+                created_by: usuario
+            });
+            guardadas++;
+        }
       }
     });
 
-    return { guardadas, errores: [] };
+    return { guardadas, actualizadas, errores: [] };
   }
 }
 

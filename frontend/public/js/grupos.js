@@ -292,11 +292,9 @@ const GruposModule = {
 
     async addIntegrante() {
         const personaId = document.getElementById('select-persona').value;
-        const motivo = document.getElementById('integrante-motivo').value;
-        const es_correccion = document.getElementById('integrante-es-correccion').checked;
 
-        if (!personaId || !motivo) {
-            DesignSystem.showToast('Debe seleccionar un colaborador y proporcionar un motivo', 'warning');
+        if (!personaId) {
+            DesignSystem.showToast('Debe seleccionar un colaborador', 'warning');
             return;
         }
 
@@ -304,7 +302,7 @@ const GruposModule = {
             const res = await fetch(`/api/grupos/${this.currentGrupoId}/integrantes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ personaId, motivo, es_correccion })
+                body: JSON.stringify({ personaId })
             });
             const result = await res.json();
             if (result.success) {
@@ -348,19 +346,12 @@ const GruposModule = {
 
     async saveRol() {
         const rolOperativoId = document.getElementById('select-rol-operativo').value;
-        const motivo = document.getElementById('rol-motivo').value;
-        const es_correccion = document.getElementById('rol-es-correccion').checked;
-
-        if (!motivo) {
-            DesignSystem.showToast('El motivo es obligatorio', 'warning');
-            return;
-        }
 
         try {
             const res = await fetch(`/api/grupos/persona/${this.currentPersonaId}/rol-operativo`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rolOperativoId, motivo, es_correccion })
+                body: JSON.stringify({ rolOperativoId })
             });
             const result = await res.json();
             if (result.success) {
@@ -377,19 +368,11 @@ const GruposModule = {
     },
 
     async removeIntegrante() {
-        const motivo = document.getElementById('remove-motivo').value;
-        const es_correccion = document.getElementById('remove-es-correccion').checked;
-
-        if (!motivo) {
-            DesignSystem.showToast('El motivo es obligatorio', 'warning');
-            return;
-        }
-
         try {
             const res = await fetch(`/api/grupos/${this.currentGrupoId}/integrantes/${this.currentPersonaId}/remove`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ motivo, es_correccion })
+                body: JSON.stringify({ })
             });
             const result = await res.json();
             if (result.success) {
