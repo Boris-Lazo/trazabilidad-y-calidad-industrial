@@ -6,6 +6,8 @@ const RegistroTrabajoRepository = require('./registroTrabajo.repository');
 const MuestraRepository = require('./muestra.repository');
 const ParoRepository = require('./paro.repository');
 const BitacoraService = require('./bitacora.service');
+const PlanningRepository = require('./planning.repository');
+const PlanningService = require('./planning.service');
 const BitacoraController = require('./bitacora.controller');
 const sqlite = require('../../database/sqlite');
 const authorize = require('../../middlewares/authorize');
@@ -21,6 +23,8 @@ const muestraRepository = new MuestraRepository(sqlite);
 const paroRepository = new ParoRepository(sqlite);
 const auditRepository = new AuditRepository(sqlite);
 const auditService = new AuditService(auditRepository);
+const planningRepository = new PlanningRepository(sqlite);
+const planningService = new PlanningService(planningRepository, auditService);
 
 const bitacoraService = new BitacoraService(
     bitacoraRepository,
@@ -28,7 +32,8 @@ const bitacoraService = new BitacoraService(
     registroTrabajoRepository,
     muestraRepository,
     auditService,
-    paroRepository
+    paroRepository,
+    planningService
 );
 
 const bitacoraController = new BitacoraController(bitacoraService);

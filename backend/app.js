@@ -34,6 +34,7 @@ const extrusorPPRoutes = require('./domains/production/extrusorPP.routes');
 const personalRoutes = require('./domains/personal/personal.routes');
 const gruposRoutes = require('./domains/grupos/grupos.routes');
 const auditRoutes = require('./shared/audit/audit.routes');
+const planningRoutes = require('./domains/production/planning.routes');
 const procesosRoutes = require('./domains/production/procesos.routes');
 const maquinaRoutes = require('./domains/production/maquina.routes');
 const paroRoutes = require('./domains/production/paro.routes');
@@ -110,6 +111,7 @@ app.use('/api/extrusor-pp', authMiddleware, extrusorPPRoutes);
 app.use('/api/personal', authMiddleware, personalRoutes);
 app.use('/api/grupos', authMiddleware, gruposRoutes);
 app.use('/api/auditoria', authMiddleware, auditRoutes);
+app.use('/api/planning', authMiddleware, planningRoutes);
 app.use('/api/procesos', authMiddleware, procesosRoutes);
 app.use('/api/maquinas', authMiddleware, maquinaRoutes);
 app.use('/api/paros', authMiddleware, paroRoutes);
@@ -123,7 +125,7 @@ app.get('/', authMiddleware, (req, res) => res.sendFile(path.join(__dirname, '..
 const protectedPages = [
     'auditoria.html', 'bitacora.html', 'calidad.html',
     'detalles_orden.html', 'ejecucion.html', 'incidentes.html', 'lotes.html',
-    'muestras.html', 'ordenes.html', 'trazabilidad.html',
+    'muestras.html', 'ordenes.html', 'planificacion.html', 'trazabilidad.html',
     'telares_resumen.html', 'telares_detalle.html', 'personal.html', 'grupos.html',
     'procesos.html', 'maquinas.html', 'proceso.html'
 ];

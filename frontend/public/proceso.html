@@ -30,6 +30,7 @@
                         <i data-lucide="chevron-right" class="chevron"></i>
                     </button>
                     <div class="nav-group-items">
+                        <a href="/planificacion.html" class="nav-item ">Planificación Semanal</a>
                         <a href="/bitacora.html" class="nav-item active">Bitácora de Turno</a>
                         <a href="/ordenes.html" class="nav-item ">Órdenes</a>
                         <a href="/ejecucion.html" class="nav-item ">Ejecución</a>
@@ -133,6 +134,26 @@
                 </div>
 
                 <div id="secciones-operativas">
+                    <!-- 0. Personal Asignado -->
+                    <div class="card" id="card-personal-proceso">
+                        <div class="card-header">0. Personal Asignado (Planificado)</div>
+                        <div class="table-container mb-2">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Colaborador</th>
+                                        <th>Rol</th>
+                                        <th style="width: 50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-personal-planificado"></tbody>
+                            </table>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                            * Cualquier cambio respecto al plan generará una desviación automática.
+                        </div>
+                    </div>
+
                     <!-- 1. Calidad (Muestras) -->
                     <div class="card">
                         <div class="card-header">1. Control de Calidad (Muestras Obligatorias)</div>
@@ -314,6 +335,32 @@
                 <div style="display: flex; gap: 1rem; justify-content: flex-end; margin: 3rem 0 5rem 0; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
                     <button id="btn-guardar" class="btn btn-secondary">Solo Guardar</button>
                     <button id="btn-guardar-volver" class="btn btn-primary" style="min-width: 200px;">Finalizar Registro y Volver</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Desviación (Obligatorio) -->
+    <div id="modal-desviacion" class="modal-planning" style="display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center;">
+        <div class="card" style="width: 500px; border-top: 5px solid var(--danger);">
+            <div class="card-header">⚠️ REGISTRO DE DESVIACIÓN DETECTADA</div>
+            <div style="padding: 1.5rem;">
+                <p id="desviacion-mensaje" style="font-weight: bold; margin-bottom: 1rem;"></p>
+                <input type="hidden" id="form-desv-tipo">
+                <input type="hidden" id="form-desv-plan">
+                <input type="hidden" id="form-desv-actual">
+
+                <div class="form-group">
+                    <label>Motivo de la Desviación</label>
+                    <select id="select-motivo-desv" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                    <label>Comentario Adicional</label>
+                    <textarea id="comentario-desv" class="form-control" rows="3" placeholder="Justifique el cambio..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button id="btn-confirmar-desv" class="btn btn-primary">Confirmar y Continuar</button>
                 </div>
             </div>
         </div>

@@ -29,4 +29,6 @@ router.put('/:id/reactivar', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, nex
 // Asignaciones operativas pueden ser hechas por quienes tengan el permiso ASSIGN_OPERATIONS
 router.post('/:id/asignacion', authorize(PERMISSIONS.ASSIGN_OPERATIONS), (req, res, next) => personalController.assignOperation(req, res, next));
 
+router.get('/roles-operativos', authorize(PERMISSIONS.VIEW_STAFF), (req, res, next) => personalController.getRolesOperativos(req, res, next));
+
 module.exports = router;
