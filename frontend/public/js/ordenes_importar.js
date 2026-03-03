@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnPrevisualizar.addEventListener('click', async () => {
         const archivo = inputArchivoExcel.files[0];
         if (!archivo) {
-            alert('Por favor selecciona un archivo Excel.');
+            DesignSystem.showErrorModal('Archivo no seleccionado', 'Por favor selecciona un archivo Excel antes de continuar.');
             return;
         }
 
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/ordenes-produccion/importar/previsualizar', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${Auth.getToken()}`
                 },
                 body: formData
             });
@@ -97,11 +97,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 paso1.style.display = 'none';
                 paso2.style.display = 'block';
             } else {
-                alert('Error al procesar archivo: ' + result.error);
+                DesignSystem.showErrorModal('Error de Procesamiento', 'No se pudo procesar el archivo SAP: ' + result.error);
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error de conexión con el servidor.');
+            DesignSystem.showErrorModal('Error de Conexión', 'Hubo un problema al conectar con el servidor para la previsualización.');
         } finally {
             btnPrevisualizar.disabled = false;
             btnPrevisualizar.innerHTML = '<i data-lucide="eye" style="width:16px; height:16px; margin-right:8px; vertical-align:middle;"></i> Previsualizar';
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${Auth.getToken()}`
                 },
                 body: JSON.stringify({ ordenes: ordenesAEnviar })
             });
@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error al confirmar importación.');
+            DesignSystem.showErrorModal('Error de Importación', 'Hubo un fallo al intentar confirmar e importar las órdenes.');
         } finally {
             btnConfirmarImportacion.disabled = false;
             btnConfirmarImportacion.innerHTML = '<i data-lucide="check" style="width:14px; height:14px; margin-right:6px; vertical-align:middle;"></i> Confirmar e Importar';

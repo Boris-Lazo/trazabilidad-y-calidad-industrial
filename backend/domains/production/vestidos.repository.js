@@ -11,7 +11,7 @@ class VestidosRepository {
         const maquina = await this.db.get(
             `SELECT * FROM MAQUINAS WHERE proceso_id = 9 AND activo = 1 LIMIT 1`
         );
-        if (!maquina) throw new NotFoundError('No se encontró la máquina configurada para el proceso de Conversión de Sacos Vestidos (CONV#03).');
+        if (!maquina) throw new NotFoundError('No se encontró la máquina configurada para el proceso de Conversión de Sacos Vestidos.');
         return maquina;
     }
 

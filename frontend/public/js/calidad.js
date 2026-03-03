@@ -103,9 +103,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             cargarLotesPendientes();
             panelMuestras.style.display = 'none';
-            alert("Lote cerrado con éxito.");
+            DesignSystem.showToast("Lote cerrado con éxito.", "success");
         } catch (error) {
-            alert(error.message);
+            DesignSystem.showErrorModal("Error al Cerrar Lote", error.message);
         }
     };
 

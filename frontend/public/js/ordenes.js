@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             cargarOrdenes();
         } catch (error) {
-            alert(error.message);
+            DesignSystem.showErrorModal('Error al Cambiar Estado', error.message);
         }
     }
 
@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
     confirmarCierreBtn.addEventListener('click', () => {
         const motivo = motivoCierreInput.value.trim();
         if (!motivo) {
-            alert('Debe indicar un motivo para cerrar la orden.');
+            DesignSystem.showErrorModal('Motivo Requerido', 'Debe indicar un motivo para cerrar la orden.');
             return;
         }
         cambiarEstado(ordenSeleccionadaParaCierre.id, 'Cerrada', motivo);

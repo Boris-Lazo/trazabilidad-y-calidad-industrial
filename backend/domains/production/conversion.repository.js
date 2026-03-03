@@ -9,7 +9,7 @@ class ConversionRepository {
     // Afecta tabla: MAQUINAS
     async getMaquinasByProceso() {
         const maquinas = await this.db.query(
-            `SELECT * FROM MAQUINAS WHERE (proceso_id = 5 OR nombre_visible = 'CONV#03') AND activo = 1`
+            `SELECT * FROM MAQUINAS WHERE (proceso_id = 5 OR codigo = 'CONV03') AND activo = 1`
         );
         if (!maquinas || maquinas.length === 0) {
             throw new NotFoundError('No se encontraron máquinas configuradas para el proceso de Conversión.');
@@ -19,7 +19,7 @@ class ConversionRepository {
 
     async getMaquinaById(maquinaId) {
         const maquina = await this.db.get(
-            `SELECT * FROM MAQUINAS WHERE id = ? AND (proceso_id = 5 OR nombre_visible = 'CONV#03') AND activo = 1`,
+            `SELECT * FROM MAQUINAS WHERE id = ? AND (proceso_id = 5 OR codigo = 'CONV03') AND activo = 1`,
             [maquinaId]
         );
         if (!maquina) throw new NotFoundError(`La máquina ID ${maquinaId} no existe o no pertenece al proceso de Conversión.`);
@@ -228,10 +228,10 @@ class ConversionRepository {
 
     async getEstadosMaquinasByBitacora(bitacoraId) {
         return await this.db.query(`
-            SELECT bms.*, m.nombre_visible
+            SELECT bms.*, m.nombre_visible, m.codigo
             FROM bitacora_maquina_status bms
             JOIN MAQUINAS m ON bms.maquina_id = m.id
-            WHERE bms.bitacora_id = ? AND (m.proceso_id = 5 OR m.nombre_visible = 'CONV#03')
+            WHERE bms.bitacora_id = ? AND (m.proceso_id = 5 OR m.codigo = 'CONV03')
         `, [bitacoraId]);
     }
 

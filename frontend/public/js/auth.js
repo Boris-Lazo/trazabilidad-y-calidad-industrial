@@ -94,27 +94,41 @@ window.fetch = async (...args) => {
     const response = await originalFetch(resource, config);
     const onLoginPage = window.location.pathname.includes('login.html');
 
+    // Solo redirigir si el error es realmente un problema de sesión y no un error funcional
+    // 401 suele ser token expirado o inválido
     if (response.status === 401 && !onLoginPage && !Auth.isLoggingOut) {
+        const data = await response.clone().json().catch(() => ({}));
+        // Si el mensaje indica algo distinto a sesión expirada, no forzamos logout inmediato
+        // a menos que sea necesario. Pero 401 por definición es falta de auth.
         Auth.isLoggingOut = true;
         Auth.clearSession();
-        window.location.href = '/login.html';
+        window.location.href = '/login.html?error=session_expired';
     }
 
+    // 403 puede ser por cuenta desactivada (según auth.middleware.js)
     if (response.status === 403 && !onLoginPage && !Auth.isLoggingOut) {
-        // Objetivo 1: Manejo de usuario desactivado con sesión activa
-        Auth.isLoggingOut = true;
+        const data = await response.clone().json().catch(() => ({}));
 
-        // Cerrar modales abiertos (estándar del design system)
-        const modals = document.querySelectorAll('.modal');
-        modals.forEach(m => m.style.display = 'none');
+        // Si es cuenta desactivada, sí cerramos sesión
+        if (data.error && data.error.includes('desactivada')) {
+            Auth.isLoggingOut = true;
 
-        // Limpiar sesión
-        Auth.clearSession();
+            // Cerrar modales abiertos
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(m => m.style.display = 'none');
 
-        // Notificar al usuario con mensaje no técnico
-        alert("Tu acceso ha sido desactivado por un administrador. Serás redirigido al inicio.");
+            Auth.clearSession();
 
-        window.location.href = '/login.html?error=account_disabled';
+            // Usar modal si está disponible, sino alert (se corregirá en paso 4)
+            if (window.DesignSystem && window.DesignSystem.showErrorModal) {
+                window.DesignSystem.showErrorModal("Acceso Denegado", "Tu acceso ha sido desactivado por un administrador.");
+                setTimeout(() => window.location.href = '/login.html?error=account_disabled', 3000);
+            } else {
+                alert("Tu acceso ha sido desactivado por un administrador. Serás redirigido al inicio.");
+                window.location.href = '/login.html?error=account_disabled';
+            }
+        }
+        // Si es solo falta de permisos, NO cerramos sesión, solo dejamos que el llamador maneje el error
     }
 
     return response;

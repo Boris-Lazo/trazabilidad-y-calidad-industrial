@@ -98,10 +98,10 @@ class ConversionService {
         const maquina = await this.conversionRepository.getMaquinaById(maquina_id);
 
         // 3. REGLA DURA DE ASIGNACIÓN (CONV#03)
-        if (maquina.nombre_visible === 'CONV#03') {
+        if (maquina.codigo === 'CONV03') {
             const especificaciones = JSON.parse(orden.especificaciones || '{}');
             if (especificaciones.con_fuelle === true || especificaciones.microperforado === true) {
-                throw new ValidationError('CONV#03 no está disponible para sacos con fuelle o microperforados.');
+                throw new ValidationError('La máquina CONV#03 no está disponible para sacos con fuelle o microperforados.');
             }
         }
 

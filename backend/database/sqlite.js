@@ -490,7 +490,8 @@ const runFullSchema = () => {
 
     db.run(`CREATE TABLE IF NOT EXISTS MAQUINAS (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre_visible TEXT UNIQUE NOT NULL,
+        codigo TEXT UNIQUE NOT NULL,
+        nombre_visible TEXT NOT NULL,
         proceso_id INTEGER NOT NULL,
         estado_actual TEXT CHECK(estado_actual IN ('Operativa', 'En mantenimiento', 'Fuera de servicio', 'Disponible', 'Baja')) DEFAULT 'Disponible',
         descripcion TEXT,
@@ -1360,40 +1361,41 @@ const runFullSchema = () => {
     // Semilla de Máquinas (Hardened)
     db.get("SELECT COUNT(*) as count FROM MAQUINAS", (err, row) => {
         if (row && row.count === 0) {
-            const stmtM = db.prepare("INSERT INTO MAQUINAS (nombre_visible, proceso_id, estado_actual) VALUES (?, ?, 'Disponible')");
+            const stmtM = db.prepare("INSERT INTO MAQUINAS (codigo, nombre_visible, proceso_id, estado_actual) VALUES (?, ?, ?, 'Disponible')");
 
             // 1: Extrusor PP — máquina única, sin número
-            stmtM.run(['EXTPP', 1]);
+            stmtM.run(['EXTPP', 'EXTPP', 1]);
 
             // 2: Telares
             for (let i = 1; i <= 13; i++) {
-                stmtM.run([`T-${i.toString().padStart(2, '0')}`, 2]);
+                const num = i.toString().padStart(2, '0');
+                stmtM.run([`T${num}`, `T-${num}`, 2]);
             }
 
             // 3: Laminado
-            stmtM.run(['LAM-01', 3]);
+            stmtM.run(['LAM01', 'LAM-01', 3]);
 
             // 4: Imprenta — máquina única
-            stmtM.run(['IMP-01', 4]);
+            stmtM.run(['IMP01', 'IMP-01', 4]);
 
             // 5: Conversión de Sacos — CONV#03 pertenece al proceso 9, no se inserta aquí
-            stmtM.run(['CONV#01', 5]);
-            stmtM.run(['CONV#02', 5]);
+            stmtM.run(['CONV01', 'CONV#01', 5]);
+            stmtM.run(['CONV02', 'CONV#02', 5]);
 
             // 6: Extrusión PE — dos máquinas
-            stmtM.run(['EXTPE01', 6]);
-            stmtM.run(['EXTPE02', 6]);
+            stmtM.run(['EXTPE01', 'EXTPE01', 6]);
+            stmtM.run(['EXTPE02', 'EXTPE02', 6]);
 
             // 7: Conversión Liner PE
-            stmtM.run(['CONV-LI', 7]);
+            stmtM.run(['CONVLI', 'CONV-LI', 7]);
 
             // 8: Peletizado
-            stmtM.run(['PELET', 8]);
+            stmtM.run(['PELET', 'PELET', 8]);
 
             // 9: Conversión Sacos Vestidos
             // CONV#03 pertenece a este proceso. Se presta al proceso 5 bajo
             // condiciones restringidas (sin fuelle, sin microperforado).
-            stmtM.run(['CONV#03', 9]);
+            stmtM.run(['CONV03', 'CONV#03', 9]);
 
             stmtM.finalize();
             logger.info('Catálogo inicial de máquinas cargado.');
@@ -1451,7 +1453,8 @@ const runFullSchema = () => {
       { table: 'auditoria', column: 'valor_nuevo', type: 'TEXT' },
       { table: 'auditoria', column: 'motivo_cambio', type: 'TEXT' },
       { table: 'auditoria', column: 'categoria_motivo', type: 'TEXT' },
-      { table: 'usuarios', column: 'rol_id', type: 'INTEGER' }
+      { table: 'usuarios', column: 'rol_id', type: 'INTEGER' },
+      { table: 'MAQUINAS', column: 'codigo', type: 'TEXT' }
     ];
 
     // Migración de roles desde persona_roles a usuarios (Idempotente)
@@ -1473,6 +1476,10 @@ const runFullSchema = () => {
     columnsToAdd.forEach(item => {
       db.run(`ALTER TABLE ${item.table} ADD COLUMN ${item.column} ${item.type}`, (err) => {
         // Ignoramos error si la columna ya existe
+        if (!err && item.table === 'MAQUINAS' && item.column === 'codigo') {
+             // Rellenar códigos por defecto para máquinas existentes
+             db.run(`UPDATE MAQUINAS SET codigo = REPLACE(REPLACE(REPLACE(nombre_visible, '-', ''), '#', ''), ' ', '') WHERE codigo IS NULL`);
+        }
       });
     });
 

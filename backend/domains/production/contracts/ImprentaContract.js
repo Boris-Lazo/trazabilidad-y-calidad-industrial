@@ -32,7 +32,7 @@ class ImprentaContract extends ProcessContract {
                 'Falla mecánica de la impresora',
                 'Temperatura o viscosidad de tinta fuera de rango'
             ],
-            maquinasPermitidas: ['IMP-01'],
+            maquinasPermitidas: ['IMP01'],
             totalMaquinas: 1,
             parametrosCalidad: [
                 {

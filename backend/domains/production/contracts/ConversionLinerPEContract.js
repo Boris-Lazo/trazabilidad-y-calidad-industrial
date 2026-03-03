@@ -12,7 +12,7 @@ class ConversionLinerPEContract extends ProcessContract {
             patronCodigoOrden: '7\\d{6}',
             origenesOrden: ['masivo_excel', 'manual'],
             // Máquina única. Sin número — no existe otra convertidora de liner.
-            maquinasPermitidas: ['CONV-LI'],
+            maquinasPermitidas: ['CONVLI'],
             esInicioCadena: false,
             procesosAguasAbajo: [],
             restriccionesInicio: [

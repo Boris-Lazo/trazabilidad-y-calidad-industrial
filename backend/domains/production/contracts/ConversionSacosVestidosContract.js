@@ -14,7 +14,7 @@ class ConversionSacosVestidosContract extends ProcessContract {
             origenesOrden: ['masivo_excel', 'manual'],
             // Máquina principal del proceso 9. Se presta al proceso 5 bajo condiciones
             // restringidas (sin fuelle, sin microperforado). proceso_id = 9 en MAQUINAS.
-            maquinasPermitidas: ['CONV#03'],
+            maquinasPermitidas: ['CONV03'],
             esInicioCadena: false,
             procesosAguasAbajo: [],
             restriccionesInicio: [
@@ -105,7 +105,7 @@ class ConversionSacosVestidosContract extends ProcessContract {
         this.procesosAguasArriba = [2, 3, 4, 6];
 
         this.reglasAsignacionMaquina = {
-            'CONV#03': {
+            'CONV03': {
                 descripcion: 'Máquina principal del proceso 9. proceso_id = 9 en la tabla MAQUINAS. ' +
                              'Se presta al proceso 5 bajo condiciones restringidas. ' +
                              'No puede procesar sacos con fuelle ni sacos microperforados.',

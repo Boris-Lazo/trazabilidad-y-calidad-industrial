@@ -31,7 +31,7 @@ class ConversionSacosContract extends ProcessContract {
                 'Cambio de orden en proceso',
                 'Rotura de hilo de costura'
             ],
-            maquinasPermitidas: ['CONV#01', 'CONV#02', 'CONV#03'],
+            maquinasPermitidas: ['CONV01', 'CONV02', 'CONV03'],
             parametrosCalidad: [
                 {
                     nombre: 'ancho_saco',
@@ -98,15 +98,15 @@ class ConversionSacosContract extends ProcessContract {
         this.procesosAguasArriba = [4];
 
         this.reglasAsignacionMaquina = {
-            'CONV#01': {
+            'CONV01': {
                 descripcion: 'Convertidora 1. Disponible para cualquier orden del proceso 5 sin restricciones.',
                 restricciones: []
             },
-            'CONV#02': {
+            'CONV02': {
                 descripcion: 'Convertidora 2. Disponible para cualquier orden del proceso 5 sin restricciones.',
                 restricciones: []
             },
-            'CONV#03': {
+            'CONV03': {
                 descripcion: 'Máquina perteneciente al proceso 9 (Conversión Sacos Vestidos), ' +
                              'disponible en préstamo para proceso 5 únicamente cuando la orden ' +
                              'no lleva fuelle Y no es microperforada. ' +

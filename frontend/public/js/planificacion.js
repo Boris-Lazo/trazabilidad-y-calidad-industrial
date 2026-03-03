@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             body: JSON.stringify({ anio: anioInput.value, semana: semanaInput.value })
         });
         if (res.ok) await cargarPlan();
-        else alert('Error al crear plan');
+        else DesignSystem.showErrorModal('Error al Crear Plan', 'No se pudo crear la planificación para la semana seleccionada.');
     };
 
     document.getElementById('btn-publicar').onclick = async () => {
