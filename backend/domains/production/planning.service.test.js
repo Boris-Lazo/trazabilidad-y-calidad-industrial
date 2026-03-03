@@ -42,8 +42,9 @@ describe('PlanningService', () => {
             if (status === 'AJUSTADO') statusUpdated = true;
         };
         mockRepo.upsertOrderAssignment = async () => {};
+        mockRepo.recordDeviation = async () => {};
 
-        await service.assignOrder({ plan_id: 1 }, 'user');
+        await service.assignOrder({ plan_id: 1, motivo_id: 1 }, 'user');
         assert.strictEqual(statusUpdated, true);
     });
 
@@ -60,8 +61,8 @@ describe('PlanningService', () => {
     it('should record a deviation when modifying an AJUSTADO plan with a reason', async () => {
         mockRepo.findPlanById = async () => ({ id: 1, estado: 'AJUSTADO' });
         let deviationRecorded = false;
-        service.recordDeviation = async (data) => {
-            if (data.tipo_desviacion === 'CAMBIO_PLAN') deviationRecorded = true;
+        mockRepo.recordDeviation = async (data) => {
+            if (data.tipo_desviacion === 'CAMBIO_ORDEN') deviationRecorded = true;
         };
         mockRepo.upsertOrderAssignment = async () => {};
 

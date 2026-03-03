@@ -61,7 +61,8 @@ class ConversionLinerPEContract extends ProcessContract {
                     tolerancia: 0.25,
                     critico: false,
                     calculado: false,
-                    metodologia: 'Medición física con cinta métrica.'
+                    metodologia: 'Medición física con cinta métrica.',
+                    notaFrontend: 'Ingresar valores en fracciones de 1/8 (ej: 12 1/8, 12 1/2).'
                 },
                 {
                     nombre: 'largo_liner',
@@ -71,7 +72,8 @@ class ConversionLinerPEContract extends ProcessContract {
                     tolerancia: 0.25,
                     critico: false,
                     calculado: false,
-                    metodologia: 'Medición física con cinta métrica.'
+                    metodologia: 'Medición física con cinta métrica.',
+                    notaFrontend: 'Ingresar valores en fracciones de 1/8 (ej: 12 1/8, 12 1/2).'
                 },
                 {
                     nombre: 'sello_fondo',

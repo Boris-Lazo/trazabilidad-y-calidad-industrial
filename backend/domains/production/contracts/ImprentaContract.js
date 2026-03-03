@@ -60,6 +60,16 @@ class ImprentaContract extends ProcessContract {
             ],
             parametrosCalidad: [
                 {
+                    nombre: 'ancho_tela',
+                    etiqueta: 'Ancho de Tela',
+                    unidad: 'pulgadas',
+                    nominal: null,
+                    critico: true,
+                    calculado: false,
+                    metodologia: 'Medición física con cinta métrica.',
+                    notaFrontend: 'Ingresar valores en fracciones de 1/8 (ej: 12 1/8, 12 1/2).'
+                },
+                {
                     nombre: 'viscosidad_tinta',
                     etiqueta: 'Viscosidad de Tinta',
                     unidad: 'segundos (Copa Zahn #2)',
