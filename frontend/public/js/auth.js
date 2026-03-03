@@ -119,12 +119,12 @@ window.fetch = async (...args) => {
 
             Auth.clearSession();
 
-            // Usar modal si está disponible, sino alert (se corregirá en paso 4)
+            // Usar modal si está disponible
             if (window.DesignSystem && window.DesignSystem.showErrorModal) {
                 window.DesignSystem.showErrorModal("Acceso Denegado", "Tu acceso ha sido desactivado por un administrador.");
                 setTimeout(() => window.location.href = '/login.html?error=account_disabled', 3000);
             } else {
-                alert("Tu acceso ha sido desactivado por un administrador. Serás redirigido al inicio.");
+                // Fallback mínimo si DS no cargó
                 window.location.href = '/login.html?error=account_disabled';
             }
         }

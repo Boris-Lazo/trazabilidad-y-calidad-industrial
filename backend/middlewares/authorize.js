@@ -27,10 +27,10 @@ const authorize = (...requirements) => {
         return false;
     });
 
-    // MODO DESARROLLO: Se deshabilita el enforcement de permisos
-    // if (!isAuthorized) {
-    //   return next(new ForbiddenError('No tiene permisos para realizar esta acción'));
-    // }
+    // Enforcement de permisos habilitado para seguridad enterprise
+    if (!isAuthorized) {
+      return next(new ForbiddenError('No tiene permisos para realizar esta acción'));
+    }
 
     next();
   };
