@@ -53,16 +53,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             navControl.style.opacity = '0.3';
         }
 
-        // Redirección forzada desde el dashboard (Dashboard NO ES un menú)
-        if (path === '/' || path === '/index.html') {
-            if (state.siguienteAccion === 'IR_A_PROCESO' && state.actionPayload) {
-                const p = state.actionPayload;
-                window.location.href = `/proceso.html?id=${p.proceso_id}&nombre=${encodeURIComponent(p.proceso_nombre)}`;
-            }
-        }
 
         // Guardia Operativa: No permitir saltarse el flujo
-        if (operativePages.some(p => path.includes(p)) && !state.abierta) {
+        if (operativePages.some(p => path.includes(p)) && !state.abierta && !path.includes('ejecucion.html')) {
              window.location.href = '/bitacora.html';
         }
 

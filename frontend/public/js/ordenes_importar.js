@@ -22,6 +22,27 @@ const CAMPOS_PENDIENTES_LABELS = {
 
 let ordenesNuevasCache = [];
 
+function mostrarError(titulo, mensaje) {
+    if (window.DesignSystem && typeof DesignSystem.showErrorModal === 'function') {
+        DesignSystem.showErrorModal(titulo, mensaje);
+    } else {
+        // Fallback si DesignSystem no está disponible aún
+        const modal = document.getElementById('modal-error-sap');
+        const msg = document.getElementById('mensaje-error-sap');
+        if (modal && msg) {
+            msg.textContent = `${titulo}: ${mensaje}`;
+            modal.style.display = 'flex';
+        } else {
+            alert(`${titulo}: ${mensaje}`);
+        }
+    }
+}
+
+function getAuthHeaders() {
+    const token = localStorage.getItem('prod_sys_token') || localStorage.getItem('token') || localStorage.getItem('authToken');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Referencias a elementos del DOM
     const btnImportarSap = document.getElementById('btn-importar-sap');
@@ -88,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnPrevisualizar.addEventListener('click', async () => {
         const archivo = inputArchivoExcel.files[0];
         if (!archivo) {
-            DesignSystem.showErrorModal('Archivo no seleccionado', 'Por favor selecciona un archivo Excel antes de continuar.');
+            mostrarError('Archivo no seleccionado', 'Por favor selecciona un archivo Excel antes de continuar.');
             return;
         }
 
@@ -101,8 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/ordenes-produccion/importar/previsualizar', {
                 method: 'POST',
-                // Sin headers — auth.js los agrega automáticamente
-                // Sin Content-Type — multer necesita el boundary automático del browser
+                headers: {
+                    ...getAuthHeaders()
+                },
                 body: formData
             });
 
@@ -112,11 +134,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 paso1.style.display = 'none';
                 paso2.style.display = 'block';
             } else {
-                DesignSystem.showErrorModal('Error de Procesamiento', result.error || 'No se pudo procesar el archivo SAP.');
+                mostrarError('Error de Procesamiento', result.error || 'No se pudo procesar el archivo SAP.');
             }
         } catch (error) {
             console.error('Error:', error);
-            DesignSystem.showErrorModal('Error de Conexión', 'Hubo un problema al conectar con el servidor para la previsualización.');
+            mostrarError('Error de Conexión', 'Hubo un problema al conectar con el servidor para la previsualización.');
         } finally {
             btnPrevisualizar.disabled = false;
             btnPrevisualizar.innerHTML = '<i data-lucide="eye" style="width:16px; height:16px; margin-right:8px; vertical-align:middle;"></i> Previsualizar';
@@ -135,8 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/ordenes-produccion/importar/confirmar', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
-                    // Sin Authorization — auth.js lo agrega automáticamente
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders()
                 },
                 body: JSON.stringify({ ordenes: ordenesAEnviar })
             });
@@ -164,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Error:', error);
-            DesignSystem.showErrorModal('Error de Importación', 'Hubo un fallo al intentar confirmar e importar las órdenes.');
+            mostrarError('Error de Importación', 'Hubo un fallo al intentar confirmar e importar las órdenes.');
         } finally {
             btnConfirmarImportacion.disabled = false;
             btnConfirmarImportacion.innerHTML = '<i data-lucide="check" style="width:14px; height:14px; margin-right:6px; vertical-align:middle;"></i> Confirmar e Importar';
