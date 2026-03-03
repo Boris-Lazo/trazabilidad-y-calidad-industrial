@@ -131,6 +131,58 @@ const DesignSystem = {
     },
 
     /**
+     * Modal de confirmación estándar
+     */
+    showConfirmModal(title, message, onConfirm, options = {}) {
+        const modalId = 'ds-confirm-modal';
+        let modal = document.getElementById(modalId);
+
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = modalId;
+            modal.className = 'modal';
+            modal.style.zIndex = '3000';
+            document.body.appendChild(modal);
+        }
+
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 450px;">
+                <div class="modal-header">
+                    <h2 style="display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="help-circle" style="width: 20px; height: 20px; color: var(--primary);"></i>
+                        <span id="ds-confirm-title"></span>
+                    </h2>
+                    <button class="btn-close" id="ds-confirm-close-x">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="ds-confirm-message" style="margin-bottom: 0; line-height: 1.6;"></p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="ds-confirm-cancel-btn">Cancelar</button>
+                    <button class="btn btn-primary" id="ds-confirm-ok-btn">Confirmar</button>
+                </div>
+            </div>
+        `;
+
+        modal.querySelector('#ds-confirm-title').textContent = title || 'Confirmación';
+        modal.querySelector('#ds-confirm-message').textContent = message;
+        if (options.confirmText) modal.querySelector('#ds-confirm-ok-btn').textContent = options.confirmText;
+        if (options.cancelText) modal.querySelector('#ds-confirm-cancel-btn').textContent = options.cancelText;
+
+        modal.style.display = 'flex';
+        if (window.lucide) window.lucide.createIcons();
+
+        const close = () => { modal.style.display = 'none'; };
+
+        modal.querySelector('#ds-confirm-close-x').onclick = close;
+        modal.querySelector('#ds-confirm-cancel-btn').onclick = close;
+        modal.querySelector('#ds-confirm-ok-btn').onclick = () => {
+            onConfirm();
+            close();
+        };
+    },
+
+    /**
      * Toast System
      */
     showToast(message, type = 'info', duration = 3000) {

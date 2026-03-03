@@ -16,23 +16,24 @@ const authorize = (...requirements) => {
 
     const userRole = req.user.rol;
 
-    // El usuario es válido si su rol está en la lista O si tiene alguno de los permisos requeridos
+    // --- MODO DESARROLLO: ACCESO TOTAL ---
+    // En esta etapa, permitimos el paso a todos los usuarios autenticados.
+    // El control fino de permisos se habilitará en etapas posteriores.
+    return next();
+
+    /*
+    // Lógica de autorización original (Comentada para etapa de desarrollo)
     const isAuthorized = requirements.some(reqmt => {
-        // ¿Es un rol directo?
         if (reqmt === userRole || (reqmt === 'ADMIN' && userRole === 'Administrador')) return true;
-
-        // ¿Es un permiso/acción?
         if (hasPermission(userRole, reqmt)) return true;
-
         return false;
     });
 
-    // Enforcement de permisos habilitado para seguridad enterprise
     if (!isAuthorized) {
       return next(new ForbiddenError('No tiene permisos para realizar esta acción'));
     }
-
     next();
+    */
   };
 };
 

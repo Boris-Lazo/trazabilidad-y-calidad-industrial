@@ -46,18 +46,22 @@ class PlanningService {
     if (plan.estado === 'CERRADO') throw new ValidationError('No se puede editar un plan cerrado');
 
     if (plan.estado === 'PUBLICADO' || plan.estado === 'AJUSTADO') {
-        if (data.motivo_id) {
-            await this.recordDeviation({
-                plan_id: plan.id,
-                proceso_id: data.proceso_id,
-                maquina_id: data.maquina_id,
-                tipo_desviacion: 'CAMBIO_PLAN',
-                valor_ejecutado: `Orden: ${data.orden_id}`,
-                motivo_id: data.motivo_id,
-                comentario: data.comentario || 'Ajuste de plan publicado',
-                usuario
-            });
+        // En plan publicado, el registro de desviación es obligatorio
+        if (!data.motivo_id) {
+            throw new ValidationError('Debe proporcionar un motivo para modificar un plan publicado.');
         }
+
+        await this.recordDeviation({
+            plan_id: plan.id,
+            proceso_id: data.proceso_id,
+            maquina_id: data.maquina_id,
+            tipo_desviacion: 'CAMBIO_ORDEN',
+            valor_planificado: 'N/A (Adición)',
+            valor_ejecutado: `Orden: ${data.orden_id} (Día ${data.dia_semana}, ${data.turno})`,
+            motivo_id: data.motivo_id,
+            comentario: data.comentario || 'Ajuste de plan publicado',
+            usuario
+        });
 
         if (plan.estado === 'PUBLICADO') {
             await this.planningRepository.updatePlanStatus(plan.id, 'AJUSTADO');
@@ -75,18 +79,21 @@ class PlanningService {
     if (plan.estado === 'CERRADO') throw new ValidationError('No se puede editar un plan cerrado');
 
     if (plan.estado === 'PUBLICADO' || plan.estado === 'AJUSTADO') {
-        if (data.motivo_id) {
-            await this.recordDeviation({
-                plan_id: plan.id,
-                proceso_id: data.proceso_id,
-                maquina_id: data.maquina_id,
-                tipo_desviacion: 'CAMBIO_PLAN',
-                valor_ejecutado: `Personal: ${data.persona_id}`,
-                motivo_id: data.motivo_id,
-                comentario: data.comentario || 'Ajuste de plan publicado',
-                usuario
-            });
+        if (!data.motivo_id) {
+            throw new ValidationError('Debe proporcionar un motivo para modificar un plan publicado.');
         }
+
+        await this.recordDeviation({
+            plan_id: plan.id,
+            proceso_id: data.proceso_id,
+            maquina_id: data.maquina_id,
+            tipo_desviacion: 'CAMBIO_PERSONAL',
+            valor_planificado: 'N/A (Adición)',
+            valor_ejecutado: `Personal: ${data.persona_id} (Día ${data.dia_semana}, ${data.turno})`,
+            motivo_id: data.motivo_id,
+            comentario: data.comentario || 'Ajuste de plan publicado',
+            usuario
+        });
 
         if (plan.estado === 'PUBLICADO') {
             await this.planningRepository.updatePlanStatus(plan.id, 'AJUSTADO');

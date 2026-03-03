@@ -99,7 +99,8 @@ class LaminadoContract extends ProcessContract {
                     tolerancia: 0.25,
                     critico: true,
                     calculado: false,
-                    metodologia: 'Medición física por rollo. El nominal viene de la orden activa. Tolerancia fija ±0.25 pulgadas igual que en proceso de Telares.'
+                    metodologia: 'Medición física por rollo. El nominal viene de la orden activa. Tolerancia fija ±0.25 pulgadas igual que en proceso de Telares.',
+                    notaFrontend: 'Ingresar valores en fracciones de 1/8 (ej: 12 1/8, 12 1/2).'
                 }
             ],
             parametrosInformativos: [

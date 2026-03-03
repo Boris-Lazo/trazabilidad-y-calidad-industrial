@@ -66,7 +66,8 @@ class ConversionSacosContract extends ProcessContract {
                     tolerancia: 0.25,
                     critico: true,
                     calculado: false,
-                    metodologia: 'Medición física con cinta métrica.'
+                    metodologia: 'Medición física con cinta métrica.',
+                    notaFrontend: 'Ingresar valores en fracciones de 1/8 (ej: 12 1/8, 12 1/2).'
                 },
                 {
                     nombre: 'largo_saco',
@@ -76,7 +77,8 @@ class ConversionSacosContract extends ProcessContract {
                     tolerancia: 0.25,
                     critico: true,
                     calculado: false,
-                    metodologia: 'Medición física con cinta métrica.'
+                    metodologia: 'Medición física con cinta métrica.',
+                    notaFrontend: 'Ingresar valores en fracciones de 1/8 (ej: 12 1/8, 12 1/2).'
                 },
                 {
                     nombre: 'doble_costura',
@@ -86,7 +88,8 @@ class ConversionSacosContract extends ProcessContract {
                     tolerancia: 0.125,
                     critico: true,
                     calculado: false,
-                    metodologia: 'Medición física del doblez del fondo costurado.'
+                    metodologia: 'Medición física del doblez del fondo costurado.',
+                    notaFrontend: 'Ingresar valores en fracciones de 1/8 (ej: 12 1/8, 12 1/2).'
                 },
                 {
                     nombre: 'puntadas_costura',

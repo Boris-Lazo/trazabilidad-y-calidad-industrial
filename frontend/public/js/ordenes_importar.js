@@ -101,9 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/ordenes-produccion/importar/previsualizar', {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${Auth.getToken()}`
-                },
                 body: formData
             });
 
@@ -113,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 paso1.style.display = 'none';
                 paso2.style.display = 'block';
             } else {
-                DesignSystem.showErrorModal('Error de Procesamiento', 'No se pudo procesar el archivo SAP: ' + (result.error || 'Error desconocido'));
+                DesignSystem.showErrorModal('Error de Procesamiento', result.error || 'No se pudo procesar el archivo SAP.');
             }
         } catch (error) {
             console.error('Error:', error);
@@ -136,8 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/ordenes-produccion/importar/confirmar', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${Auth.getToken()}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ ordenes: ordenesAEnviar })
             });
