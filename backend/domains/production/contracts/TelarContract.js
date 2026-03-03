@@ -25,8 +25,8 @@ class TelarContract extends ProcessContract {
                 'Cambio de orden en proceso'
             ],
             maquinasPermitidas: [
-                'T-01', 'T-02', 'T-03', 'T-04', 'T-05', 'T-06', 'T-07',
-                'T-08', 'T-09', 'T-10', 'T-11', 'T-12', 'T-13'
+                'T01', 'T02', 'T03', 'T04', 'T05', 'T06', 'T07',
+                'T08', 'T09', 'T10', 'T11', 'T12', 'T13'
             ],
             // Nuevas secciones obligatorias
             descripcionProceso: {

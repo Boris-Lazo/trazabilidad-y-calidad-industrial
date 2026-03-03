@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (response.ok && result.success) {
                     // Éxito: El sistema está inicializado
-                    alert('Sistema inicializado con éxito. Ahora puede iniciar sesión con sus nuevas credenciales.');
+                    DesignSystem.showToast('Sistema inicializado con éxito.', 'success');
                     window.location.href = '/login.html';
                 } else {
                     errorDiv.textContent = result.error || 'Error al inicializar el sistema';

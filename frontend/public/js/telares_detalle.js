@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (error) {
             console.error('Error initialization:', error);
-            alert('Error al cargar datos iniciales');
+            DesignSystem.showErrorModal('Error de Carga', 'No se pudieron cargar los datos iniciales de la máquina.');
         }
     }
 
@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             if (acumulado < lastAcum) {
-                alert(`Error: El acumulado (${acumulado}) no puede ser menor al anterior (${lastAcum}).`);
+                DesignSystem.showErrorModal('Error de Validación', `El acumulado (${acumulado}) no puede ser menor al anterior (${lastAcum}).`);
                 validProd = false;
             }
             produccion.push({
@@ -441,9 +441,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         })).filter(p => p.motivo_id && !isNaN(p.minutos_perdidos));
 
         for (const p of paros) {
-            if (p.minutos_perdidos <= 0) { alert('Los minutos de paro deben ser mayores a 0.'); return; }
+            if (p.minutos_perdidos <= 0) {
+                DesignSystem.showErrorModal('Dato Inválido', 'Los minutos de paro deben ser mayores a 0.');
+                return;
+            }
             if (!p.observacion || p.observacion.trim().length < 10) {
-                alert('La justificación del paro debe tener al menos 10 caracteres.');
+                DesignSystem.showErrorModal('Justificación Insuficiente', 'La justificación del paro debe tener al menos 10 caracteres.');
                 return;
             }
         }
@@ -453,16 +456,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return acc + (p.acumulado_contador - ant);
         }, 0);
 
-        if (metrosTotales > 0 && lotes_consumidos.length === 0) {
-            alert('Debe declarar al menos un lote consumido cuando hay producción registrada.');
-            return;
-        }
-
-        if (metrosTotales === 0 && paros.length === 0) {
-            alert('Debe registrar al menos un paro si no hubo producción.');
-            return;
-        }
-
         const lotes_consumidos = Array.from(
             document.querySelectorAll('#tbody-lotes-consumidos tr')
         )
@@ -470,7 +463,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             .filter(lc => !isNaN(lc.lote_id) && lc.lote_id > 0);
 
         if (metrosTotales > 0 && lotes_consumidos.length === 0) {
-            alert('Debe declarar al menos un lote consumido cuando hay producción registrada.');
+            DesignSystem.showErrorModal('Falta Información', 'Debe declarar al menos un lote consumido cuando hay producción registrada.');
+            return;
+        }
+
+        if (metrosTotales === 0 && paros.length === 0) {
+            DesignSystem.showErrorModal('Falta Información', 'Debe registrar al menos un paro si no hubo producción.');
             return;
         }
 
@@ -482,7 +480,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         })).filter(a => !isNaN(a.valor));
 
         if (anchoMuestras.length > 0 && anchoMuestras.length < 4 && !document.getElementById('input-justificacion').value.trim()) {
-            alert('Debe justificar por qué hay menos de 4 mediciones de ancho.');
+            DesignSystem.showErrorModal('Justificación Requerida', 'Debe justificar por qué hay menos de 4 mediciones de ancho.');
             return;
         }
 
@@ -500,7 +498,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         })).filter(c => c.resultado !== '');
 
         if (colorMuestras.some(c => c.resultado === 'No cumple') && paros.length === 0) {
-            alert('Un color fuera de especificación obliga a registrar un paro.');
+            DesignSystem.showErrorModal('Acción Requerida', 'Un color fuera de especificación obliga a registrar un paro.');
             return;
         }
 
@@ -512,7 +510,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         })).filter(v => v.rollo_numero && v.tipo_defecto_id);
 
         for (const v of visual) {
-            if (v.observacion.trim().length < 10) { alert('La observación del defecto visual debe tener al menos 10 caracteres.'); return; }
+            if (v.observacion.trim().length < 10) {
+                DesignSystem.showErrorModal('Observación Insuficiente', 'La observación del defecto visual debe tener al menos 10 caracteres.');
+                return;
+            }
         }
 
         const payload = {
@@ -538,15 +539,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             if (res.ok) {
-                alert('Datos guardados correctamente');
-                window.location.href = `telares_resumen.html?id=${bitacoraId}`;
+                DesignSystem.showToast('Datos guardados correctamente', 'success');
+                setTimeout(() => {
+                    window.location.href = `telares_resumen.html?id=${bitacoraId}`;
+                }, 1000);
             } else {
                 const err = await res.json();
-                alert('Error al guardar: ' + (err.error || err.message || 'Error desconocido'));
+                DesignSystem.showErrorModal('Error al Guardar', 'No se pudieron guardar los datos: ' + (err.error || err.message || 'Error desconocido'));
             }
         } catch (error) {
             console.error('Error saving:', error);
-            alert('Error de conexión al guardar');
+            DesignSystem.showErrorModal('Error de Conexión', 'Hubo un fallo al intentar conectar con el servidor para guardar los datos.');
         }
     });
 

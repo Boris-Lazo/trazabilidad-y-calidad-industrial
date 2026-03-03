@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkEstado();
             } else {
                 const result = await response.json();
-                alert(result.error || 'Error al abrir bitácora');
+                DesignSystem.showErrorModal('Error al Abrir', result.error || 'No se pudo abrir la bitácora de turno.');
             }
         } catch (error) {
             console.error('Error al abrir:', error);
@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     confirmarCierre.addEventListener('click', async () => {
         if (containerRevision.style.display === 'block' && !obsRevision.value.trim()) {
-            alert('Por favor, ingrese el motivo de revisión de los procesos marcados.');
+            DesignSystem.showErrorModal('Motivo Requerido', 'Por favor, ingrese el motivo de revisión de los procesos marcados.');
             obsRevision.focus();
             return;
         }
@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkEstado();
             } else {
                 const res = await response.json();
-                alert('Error al cerrar: ' + (res.error || res.message));
+                DesignSystem.showErrorModal('Error al Cerrar', 'No se pudo cerrar la bitácora: ' + (res.error || res.message));
             }
         } catch (error) {
             console.error('Error al cerrar:', error);
