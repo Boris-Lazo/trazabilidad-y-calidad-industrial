@@ -18,16 +18,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     await cargarCatalogos();
     await cargarPlan();
 
+    async function cargarKPIs() {
+        if (!currentPlan || currentPlan.id === undefined) {
+            document.getElementById('kpi-indicator').style.display = 'none';
+            return;
+        }
+
+        const res = await fetch(`/api/planning/kpi/${currentPlan.id}`);
+        const kpis = await res.json();
+
+        if (kpis) {
+            document.getElementById('kpi-indicator').style.display = 'block';
+            document.getElementById('kpi-value').textContent = `${kpis.cumplimiento_global}%`;
+        }
+    }
+
     async function cargarCatalogos() {
-        const [procRes, ordRes, persRes, rolesRes, maqRes] = await Promise.all([
+        const [procRes, ordRes, persRes, rolesRes, maqRes, motRes] = await Promise.all([
             fetch('/api/procesos'),
             fetch('/api/ordenes-produccion?estado=Liberada'),
             fetch('/api/personal'),
             fetch('/api/personal/roles-operativos'),
-            fetch('/api/maquinas')
+            fetch('/api/maquinas'),
+            fetch('/api/planning/motivos-desviacion')
         ]);
 
         procesos = (await procRes.json()).data || [];
+        const motivos = (await motRes.json());
+        document.getElementById('select-motivo-ajuste').innerHTML = motivos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
         ordenes = (await ordRes.json()).data || [];
         personal = (await persRes.json()).data || [];
         rolesOperativos = (await rolesRes.json()).data || [];
@@ -57,6 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('planning-container').style.display = 'block';
             document.getElementById('plan-status-bar').style.display = 'block';
             renderPlan();
+            cargarKPIs();
         } else {
             currentPlan = null;
             document.getElementById('no-plan-alert').style.display = 'block';
@@ -148,6 +167,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('form-dia').value = dia;
         document.getElementById('form-turno').value = turno;
 
+        const isPublicado = currentPlan.estado === 'PUBLICADO' || currentPlan.estado === 'AJUSTADO';
+        document.getElementById('group-desviacion-plan').style.display = isPublicado ? 'block' : 'none';
+
         // Cargar máquinas del proceso
         const selMaq = document.getElementById('select-maquina');
         const maqProc = maquinas.filter(m => m.proceso_id == procesoId);
@@ -179,12 +201,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('btn-guardar-asig').onclick = async () => {
         const tipo = document.getElementById('select-tipo-asig').value;
+        const isPublicado = currentPlan.estado === 'PUBLICADO' || currentPlan.estado === 'AJUSTADO';
+
         const payload = {
             plan_id: currentPlan.id,
             proceso_id: document.getElementById('form-proceso').value,
             dia_semana: document.getElementById('form-dia').value,
             turno: document.getElementById('form-turno').value
         };
+
+        if (isPublicado) {
+            payload.motivo_id = document.getElementById('select-motivo-ajuste').value;
+            payload.comentario = document.getElementById('comentario-ajuste').value;
+        }
 
         if (tipo === 'ORDEN') {
             payload.orden_id = document.getElementById('select-orden').value;

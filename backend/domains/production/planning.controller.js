@@ -105,6 +105,16 @@ class PlanningController {
           next(err);
       }
   };
+
+  getKPIs = async (req, res, next) => {
+      try {
+          const { plan_id } = req.params;
+          const kpis = await this.planningService.getKPIs(plan_id);
+          res.json(kpis);
+      } catch (err) {
+          next(err);
+      }
+  };
 }
 
 module.exports = PlanningController;

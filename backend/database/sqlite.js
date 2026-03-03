@@ -1233,7 +1233,7 @@ const runFullSchema = () => {
         bitacora_id INTEGER,
         proceso_id INTEGER,
         maquina_id INTEGER,
-        tipo_desviacion TEXT NOT NULL, -- 'CAMBIO_ORDEN', 'CAMBIO_PERSONAL', 'CAMBIO_MAQUINA', 'AUSENCIA', etc.
+        tipo_desviacion TEXT NOT NULL, -- 'CAMBIO_ORDEN', 'CAMBIO_PERSONAL', 'CAMBIO_MAQUINA', 'AUSENCIA', 'CAMBIO_PLAN'
         valor_planificado TEXT,
         valor_ejecutado TEXT,
         motivo_id INTEGER,
@@ -1243,6 +1243,33 @@ const runFullSchema = () => {
         FOREIGN KEY (plan_id) REFERENCES plan_semanal(id),
         FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
         FOREIGN KEY (motivo_id) REFERENCES catalogo_motivo_desviacion(id)
+    );`);
+
+    // --- TABLAS DE SNAPSHOT (PLAN BASAL) ---
+    db.run(`CREATE TABLE IF NOT EXISTS plan_basal_ordenes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plan_id INTEGER NOT NULL,
+        orden_id INTEGER NOT NULL,
+        proceso_id INTEGER NOT NULL,
+        maquina_id INTEGER,
+        turno TEXT NOT NULL,
+        dia_semana INTEGER NOT NULL,
+        secuencia INTEGER DEFAULT 0,
+        FOREIGN KEY (plan_id) REFERENCES plan_semanal(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS plan_basal_personal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plan_id INTEGER NOT NULL,
+        persona_id INTEGER NOT NULL,
+        proceso_id INTEGER NOT NULL,
+        maquina_id INTEGER,
+        turno TEXT NOT NULL,
+        dia_semana INTEGER NOT NULL,
+        rol_operativo_id INTEGER,
+        FOREIGN KEY (plan_id) REFERENCES plan_semanal(id),
+        FOREIGN KEY (persona_id) REFERENCES personas(id)
     );`);
 
     // --- SEMILLAS ---

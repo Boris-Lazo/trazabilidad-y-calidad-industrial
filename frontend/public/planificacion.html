@@ -116,6 +116,10 @@
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>Estado: <span id="plan-estado-badge" class="badge">BORRADOR</span></div>
                         <div id="plan-fechas-rango" style="font-weight: bold;"></div>
+                        <div id="kpi-indicator" style="display: none;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">Cumplimiento:</span>
+                            <strong id="kpi-value" class="text-primary" style="font-size: 1.2rem;">0%</strong>
+                        </div>
                     </div>
                 </div>
 
@@ -177,6 +181,19 @@
                     <div class="form-group">
                         <label>Rol Operativo</label>
                         <select id="select-rol-op" class="form-control"></select>
+                    </div>
+                </div>
+
+                <!-- Campos Desviación Plan Publicado -->
+                <div id="group-desviacion-plan" style="display: none; border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: 1rem;">
+                    <p class="text-error" style="font-size: 0.8rem; font-weight: bold; margin-bottom: 0.5rem;">⚠️ El plan ya está publicado. Registre el motivo del cambio.</p>
+                    <div class="form-group">
+                        <label>Motivo del Ajuste</label>
+                        <select id="select-motivo-ajuste" class="form-control"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Comentario</label>
+                        <textarea id="comentario-ajuste" class="form-control" rows="2"></textarea>
                     </div>
                 </div>
 

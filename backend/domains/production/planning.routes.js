@@ -27,5 +27,6 @@ router.post('/publish', authorize(PERMISSIONS.ASSIGN_OPERATIONS), planningContro
 router.post('/deviation', authorize(PERMISSIONS.MANAGE_PRODUCTION), planningController.recordDeviation);
 router.get('/motivos-desviacion', authorize(PERMISSIONS.VIEW_PRODUCTION), planningController.getMotivosDesviacion);
 router.get('/desviaciones', authorize(PERMISSIONS.VIEW_PRODUCTION), planningController.getDeviaciones);
+router.get('/kpi/:plan_id', authorize(PERMISSIONS.VIEW_PRODUCTION), planningController.getKPIs);
 
 module.exports = router;

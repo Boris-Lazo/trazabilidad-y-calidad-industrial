@@ -45,9 +45,24 @@ class PlanningService {
     if (!plan) throw new NotFoundError('Plan no encontrado');
     if (plan.estado === 'CERRADO') throw new ValidationError('No se puede editar un plan cerrado');
 
-    if (plan.estado === 'PUBLICADO') {
-        await this.planningRepository.updatePlanStatus(plan.id, 'AJUSTADO');
-        await this.auditService.logStatusChange(usuario, 'PlanSemanal', plan.id, 'PUBLICADO', 'AJUSTADO', 'Ajuste de planificación');
+    if (plan.estado === 'PUBLICADO' || plan.estado === 'AJUSTADO') {
+        if (data.motivo_id) {
+            await this.recordDeviation({
+                plan_id: plan.id,
+                proceso_id: data.proceso_id,
+                maquina_id: data.maquina_id,
+                tipo_desviacion: 'CAMBIO_PLAN',
+                valor_ejecutado: `Orden: ${data.orden_id}`,
+                motivo_id: data.motivo_id,
+                comentario: data.comentario || 'Ajuste de plan publicado',
+                usuario
+            });
+        }
+
+        if (plan.estado === 'PUBLICADO') {
+            await this.planningRepository.updatePlanStatus(plan.id, 'AJUSTADO');
+            await this.auditService.logStatusChange(usuario, 'PlanSemanal', plan.id, 'PUBLICADO', 'AJUSTADO', 'Ajuste de planificación');
+        }
     }
 
     await this.planningRepository.upsertOrderAssignment(data);
@@ -59,9 +74,24 @@ class PlanningService {
     if (!plan) throw new NotFoundError('Plan no encontrado');
     if (plan.estado === 'CERRADO') throw new ValidationError('No se puede editar un plan cerrado');
 
-    if (plan.estado === 'PUBLICADO') {
-        await this.planningRepository.updatePlanStatus(plan.id, 'AJUSTADO');
-        await this.auditService.logStatusChange(usuario, 'PlanSemanal', plan.id, 'PUBLICADO', 'AJUSTADO', 'Ajuste de planificación');
+    if (plan.estado === 'PUBLICADO' || plan.estado === 'AJUSTADO') {
+        if (data.motivo_id) {
+            await this.recordDeviation({
+                plan_id: plan.id,
+                proceso_id: data.proceso_id,
+                maquina_id: data.maquina_id,
+                tipo_desviacion: 'CAMBIO_PLAN',
+                valor_ejecutado: `Personal: ${data.persona_id}`,
+                motivo_id: data.motivo_id,
+                comentario: data.comentario || 'Ajuste de plan publicado',
+                usuario
+            });
+        }
+
+        if (plan.estado === 'PUBLICADO') {
+            await this.planningRepository.updatePlanStatus(plan.id, 'AJUSTADO');
+            await this.auditService.logStatusChange(usuario, 'PlanSemanal', plan.id, 'PUBLICADO', 'AJUSTADO', 'Ajuste de planificación');
+        }
     }
 
     await this.planningRepository.upsertPersonnelAssignment(data);
@@ -91,12 +121,33 @@ class PlanningService {
   async publishPlan(id, usuario) {
     const plan = await this.planningRepository.findPlanById(id);
     if (!plan) throw new NotFoundError('Plan no encontrado');
+
     if (plan.estado === 'BORRADOR' || plan.estado === 'AJUSTADO') {
+        const hasBasal = await this.planningRepository.hasBasalPlan(id);
+        if (!hasBasal) {
+            await this.planningRepository.createSnapshot(id);
+        }
+
         await this.planningRepository.updatePlanStatus(id, 'PUBLICADO');
         await this.auditService.logStatusChange(usuario, 'PlanSemanal', id, plan.estado, 'PUBLICADO', 'Publicación de plan');
     } else {
         throw new ValidationError(`No se puede publicar un plan en estado ${plan.estado}`);
     }
+  }
+
+  async getKPIs(planId) {
+      const execution = await this.planningRepository.getExecutionData(planId);
+      if (!execution.length) return { cumplimiento_global: 0, total_ordenes: 0, ejecutadas: 0 };
+
+      const total = execution.length;
+      const ejecutadas = execution.filter(e => e.bitacora_id && e.cantidad_producida > 0).length;
+
+      return {
+          cumplimiento_global: Math.round((ejecutadas / total) * 100),
+          total_ordenes: total,
+          ejecutadas: ejecutadas,
+          detalle: execution
+      };
   }
 
   async getPlanningForShift(date, turno, proceso_id = null) {
