@@ -28,8 +28,8 @@ class ExtrusorPPContract extends ProcessContract {
             },
             tipoProceso: 'Continuo',
             metasProduccion: {
-                metaEstandarTurno: 2200,
-                supuestosOperativos: 'Operación a 180 m/min con 95% de eficiencia mecánica.',
+                metaEstandarTurno: 1000,
+                supuestosOperativos: 'Operación continua, sin reserva.',
                 condicionesReduccionEficiencia: 'Cambios de color, purgas por contaminación de material, o fallas en sistema de estiraje.'
             },
             unidadesReporte: {

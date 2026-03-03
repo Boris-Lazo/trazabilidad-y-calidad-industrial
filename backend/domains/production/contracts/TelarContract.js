@@ -37,8 +37,8 @@ class TelarContract extends ProcessContract {
             },
             tipoProceso: 'Por orden',
             metasProduccion: {
-                metaEstandarTurno: 450,
-                supuestosOperativos: 'Operación a 700 RPM con eficiencia del 85%. Meta por máquina individual.',
+                metaEstandarTurno: 1000,
+                supuestosOperativos: 'Meta informativa de 1000 metros por telar por turno. Reporte por máquina, no acumulado.',
                 condicionesReduccionEficiencia: 'Frecuentes roturas de cinta por mala calidad de extrusión, fallas en sensores de trama.'
             },
             unidadesReporte: {
@@ -54,8 +54,8 @@ class TelarContract extends ProcessContract {
             },
             personalOperativo: {
                 minimo: 1,
-                maximo: 5,
-                reglasEspeciales: 'Un operador puede atender hasta 3 telares solo, o 5 telares en pareja con un auxiliar.'
+                maximo: 2,
+                reglasEspeciales: 'Pareja operador + auxiliar → hasta 5 telares. Persona individual → hasta 3 telares.'
             },
             impactoVariabilidad: [
                 { condicion: 'Variación de denier', impacto: 'Afecta el gramaje de la tela y puede causar roturas frecuentes.' },

@@ -34,9 +34,9 @@ class LaminadoContract extends ProcessContract {
             },
             tipoProceso: 'Por orden',
             metasProduccion: {
-                metaEstandarTurno: 8000,
+                metaEstandarTurno: 21000,
                 supuestosOperativos: 'Velocidad de línea de 40 m/min. Meta en metros lineales.',
-                condicionesReduccionEficiencia: 'Problemas de adherencia, fallas en el tratador corona, o defectos en la tela base.'
+                condicionesReduccionEficiencia: 'Problemas de adherencia, fallas en el tratador corona, o defectos en la tela base. Los cambios de estilo afectan la eficiencia.'
             },
             unidadesReporte: {
                 produccion: 'metros',
@@ -51,8 +51,8 @@ class LaminadoContract extends ProcessContract {
             },
             personalOperativo: {
                 minimo: 2,
-                maximo: 3,
-                reglasEspeciales: 'Requiere un operador de extrusión y un auxiliar de montaje/desmontaje de rollos.'
+                maximo: 2,
+                reglasEspeciales: '2 personas.'
             },
             impactoVariabilidad: [
                 { condicion: 'Humedad en resina de laminación', impacto: 'Causa ojos de pescado y falta de adherencia.' },
