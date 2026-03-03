@@ -243,6 +243,21 @@ function parsearDescripcion(descripcion, procesoId) {
  * @returns {Object} Objeto de orden parseado.
  */
 function parsearFila(datos, mapeoSAP) {
+  // Soporte para array (SAP export) o objeto
+  const d = Array.isArray(datos) ? {
+    nombreSap: datos[0],
+    codigoDoc: datos[1],
+    descripcion: datos[2],
+    cantPlanificada: datos[3],
+    cantCompletada: datos[4],
+    cantPendiente: datos[5],
+    fechaPedido: datos[6],
+    fechaInicio: datos[7],
+    fechaVencimiento: datos[8],
+    diasAtrasados: datos[9],
+    pedidoCliente: datos[10]
+  } : datos;
+
   const {
     nombreSap,
     codigoDoc,
@@ -252,8 +267,10 @@ function parsearFila(datos, mapeoSAP) {
     cantPendiente,
     fechaPedido,
     fechaInicio,
-    fechaVencimiento
-  } = datos;
+    fechaVencimiento,
+    diasAtrasados,
+    pedidoCliente
+  } = d;
 
   const procesoId = mapeoSAP[nombreSap] || null;
   const especificaciones = procesoId ? parsearDescripcion(descripcion, procesoId) : {};
@@ -278,13 +295,29 @@ function parsearFila(datos, mapeoSAP) {
     cantidad_planificada: parseFloat(cantPlanificada),
     cantidad_completada: parseFloat(cantCompletada || 0),
     cantidad_pendiente: parseFloat(cantPendiente),
-    fecha_pedido: fechaPedido instanceof Date ? fechaPedido.toISOString() : fechaPedido,
-    fecha_inicio: fechaInicio instanceof Date ? fechaInicio.toISOString() : fechaInicio,
-    fecha_vencimiento: fechaVencimiento instanceof Date ? fechaVencimiento.toISOString() : fechaVencimiento,
+    fecha_pedido: parsearFecha(fechaPedido),
+    fecha_inicio: parsearFecha(fechaInicio),
+    fecha_vencimiento: parsearFecha(fechaVencimiento),
+    dias_atrasados: diasAtrasados,
+    pedido_cliente: pedidoCliente,
     especificaciones,
     requiere_validacion: camposPendientes.length > 0,
     campos_pendientes: camposPendientes
   };
 }
 
-module.exports = { parsearDescripcion, parsearFila };
+/**
+ * Convierte un valor de celda de fecha a string 'YYYY-MM-DD'.
+ * Maneja objetos Date de XLSX y strings con datetime.
+ */
+function parsearFecha(valor) {
+  if (!valor) return null;
+  if (valor instanceof Date) return valor.toISOString().split('T')[0];
+  if (typeof valor === 'string') {
+    const match = valor.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+module.exports = { parsearDescripcion, parsearFila, parsearFecha };

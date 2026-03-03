@@ -265,6 +265,46 @@
                         </table>
                     </div>
 
+                    <!-- Órdenes ya existentes en PROD-SYS (informativo) -->
+                    <div id="seccion-ya-existentes" style="display:none; margin-top:1.5rem;">
+                        <h4 style="font-size:13px; color:rgba(255,255,255,0.5); margin-bottom:8px;">
+                            <i data-lucide="shield-check" style="width:14px; height:14px; vertical-align:middle; margin-right:6px; color:var(--success-color)"></i>
+                            Órdenes ya registradas en PROD-SYS (no se modificarán)
+                        </h4>
+                        <div class="table-container" style="max-height:200px; overflow-y:auto; border:1px solid rgba(255,255,255,0.05);">
+                            <table class="table" style="font-size:12px;">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Estado PROD-SYS</th>
+                                        <th>Cant. SAP</th>
+                                        <th>Venc. SAP</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-ya-existentes"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Series SAP no reconocidas (alerta) -->
+                    <div id="seccion-no-reconocidas" style="display:none; margin-top:1rem;">
+                        <div class="alert" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:12px;">
+                            <h4 style="font-size:13px; color:var(--danger-color, #ef4444); margin:0 0 8px 0;">
+                                <i data-lucide="alert-triangle" style="width:14px; height:14px; vertical-align:middle; margin-right:6px;"></i>
+                                Series SAP no reconocidas — estas órdenes NO se importarán
+                            </h4>
+                            <div class="table-container" style="max-height:150px; overflow-y:auto;">
+                                <table class="table" style="font-size:11px;">
+                                    <thead>
+                                        <tr><th>Código</th><th>Serie SAP</th><th>Descripción</th><th>Acción requerida</th></tr>
+                                    </thead>
+                                    <tbody id="tbody-no-reconocidas"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
                     <div style="margin-top: 1.5rem; display: flex; gap: 12px; justify-content: flex-end;">
                         <button class="btn btn-secondary" id="btn-volver-paso1">
                             <i data-lucide="arrow-left" style="width:14px; height:14px; margin-right:6px; vertical-align:middle;"></i>
