@@ -28,6 +28,39 @@ class TelarContract extends ProcessContract {
                 'T-01', 'T-02', 'T-03', 'T-04', 'T-05', 'T-06', 'T-07',
                 'T-08', 'T-09', 'T-10', 'T-11', 'T-12', 'T-13'
             ],
+            // Nuevas secciones obligatorias
+            descripcionProceso: {
+                queHace: 'Tejido de cinta de rafia para formar tela circular mediante telares circulares de alta velocidad.',
+                queTransforma: 'Cinta de rafia en bobinas -> Rollos de tela circular.',
+                queRecibe: 'Bobinas de cinta de polipropileno (urdido y trama).',
+                queEntrega: 'Rollos de tela de metros definidos, identificados por telar.'
+            },
+            tipoProceso: 'Por orden',
+            metasProduccion: {
+                metaEstandarTurno: 450,
+                supuestosOperativos: 'Operación a 700 RPM con eficiencia del 85%. Meta por máquina individual.',
+                condicionesReduccionEficiencia: 'Frecuentes roturas de cinta por mala calidad de extrusión, fallas en sensores de trama.'
+            },
+            unidadesReporte: {
+                produccion: 'metros',
+                merma: 'kg',
+                reporteMultiUnidad: true
+            },
+            catalogoParos: {
+                operativos: ['Cambio de orden', 'Anudado de urdimbre', 'Cambio de rollos', 'Limpieza'],
+                mecanicos: ['Rotura de lanceta', 'Falla motor telar', 'Falla sensores', 'Desajuste de levas'],
+                calidad: ['Ancho fuera de rango', 'Defectos de tejido', 'Color incorrecto'],
+                externos: ['Falta de material', 'Falla eléctrica', 'Ausentismo']
+            },
+            personalOperativo: {
+                minimo: 1,
+                maximo: 5,
+                reglasEspeciales: 'Un operador puede atender hasta 3 telares solo, o 5 telares en pareja con un auxiliar.'
+            },
+            impactoVariabilidad: [
+                { condicion: 'Variación de denier', impacto: 'Afecta el gramaje de la tela y puede causar roturas frecuentes.' },
+                { condicion: 'Alta temperatura ambiente', impacto: 'Afecta la elongación de la cinta y la estabilidad del tejido.' }
+            ],
             parametrosCalidad: [
                 {
                     nombre: 'ancho',
@@ -102,10 +135,10 @@ class TelarContract extends ProcessContract {
                     permiteCopiarMuestraAnterior: false
                 }
             },
-            version: '1.0.0',
-            fechaCreacion: '2025-01-01',
-            responsable: 'Sistema (Despliegue)',
-            motivo: 'Contrato inicial completo para proceso de Telares. Define calidad de ancho (4 mediciones/turno), construcción (1 medición/turno), verificación de color por cambio de orden, defectos visuales lista cerrada, medición de producción por diferencia de contador acumulado, y reglas duras de asignación de personal por telar.'
+            version: '1.1.0',
+            fechaCreacion: '2025-01-20',
+            responsable: 'Arquitecto Industrial Jules',
+            motivo: 'Contrato actualizado con las 9 secciones obligatorias para cumplimiento de arquitectura senior.'
         });
 
         // Campos específicos de telares

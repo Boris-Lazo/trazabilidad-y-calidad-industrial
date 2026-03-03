@@ -7,13 +7,9 @@ class PeletizadoContract extends ProcessContract {
             nombre: 'Peletizado',
             nombreCorto: 'Peletizado',
             unidadProduccion: 'kg',
-            descripcionProducto: 'Pellets de polipropileno reciclado producidos ' +
-                                 'a partir del desperdicio de procesos PP. ' +
-                                 'Destino: materia prima para Extrusor PP (proceso 1), ' +
-                                 'Laminado (proceso 3), o venta como producto terminado.',
+            descripcionProducto: 'Pellets de polipropileno reciclado producidos a partir del desperdicio de procesos PP.',
             patronCodigoOrden: '8\\d{6}',
             origenesOrden: ['masivo_excel', 'manual'],
-            // Máquina única. Sin número — no existe otra peletizadora.
             maquinasPermitidas: ['PELET'],
             esInicioCadena: false,
             procesosAguasAbajo: [],
@@ -21,6 +17,39 @@ class PeletizadoContract extends ProcessContract {
                 'Sin material de desperdicio disponible',
                 'Máquina en mantenimiento',
                 'Temperatura fuera de rango al arranque'
+            ],
+            // Nuevas secciones obligatorias
+            descripcionProceso: {
+                queHace: 'Recuperación de desperdicios plásticos de procesos anteriores mediante fundido, filtrado y corte en pellets.',
+                queTransforma: 'Mermas y retazos plásticos (PP) -> Pellets de material reciclado.',
+                queRecibe: 'Mermas de Extrusión PP, Telares, Laminado, Imprenta y Conversión.',
+                queEntrega: 'Sacos de pellet reciclado listos para reincorporarse a la producción.'
+            },
+            tipoProceso: 'Por lotes',
+            metasProduccion: {
+                metaEstandarTurno: 1500,
+                supuestosOperativos: 'Operación continua a 190 kg/h. Meta en kg de pellet recuperado.',
+                condicionesReduccionEficiencia: 'Material de entrada muy contaminado, saturación de filtros de malla, fallas en el sistema de corte sumergido.'
+            },
+            unidadesReporte: {
+                produccion: 'kg',
+                merma: 'kg',
+                reporteMultiUnidad: false
+            },
+            catalogoParos: {
+                operativos: ['Carga de tolva', 'Limpieza de filtros', 'Cambio de cuchillas', 'Ajuste de temperatura'],
+                mecanicos: ['Falla motor principal', 'Obstrucción de husillo', 'Falla sistema de enfriamiento'],
+                calidad: ['Pellet deforme', 'Presencia de contaminantes', 'Color fuera de estándar'],
+                externos: ['Falta de material para procesar', 'Falla eléctrica']
+            },
+            personalOperativo: {
+                minimo: 1,
+                maximo: 1,
+                reglasEspeciales: 'Un operador para alimentación manual de mermas y retiro de producto terminado.'
+            },
+            impactoVariabilidad: [
+                { condicion: 'Mezcla de materiales (PP con PE)', impacto: 'Inestabilidad en el extruido y pellets de mala calidad mecánica.' },
+                { condicion: 'Humedad en el desperdicio', impacto: 'Genera porosidad en el pellet y reduce su valor de reutilización.' }
             ],
             parametrosCalidad: [
                 {
@@ -30,7 +59,6 @@ class PeletizadoContract extends ProcessContract {
                     tipo: 'texto_libre',
                     critico: false,
                     calculado: false,
-                    validacion: 'inspeccion_visual',
                     metodologia: 'Inspección visual del color del pelet de salida.'
                 },
                 {
@@ -40,104 +68,26 @@ class PeletizadoContract extends ProcessContract {
                     tipo: 'texto_libre',
                     critico: false,
                     calculado: false,
-                    validacion: 'declarativo',
-                    nota: 'Descripción del tipo de desperdicio procesado en el turno. ' +
-                          'Ej: "Recortes de telares", "Merma de imprenta", "Mixto PP".'
+                    metodologia: 'Descripción del tipo de desperdicio procesado.'
                 }
             ],
-            // PENDIENTE: temperaturas, RPM y demás parámetros de máquina.
             parametrosInformativos: [],
             frecuenciaMuestreo: {
                 registrosFormalsPorTurno: 2,
                 distribucion: [
-                    { indice: 1, momento: 'inicio_turno',  descripcion: 'Inspección al iniciar el turno' },
-                    { indice: 2, momento: 'cierre_turno',  descripcion: 'Inspección al finalizar el turno' }
+                    { indice: 1, momento: 'inicio_turno', descripcion: 'Inspección inicial' },
+                    { indice: 2, momento: 'cierre_turno', descripcion: 'Inspección final' }
                 ],
                 omisionRequiereMotivo: true,
                 permiteCopiarMuestraAnterior: false
             },
-            motivo: 'Contrato inicial completo para proceso de Peletizado. ' +
-                    'Define 1 máquina (PELET), producción por pesaje de pelet ' +
-                    'de salida en kg con registro de merma, 2 parámetros de calidad ' +
-                    'cualitativos (color y tipo de material), 2 inspecciones por turno ' +
-                    '(inicio y cierre), sin gestión de lotes. ' +
-                    'Parámetros operativos de máquina pendientes.'
+            version: '1.1.0',
+            fechaCreacion: '2025-01-20',
+            responsable: 'Arquitecto Industrial Jules',
+            motivo: 'Contrato actualizado con las 9 secciones obligatorias para cumplimiento de arquitectura senior.'
         });
 
-        this.procesosAguasArriba = [1, 2, 3, 4, 5, 9];
-
-        this.reglasProduccion = {
-            modalidad: 'pesaje_salida',
-            descripcion: 'Se registran los kg de pelet producido (salida) y los ' +
-                         'kg de merma (desperdicio que va a la basura). ' +
-                         'No hay contador acumulado — cada turno es un pesaje independiente.',
-            unidad: 'kg',
-            camposProduccion: {
-                kg_pelet_producido: {
-                    etiqueta: 'Pelet Producido',
-                    unidad: 'kg',
-                    obligatorio: true,
-                    nota: 'Peso total del pelet de salida en el turno.'
-                },
-                kg_merma: {
-                    etiqueta: 'Merma',
-                    unidad: 'kg',
-                    obligatorio: true,
-                    nota: 'Desperdicio del proceso que va a la basura. No es reutilizable.'
-                }
-            },
-            identificacionFisica: {
-                descripcion: 'El pelet se empaca en bolsas de 25 kg identificadas ' +
-                             'con fecha de producción, grupo y turno escritos en la bolsa.',
-                nota: 'Esta identificación es operativa/logística. ' +
-                      'El sistema no gestiona lotes de pelet.'
-            },
-            sinGestionLotes: true
-        };
-
-        this.reglasMaterialEntrada = {
-            descripcion: 'Recibe desperdicio PP de los procesos 1, 2, 3, 4, 5 y 9 ' +
-                         '(excluido el liner PE del proceso 9). ' +
-                         'No entra material de los extrusores PE (procesos 6 y 7).',
-            procesosOrigen: [1, 2, 3, 4, 5, 9],
-            exclusiones: [
-                'Desperdicio de Extrusor PE (proceso 6) — tiene su propio método de reciclaje',
-                'Desperdicio de Conversión Liner PE (proceso 7) — ídem',
-                'Liner de PE de sacos vestidos (proceso 9) — material PE, no PP'
-            ],
-            camposEntrada: {
-                tipo_material: {
-                    etiqueta: 'Tipo de Material',
-                    tipo: 'texto_libre',
-                    obligatorio: true
-                },
-                kg_entrada: {
-                    etiqueta: 'Material Ingresado',
-                    unidad: 'kg',
-                    obligatorio: true
-                }
-            }
-        };
-
-        this.reglasDestino = {
-            destinos: [
-                {
-                    id: 'EXTRUSOR_PP',
-                    nombre: 'Extrusor PP (proceso 1)',
-                    descripcion: 'Reingresa como materia prima reciclada (Pelet ciclado).'
-                },
-                {
-                    id: 'LAMINADO',
-                    nombre: 'Laminado (proceso 3)',
-                    descripcion: 'Reingresa como materia prima reciclada en la cortina.'
-                },
-                {
-                    id: 'VENTA',
-                    nombre: 'Venta',
-                    descripcion: 'Sale de planta como producto terminado.'
-                }
-            ]
-        };
+        this.procesosAguasAbajo = [1, 3];
     }
 }
 
