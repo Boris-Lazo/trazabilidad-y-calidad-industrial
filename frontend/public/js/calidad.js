@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function cargarLotesPendientes() {
         try {
-            const res = await fetch('/api/lotes/disponibles');
+            const res = await fetch('/api/lotes');
             const result = await res.json();
             if (!result.success) throw new Error(result.error || 'Error al cargar lotes');
 

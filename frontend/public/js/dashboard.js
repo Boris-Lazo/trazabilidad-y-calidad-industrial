@@ -36,13 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // REDIRECCIÓN AUTOMÁTICA OBLIGATORIA
-            if (state.siguienteAccion === 'IR_A_PROCESO' && state.actionPayload) {
-                const p = state.actionPayload;
-                window.location.href = `/proceso.html?id=${p.proceso_id}&nombre=${encodeURIComponent(p.proceso_nombre)}`;
-                return;
-            }
-
             renderActionCenter(state);
         } catch (e) {
             console.error("Error al cargar contexto:", e);
@@ -73,6 +66,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 desc.textContent = 'No hay una bitácora abierta. Inicie el turno para comenzar el registro operativo.';
                 btn.textContent = 'ABRIR BITÁCORA DE TURNO';
                 iconContainer.innerHTML = '<i data-lucide="play-circle" style="width: 64px; height: 64px; color: var(--primary-color);"></i>';
+                break;
+            case 'EN_PROCESO':
+                title.textContent = 'Turno en Curso';
+                desc.textContent = state.actionPayload
+                    ? `Proceso pendiente: ${state.actionPayload.proceso_nombre}. Haga clic para continuar.`
+                    : 'Hay procesos pendientes de registro en este turno.';
+                btn.textContent = state.actionPayload
+                    ? `IR A ${(state.actionPayload.proceso_nombre || 'PROCESO').toUpperCase()}`
+                    : 'VER PROCESOS';
+                btn.className = 'btn btn-primary';
+                iconContainer.innerHTML = '<i data-lucide="activity" style="width: 64px; height: 64px; color: var(--primary-color);"></i>';
                 break;
             case 'LISTO_PARA_CIERRE':
                 title.textContent = 'Procesos Completados';
