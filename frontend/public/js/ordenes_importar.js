@@ -165,14 +165,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const result = await response.json();
             if (result.success) {
-                const totalModificadas = (result.data.guardadas || 0) + (result.data.actualizadas || 0);
+                const totalGuardadas = result.data.guardadas || 0;
                 resultadoImportacion.innerHTML = `
                     <div class="alert alert-success" style="display:flex; align-items:center; gap:12px;">
                         <i data-lucide="check-circle" style="width:24px; height:24px;"></i>
                         <div>
                             <h4 style="margin:0">Importación Exitosa</h4>
-                            <p style="margin:4px 0 0 0">Se procesaron <strong>${totalModificadas}</strong> órdenes correctamente.</p>
-                            <p style="font-size:12px; margin:4px 0 0 0; opacity:0.8;">(Nuevas: ${result.data.guardadas || 0}, Actualizadas: ${result.data.actualizadas || 0})</p>
+                            <p style="margin:4px 0 0 0">Se importaron <strong>${totalGuardadas}</strong> órdenes nuevas correctamente.</p>
+                            <p style="font-size:12px; margin:4px 0 0 0; opacity:0.8;">PROD-SYS se mantuvo sin cambios para las órdenes ya existentes.</p>
                         </div>
                     </div>
                 `;
@@ -205,38 +205,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderizarPrevisualizacion(data) {
-        // Combinar nuevas y a_actualizar para la tabla
-        ordenesNuevasCache = [...data.nuevas, ...data.a_actualizar];
+        ordenesNuevasCache = data.nuevas;
 
-        // Renderizar resumen
+        // Resumen — agregar no_reconocidas al conteo
         resumenImportacion.innerHTML = `
-            <div class="stat-card" style="padding:12px; flex:1; min-width:120px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
-                <span style="font-size:11px; color:rgba(255,255,255,0.5)">NUEVAS</span>
-                <div style="font-size:18px; font-weight:bold; color:var(--primary-color)">${data.nuevas.length}</div>
+            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
+                <span style="font-size:11px; color:rgba(255,255,255,0.5)">NUEVAS A IMPORTAR</span>
+                <div style="font-size:20px; font-weight:bold; color:var(--primary-color)">${data.nuevas.length}</div>
             </div>
-            <div class="stat-card" style="padding:12px; flex:1; min-width:120px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
-                <span style="font-size:11px; color:rgba(255,255,255,0.5)">ACTUALIZAR</span>
-                <div style="font-size:18px; font-weight:bold; color:#0ea5e9">${data.a_actualizar.length}</div>
+            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
+                <span style="font-size:11px; color:rgba(255,255,255,0.5)">YA EN PROD-SYS</span>
+                <div style="font-size:20px; font-weight:bold; color:rgba(255,255,255,0.4)">${data.ya_existentes.length}</div>
+                <span style="font-size:10px; color:rgba(255,255,255,0.3)">No se modificarán</span>
             </div>
-            <div class="stat-card" style="padding:12px; flex:1; min-width:120px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
-                <span style="font-size:11px; color:rgba(255,255,255,0.5)">EN CURSO</span>
-                <div style="font-size:18px; font-weight:bold; color:rgba(255,255,255,0.3)">${data.ya_existentes.length}</div>
+            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
+                <span style="font-size:11px; color:rgba(255,255,255,0.5)">REQUIEREN VALIDACIÓN</span>
+                <div style="font-size:20px; font-weight:bold; color:var(--warning-color)">${data.requieren_validacion}</div>
             </div>
-            <div class="stat-card" style="padding:12px; flex:1; min-width:120px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
-                <span style="font-size:11px; color:rgba(255,255,255,0.5)">CON ALERTAS</span>
-                <div style="font-size:18px; font-weight:bold; color:var(--warning-color)">${data.requieren_validacion}</div>
-            </div>
+            ${data.no_reconocidas.length > 0 ? `
+            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(239,68,68,0.4)">
+                <span style="font-size:11px; color:rgba(255,255,255,0.5)">SERIES DESCONOCIDAS</span>
+                <div style="font-size:20px; font-weight:bold; color:var(--danger-color, #ef4444)">${data.no_reconocidas.length}</div>
+                <span style="font-size:10px; color:rgba(255,255,255,0.3)">Ver detalle abajo</span>
+            </div>` : ''}
         `;
 
-        // Renderizar tabla
+        // Tabla de órdenes nuevas
         tbodyPreview.innerHTML = '';
-        ordenesNuevasCache.forEach((orden, index) => {
+        data.nuevas.forEach((orden, index) => {
             const tr = document.createElement('tr');
             if (orden.requiere_validacion) {
                 tr.style.borderLeft = '4px solid var(--warning-color)';
-            }
-            if (orden.es_actualizacion) {
-                tr.style.backgroundColor = 'rgba(14, 165, 233, 0.05)';
             }
 
             const fechaVenc = orden.fecha_vencimiento ? new Date(orden.fecha_vencimiento).toLocaleDateString() : '-';
@@ -283,10 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             tr.innerHTML = `
-                <td>
-                    ${orden.codigo_orden}
-                    ${orden.es_actualizacion ? '<br><span style="font-size:9px; color:#0ea5e9; font-weight:bold;">ACTUALIZAR</span>' : ''}
-                </td>
+                <td>${orden.codigo_orden}</td>
                 <td style="font-size:11px">${NOMBRES_PROCESO[orden.proceso_id] || 'N/A'}</td>
                 <td style="max-width:200px; font-size:11px; white-space:normal">${orden.descripcion_producto}</td>
                 <td>${orden.cantidad_planificada}</td>
@@ -297,6 +293,45 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.dataset.index = index;
             tbodyPreview.appendChild(tr);
         });
+
+        // Sección de ya_existentes (informativa, colapsable)
+        const seccionExistentes = document.getElementById('seccion-ya-existentes');
+        if (seccionExistentes) {
+            if (data.ya_existentes.length > 0) {
+                seccionExistentes.style.display = 'block';
+                const tbodyExist = document.getElementById('tbody-ya-existentes');
+                tbodyExist.innerHTML = data.ya_existentes.map(e => `
+                    <tr>
+                        <td>${e.codigo_orden}</td>
+                        <td><span class="badge badge-outline">${e.estado_prodsys}</span></td>
+                        <td style="font-size:11px; color:rgba(255,255,255,0.5)">${e.sap_cantidad_planificada?.toLocaleString() || '-'}</td>
+                        <td style="font-size:11px; color:rgba(255,255,255,0.5)">${e.sap_fecha_vencimiento || '-'}</td>
+                        <td style="font-size:11px; color:var(--success-color, #22c55e)">✓ PROD-SYS actualizado</td>
+                    </tr>
+                `).join('');
+            } else {
+                seccionExistentes.style.display = 'none';
+            }
+        }
+
+        // Sección de no_reconocidas (alerta)
+        const seccionNoReconocidas = document.getElementById('seccion-no-reconocidas');
+        if (seccionNoReconocidas) {
+            if (data.no_reconocidas.length > 0) {
+                seccionNoReconocidas.style.display = 'block';
+                const tbodyNR = document.getElementById('tbody-no-reconocidas');
+                tbodyNR.innerHTML = data.no_reconocidas.map(e => `
+                    <tr>
+                        <td>${e.codigo_orden}</td>
+                        <td style="color:var(--danger-color, #ef4444)">${e.nombre_proceso_sap}</td>
+                        <td style="font-size:11px">${e.descripcion_producto}</td>
+                        <td style="font-size:11px; color:rgba(255,255,255,0.5)">${e.motivo}</td>
+                    </tr>
+                `).join('');
+            } else {
+                seccionNoReconocidas.style.display = 'none';
+            }
+        }
     }
 
     function recolectarDatosTabla() {
