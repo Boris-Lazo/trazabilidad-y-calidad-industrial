@@ -98,15 +98,15 @@ class OrdenProduccionService {
    */
   _detectarEncabezados(filas) {
     const KEYWORDS = {
-      nombreSap:       ['centro', 'proceso', 'nombre sap'],
-      codigoDoc:      ['nº documento', 'orden', 'doc', 'código'],
-      descripcion:    ['texto breve material', 'descripción', 'producto'],
-      cantPlanificada: ['cantidad planificada', 'ctd.planificada', 'objetivo'],
-      cantCompletada:  ['cantidad confirmada', 'ctd.confirmada', 'completada'],
+      nombreSap:       ['centro', 'proceso', 'nombre sap', 'operación', 'fase'],
+      codigoDoc:      ['nº documento', 'orden', 'doc', 'código', 'número'],
+      descripcion:    ['texto breve material', 'descripción', 'producto', 'material'],
+      cantPlanificada: ['cantidad planificada', 'ctd.planificada', 'objetivo', 'planificada'],
+      cantCompletada:  ['cantidad confirmada', 'ctd.confirmada', 'completada', 'confirmada'],
       cantPendiente:   ['cantidad pendiente', 'ctd.pendiente', 'pendiente'],
-      fechaPedido:     ['fecha de pedido', 'pedido'],
-      fechaInicio:     ['fecha de inicio', 'inicio'],
-      fechaVencimiento:['fecha de vencimiento', 'vencimiento', 'entrega']
+      fechaPedido:     ['fecha de pedido', 'pedido', 'creación'],
+      fechaInicio:     ['fecha de inicio', 'inicio', 'programada'],
+      fechaVencimiento:['fecha de vencimiento', 'vencimiento', 'entrega', 'fin']
     };
 
     for (let i = 0; i < Math.min(filas.length, 20); i++) {

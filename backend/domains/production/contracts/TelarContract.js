@@ -71,7 +71,8 @@ class TelarContract extends ProcessContract {
                     critico: true,
                     calculado: false,
                     metodologia: 'Medición física con cinta métrica. El valor nominal se toma de la orden de producción activa en el telar.',
-                    nota: 'La tolerancia es fija (±0.25 pulgadas) independientemente del ancho nominal.'
+                    nota: 'La tolerancia es fija (±0.25 pulgadas) independientemente del ancho nominal.',
+                    notaFrontend: 'Ingresar valores en fracciones de 1/8 (ej: 12 1/8, 12 1/2).'
                 },
                 {
                     nombre: 'construccion_urdido',

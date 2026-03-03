@@ -180,14 +180,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     window.eliminarAsig = async (id, tipo) => {
-        if (!confirm('¿Eliminar asignación?')) return;
-        const endpoint = tipo === 'ORDEN' ? '/api/planning/delete-order' : '/api/planning/delete-personnel';
-        await fetch(endpoint, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ id, plan_id: currentPlan.id })
+        DesignSystem.showConfirmModal('Eliminar Asignación', '¿Está seguro de que desea eliminar esta asignación del plan?', async () => {
+            const endpoint = tipo === 'ORDEN' ? '/api/planning/delete-order' : '/api/planning/delete-personnel';
+            await fetch(endpoint, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id, plan_id: currentPlan.id })
+            });
+            await cargarPlan();
         });
-        await cargarPlan();
     };
 
     document.getElementById('select-tipo-asig').onchange = (e) => {
@@ -248,13 +249,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     document.getElementById('btn-publicar').onclick = async () => {
-        if (!confirm('¿Publicar planificación? Se volverá visible para operación.')) return;
-        await fetch('/api/planning/publish', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ id: currentPlan.id })
+        DesignSystem.showConfirmModal('Publicar Planificación', '¿Desea publicar la planificación? Se volverá visible para el personal de operación.', async () => {
+            await fetch('/api/planning/publish', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id: currentPlan.id })
+            });
+            await cargarPlan();
         });
-        await cargarPlan();
     };
 
     document.getElementById('btn-cargar-plan').onclick = cargarPlan;

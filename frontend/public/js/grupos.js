@@ -378,7 +378,6 @@ const GruposModule = {
             if (result.success) {
                 DesignSystem.showToast('Colaborador removido del grupo');
                 this.closeModal('modal-remove');
-                document.getElementById('remove-motivo').value = '';
                 this.selectGrupo(this.currentGrupoId);
             } else {
                 DesignSystem.showToast(result.error, 'error');
