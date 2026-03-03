@@ -237,13 +237,13 @@ function parsearDescripcion(descripcion, procesoId) {
 }
 
 /**
- * Convierte una fila de Excel SAP en un objeto de orden de producción.
- * @param {Array} fila - Array con los valores de las columnas B a K.
+ * Convierte datos de una fila de Excel SAP en un objeto de orden de producción.
+ * @param {Object} datos - Objeto con los datos extraídos de la fila.
  * @param {Object} mapeoSAP - Mapeo de nombre SAP a proceso_id.
  * @returns {Object} Objeto de orden parseado.
  */
-function parsearFila(fila, mapeoSAP) {
-  const [
+function parsearFila(datos, mapeoSAP) {
+  const {
     nombreSap,
     codigoDoc,
     descripcion,
@@ -252,9 +252,8 @@ function parsearFila(fila, mapeoSAP) {
     cantPendiente,
     fechaPedido,
     fechaInicio,
-    fechaVencimiento,
-    diasAtrasados
-  ] = fila;
+    fechaVencimiento
+  } = datos;
 
   const procesoId = mapeoSAP[nombreSap] || null;
   const especificaciones = procesoId ? parsearDescripcion(descripcion, procesoId) : {};

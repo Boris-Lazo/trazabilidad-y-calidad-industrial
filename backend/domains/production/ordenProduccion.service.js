@@ -2,6 +2,7 @@
 const XLSX = require('xlsx');
 const { parsearFila } = require('./ordenProduccion.parser');
 const ValidationError = require('../../shared/errors/ValidationError');
+const DomainError = require('../../shared/errors/DomainError');
 const NotFoundError = require('../../shared/errors/NotFoundError');
 
 const MAPEO_SAP = {
@@ -85,14 +86,64 @@ class OrdenProduccionService {
     return await this.ordenProduccionRepository.remove(id);
   }
 
+  /**
+   * Detecta dinámicamente la fila de encabezados y mapea las columnas necesarias.
+   * @param {Array[]} filas - Matriz de datos de Excel.
+   * @returns {Object|null} Mapeo de campos a índices de columna o null si no se detecta.
+   */
+  _detectarEncabezados(filas) {
+    const KEYWORDS = {
+      nombreSap:       ['centro', 'proceso', 'nombre sap'],
+      codigoDoc:      ['nº documento', 'orden', 'doc', 'código'],
+      descripcion:    ['texto breve material', 'descripción', 'producto'],
+      cantPlanificada: ['cantidad planificada', 'ctd.planificada', 'objetivo'],
+      cantCompletada:  ['cantidad confirmada', 'ctd.confirmada', 'completada'],
+      cantPendiente:   ['cantidad pendiente', 'ctd.pendiente', 'pendiente'],
+      fechaPedido:     ['fecha de pedido', 'pedido'],
+      fechaInicio:     ['fecha de inicio', 'inicio'],
+      fechaVencimiento:['fecha de vencimiento', 'vencimiento', 'entrega']
+    };
+
+    for (let i = 0; i < Math.min(filas.length, 20); i++) {
+      const fila = filas[i];
+      if (!Array.isArray(fila)) continue;
+
+      const mapeo = {};
+      let coincidencias = 0;
+
+      for (const [campo, sinonimos] of Object.entries(KEYWORDS)) {
+        const index = fila.findIndex(celda => {
+          if (!celda) return false;
+          const normalizada = String(celda).toLowerCase().trim();
+          return sinonimos.some(s => normalizada.includes(s.toLowerCase()));
+        });
+
+        if (index !== -1) {
+          mapeo[campo] = index;
+          coincidencias++;
+        }
+      }
+
+      // Si encontramos al menos 4 columnas clave (incluyendo Nº documento), asumimos que es el encabezado
+      if (coincidencias >= 4 && mapeo.codigoDoc !== undefined) {
+        return { indexHeader: i, mapeo };
+      }
+    }
+    return null;
+  }
+
   async procesarImportacionExcel(buffer, usuario) {
     const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const filas = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
 
-    // Los datos comienzan en índice 3 (fila 4 del Excel)
-    // Los encabezados están en índice 2 (fila 3 del Excel)
-    const datos = filas.slice(3);
+    const deteccion = this._detectarEncabezados(filas);
+    if (!deteccion) {
+      throw new ValidationError('No se pudo detectar el formato de SAP. Verifique que el archivo contiene los encabezados esperados (Nº documento, Descripción, etc.)');
+    }
+
+    const { indexHeader, mapeo } = deteccion;
+    const datos = filas.slice(indexHeader + 1);
     const resultado = {
       total_filas: 0,
       nuevas: [],
@@ -102,12 +153,18 @@ class OrdenProduccionService {
     };
 
     for (const filaArr of datos) {
-      // Columna C es índice 1 (Nº documento), debe ser numérico de 7 dígitos
-      const codigoDoc = filaArr[1];
+      if (!filaArr || filaArr.length === 0) continue;
+
+      const codigoDoc = filaArr[mapeo.codigoDoc];
       if (!codigoDoc || !/^\d{7}$/.test(String(codigoDoc))) continue;
 
+      const rowData = {};
+      for (const [campo, index] of Object.entries(mapeo)) {
+        rowData[campo] = filaArr[index];
+      }
+
       resultado.total_filas++;
-      const ordenParseada = parsearFila(filaArr, MAPEO_SAP);
+      const ordenParseada = parsearFila(rowData, MAPEO_SAP);
 
       if (!ordenParseada.proceso_id) {
         resultado.no_reconocidas.push(ordenParseada);
@@ -166,7 +223,7 @@ class OrdenProduccionService {
 
     if (errores.length > 0) {
       const errorMsg = errores.map(e => `Orden ${e.codigo_orden}: ${e.error}`).join('; ');
-      throw new ValidationError(`Errores de validación en la importación: ${errorMsg}`);
+      throw new DomainError(`Errores de validación en la importación: ${errorMsg}`);
     }
 
     let guardadas = 0;

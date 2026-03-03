@@ -41,6 +41,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbodyPreview = document.getElementById('tbody-preview');
     const resultadoImportacion = document.getElementById('resultado-importacion');
 
+    // Modal de Error y su lógica
+    const modalErrorSap = document.getElementById('modal-error-sap');
+    const mensajeErrorSap = document.getElementById('mensaje-error-sap');
+    const botonesCerrarError = document.querySelectorAll('.btn-cerrar-error');
+
+    function mostrarErrorModal(mensaje) {
+        mensajeErrorSap.textContent = mensaje;
+        modalErrorSap.style.display = 'flex';
+    }
+
+    botonesCerrarError.forEach(btn => {
+        btn.addEventListener('click', () => {
+            modalErrorSap.style.display = 'none';
+        });
+    });
+
     // Abrir modal
     btnImportarSap.addEventListener('click', () => {
         resetearModal();
@@ -141,6 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 paso3.style.display = 'block';
                 if (window.lucide) lucide.createIcons();
             } else {
+                // El backend devuelve 422 (DomainError) para errores de validación de negocio
+                // Esto permite mostrar el error sin que auth.js cierre la sesión
                 mostrarErrores(result.error);
             }
         } catch (error) {
