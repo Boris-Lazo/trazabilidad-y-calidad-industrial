@@ -22,6 +22,22 @@ const MAPEO_SAP = {
   'Sacos Vestidos': 9
 };
 
+const UNIDADES_PROCESO = {
+  1: 'kg',        // ExtruPP
+  2: 'metros',    // Telar
+  3: 'metros',    // Laminado
+  4: 'impresiones', // Imprenta
+  5: 'unidades',  // ConverSA
+  6: 'kg',        // ExtruPE
+  7: 'unidades',  // ConverLI
+  8: 'kg',        // Peletiza
+  9: 'unidades'   // VestidoM
+};
+
+function obtenerUnidadPorProceso(procesoId) {
+  return UNIDADES_PROCESO[procesoId] || 'Unidades';
+}
+
 class OrdenProduccionService {
   /**
    * @param {OrdenProduccionRepository} ordenProduccionRepository
@@ -142,51 +158,56 @@ class OrdenProduccionService {
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const filas = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
 
-    const deteccion = this._detectarEncabezados(filas);
-    if (!deteccion) {
-      throw new ValidationError('No se pudo detectar el formato de SAP. Verifique que el archivo contiene los encabezados esperados (Nº documento, Descripción, etc.)');
+    // Validar que el archivo tenga la estructura esperada de SAP
+    if (filas.length < 4) {
+      throw new ValidationError(
+        'El archivo no contiene datos. Verifique que sea el reporte de Órdenes de SAP.'
+      );
     }
 
-    const { indexHeader, mapeo } = deteccion;
-    const datos = filas.slice(indexHeader + 1);
+    // Validar encabezados en fila 2 (índice 2)
+    const headers = filas[2] || [];
+    if (!headers.includes('Series de documentos') || !headers.includes('Nº documento')) {
+      throw new ValidationError(
+        'El archivo no tiene el formato esperado de SAP. ' +
+        'Asegúrese de exportar el reporte "Órdenes de Producción" desde SAP.'
+      );
+    }
+
+    // Datos desde fila 3 (índice 3)
+    const datos = filas.slice(3);
     const resultado = {
       total_filas: 0,
       nuevas: [],
-      a_actualizar: [],
       ya_existentes: [],
       no_reconocidas: [],
       requieren_validacion: 0
     };
 
     for (const filaArr of datos) {
-      if (!filaArr || filaArr.length === 0) continue;
+      // Ignorar filas completamente vacías
+      if (!filaArr || filaArr.every(c => c === null || c === '')) continue;
 
-      const codigoDoc = filaArr[mapeo.codigoDoc];
-      if (!codigoDoc || !/^\d{7}$/.test(String(codigoDoc))) continue;
-
-      const rowData = {};
-      for (const [campo, index] of Object.entries(mapeo)) {
-        rowData[campo] = filaArr[index];
-      }
+      // col[2] = Nº documento (7 dígitos)
+      const codigoDoc = filaArr[2];
+      if (!codigoDoc || !/^\d{7}$/.test(String(codigoDoc).trim())) continue;
 
       resultado.total_filas++;
-      const ordenParseada = parsearFila(rowData, MAPEO_SAP);
+
+      // slice(1) para que parsearFila reciba: [Serie, Nº doc, Descripción, ...]
+      const ordenParseada = parsearFila(filaArr.slice(1), MAPEO_SAP);
 
       if (!ordenParseada.proceso_id) {
         resultado.no_reconocidas.push(ordenParseada);
         continue;
       }
 
-      const existente = await this.ordenProduccionRepository.findByCodigoOrden(ordenParseada.codigo_orden);
+      const existente = await this.ordenProduccionRepository.findByCodigoOrden(
+        ordenParseada.codigo_orden
+      );
+
       if (existente) {
-        // Si la orden existe y está en estado 'Creada', permitimos actualizarla con datos de SAP
-        if (existente.estado === 'Creada') {
-            ordenParseada.id = existente.id;
-            ordenParseada.es_actualizacion = true;
-            resultado.a_actualizar.push(ordenParseada);
-        } else {
-            resultado.ya_existentes.push(ordenParseada.codigo_orden);
-        }
+        resultado.ya_existentes.push(ordenParseada.codigo_orden);
       } else {
         if (ordenParseada.requiere_validacion) {
           resultado.requieren_validacion++;
@@ -240,28 +261,41 @@ class OrdenProduccionService {
     }
 
     let guardadas = 0;
-    let actualizadas = 0;
     const dbWrapper = this.ordenProduccionRepository.db;
 
     await dbWrapper.withTransaction(async () => {
       for (const orden of validadas) {
-        if (orden.es_actualizacion && orden.id) {
-            await this.ordenProduccionRepository.update(orden.id, {
-                ...orden,
-                updated_by: usuario
-            });
-            actualizadas++;
-        } else {
-            await this.ordenProduccionRepository.create({
-                ...orden,
-                created_by: usuario
-            });
-            guardadas++;
-        }
+        await this.ordenProduccionRepository.create({
+          codigo_orden:        orden.codigo_orden,
+          producto:            orden.descripcion_producto,
+          cantidad_objetivo:   orden.cantidad_planificada,
+          fecha_planificada:   orden.fecha_vencimiento,
+          unidad:              obtenerUnidadPorProceso(orden.proceso_id),
+          prioridad:           orden.dias_atrasados > 0 ? 'Alta' : 'Media',
+          observaciones:       orden.pedido_cliente
+                                 ? `Pedido cliente: ${orden.pedido_cliente}`
+                                 : '',
+          estado:              'Creada',
+          especificaciones: {
+            ...orden.especificaciones,
+            // Campos SAP adicionales para trazabilidad
+            sap_serie:              orden.nombre_proceso_sap,
+            sap_cantidad_completada: orden.cantidad_completada,
+            sap_cantidad_pendiente:  orden.cantidad_pendiente,
+            sap_dias_atrasados:      orden.dias_atrasados,
+            sap_pedido_cliente:      orden.pedido_cliente,
+            sap_fecha_pedido:        orden.fecha_pedido,
+            sap_fecha_inicio:        orden.fecha_inicio,
+            importado_por:           usuario,
+            importado_en:            new Date().toISOString()
+          },
+          created_by: usuario
+        });
+        guardadas++;
       }
     });
 
-    return { guardadas, actualizadas, errores: [] };
+    return { guardadas, errores: [] };
   }
 }
 

@@ -101,6 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/ordenes-produccion/importar/previsualizar', {
                 method: 'POST',
+                // Sin headers — auth.js los agrega automáticamente
+                // Sin Content-Type — multer necesita el boundary automático del browser
                 body: formData
             });
 
@@ -134,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
+                    // Sin Authorization — auth.js lo agrega automáticamente
                 },
                 body: JSON.stringify({ ordenes: ordenesAEnviar })
             });
