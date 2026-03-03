@@ -29,9 +29,9 @@ class ExtrusionPEContract extends ProcessContract {
             },
             tipoProceso: 'Continuo',
             metasProduccion: {
-                metaEstandarTurno: 800,
+                metaEstandarTurno: 250,
                 supuestosOperativos: 'Operación estable a 25 kg/h por máquina. Meta en kg totales por turno.',
-                condicionesReduccionEficiencia: 'Cambios de ancho de burbuja, variaciones térmicas que afecten el espesor, o fallas en el anillo de aire.'
+                condicionesReduccionEficiencia: 'Generalmente solo Extrusor PE #2 activo. Cambios de ancho de burbuja, variaciones térmicas que afecten el espesor, o fallas en el anillo de aire.'
             },
             unidadesReporte: {
                 produccion: 'kg',
@@ -46,8 +46,8 @@ class ExtrusionPEContract extends ProcessContract {
             },
             personalOperativo: {
                 minimo: 1,
-                maximo: 2,
-                reglasEspeciales: 'Un operador senior puede supervisar ambas máquinas PE si están en régimen estable.'
+                maximo: 1,
+                reglasEspeciales: '1 persona para 2 máquinas.'
             },
             impactoVariabilidad: [
                 { condicion: 'Corrientes de aire externas', impacto: 'Inestabilidad en la burbuja, causando variaciones críticas de ancho y espesor.' },

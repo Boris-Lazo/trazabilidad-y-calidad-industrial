@@ -33,9 +33,9 @@ class ConversionSacosContract extends ProcessContract {
             },
             tipoProceso: 'Por orden',
             metasProduccion: {
-                metaEstandarTurno: 18000,
-                supuestosOperativos: 'Velocidad de 35 sacos/min. Meta en unidades terminadas por máquina.',
-                condicionesReduccionEficiencia: 'Cambios de bobina de hilo, ajuste de cuchillas de corte, fallas en sistema de transporte.'
+                metaEstandarTurno: 9000,
+                supuestosOperativos: 'Velocidad de 35 sacos/min. Meta estándar por turno.',
+                condicionesReduccionEficiencia: 'Medidas > 40 pulgadas reducen eficiencia. Cambios de bobina de hilo, ajuste de cuchillas de corte, fallas en sistema de transporte.'
             },
             unidadesReporte: {
                 produccion: 'unidades',
@@ -50,8 +50,8 @@ class ConversionSacosContract extends ProcessContract {
             },
             personalOperativo: {
                 minimo: 1,
-                maximo: 2,
-                reglasEspeciales: 'Un operador puede atender una máquina; se requiere auxiliar para el amarre y conteo de paquetes.'
+                maximo: 1,
+                reglasEspeciales: '1 persona dedicada.'
             },
             impactoVariabilidad: [
                 { condicion: 'Tela mal embobinada', impacto: 'Causa paros frecuentes por desalineación en la entrada de la convertidora.' },

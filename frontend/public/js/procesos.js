@@ -6,7 +6,10 @@
 // Definir closeModal en el ámbito global inmediatamente
 window.closeModal = () => {
     const modal = document.getElementById('modal-proceso');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto'; // Restaurar scroll
+    }
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -38,11 +41,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (result.success) {
             renderProcesos(result.data);
         } else {
-            grid.innerHTML = `<div class="alert alert-error">Error al cargar procesos: ${result.error}</div>`;
+            if (grid) grid.innerHTML = `<div class="alert alert-error">Error al cargar procesos: ${result.error}</div>`;
         }
     } catch (error) {
         console.error('Error fetching processes:', error);
-        grid.innerHTML = `<div class="alert alert-error">Error de conexión con el servidor.</div>`;
+        if (grid) grid.innerHTML = `<div class="alert alert-error">Error de conexión con el servidor.</div>`;
     }
 
     function renderProcesos(procesos) {
@@ -89,145 +92,163 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.verDetalle = (p) => {
         const titulo = document.getElementById('modal-proceso-titulo');
         const body = document.getElementById('modal-proceso-body');
+        const modalContent = document.querySelector('#modal-proceso .modal-content');
+
+        if (!titulo || !body) return;
+
+        // Asegurar fondo opaco y scroll interno si es necesario
+        if (modalContent) {
+            modalContent.style.background = 'var(--bg-primary, #ffffff)';
+            modalContent.style.color = 'var(--text-primary, #1a1a1a)';
+            modalContent.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+            modalContent.style.maxHeight = '90vh';
+            modalContent.style.overflowY = 'auto';
+        }
 
         titulo.innerHTML = `<i data-lucide="shield-check" style="width: 24px; height: 24px; margin-right: 12px; color: var(--primary);"></i> Contrato Técnico: ${p.nombre}`;
 
         body.innerHTML = `
-            <!-- 1️⃣ Descripción del proceso -->
-            <div class="card p-3 mb-4" style="background: rgba(var(--primary-rgb), 0.02); border-left: 4px solid var(--primary);">
-                <h4 class="mb-2" style="font-size: 0.9rem; text-transform: uppercase; color: var(--primary);">1. Descripción del Proceso</h4>
-                <div style="font-size: 0.95rem;">
-                    <p><strong>¿Qué hace?:</strong> ${p.descripcionProceso?.queHace || 'N/A'}</p>
-                    <p><strong>¿Qué transforma?:</strong> ${p.descripcionProceso?.queTransforma || 'N/A'}</p>
-                    <p><strong>¿Qué recibe?:</strong> ${p.descripcionProceso?.queRecibe || 'N/A'}</p>
-                    <p><strong>¿Qué entrega?:</strong> ${p.descripcionProceso?.queEntrega || 'N/A'}</p>
-                </div>
-            </div>
+            <div class="contract-container" style="display: flex; flex-direction: column; gap: 24px; background: inherit;">
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <!-- 2️⃣ Tipo de proceso -->
-                <div class="card p-3 mb-4">
-                    <h4 class="mb-2" style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">2. Tipo de Proceso</h4>
-                    <span class="badge badge-info" style="font-size: 1rem; padding: 8px 16px;">${p.tipoProceso || 'No definido'}</span>
-                </div>
-
-                <!-- 6️⃣ Unidades de reporte -->
-                <div class="card p-3 mb-4">
-                    <h4 class="mb-2" style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">6. Unidades de Reporte</h4>
-                    <p><strong>Producción:</strong> ${p.unidadesReporte?.produccion || p.unidadProduccion}</p>
-                    <p><strong>Merma:</strong> ${p.unidadesReporte?.merma || 'kg'}</p>
-                    <p><strong>Multi-unidad:</strong> ${p.unidadesReporte?.reporteMultiUnidad ? 'Sí' : 'No'}</p>
-                </div>
-            </div>
-
-            <!-- 3️⃣ Parámetros operativos -->
-            <div class="mt-2">
-                <h4 class="mb-3" style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 4px;">3. Parámetros Operativos (Monitoreo)</h4>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    ${p.parametrosInformativos?.map(param => `
-                        <span class="badge" style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); padding: 6px 12px;">
-                            ${param.etiqueta} ${param.unidad ? `(${param.unidad})` : ''}
-                        </span>
-                    `).join('') || '<span class="text-muted">No definidos</span>'}
-                </div>
-            </div>
-
-            <!-- 4️⃣ Medidas nominales y tolerancias de calidad -->
-            <div class="mt-4">
-                <h4 class="mb-3" style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 4px;">4. Medidas Nominales y Tolerancias</h4>
-                <div class="table-container">
-                    <table class="table table-sm">
-                        <thead style="background: var(--bg-secondary);">
-                            <tr>
-                                <th>Parámetro</th>
-                                <th>Nominal</th>
-                                <th>Tolerancia / Rango</th>
-                                <th>Metodología</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${p.parametrosCalidad?.map(c => `
-                                <tr>
-                                    <td><strong>${c.etiqueta}</strong></td>
-                                    <td>${c.nominal || 'Ver Orden'}</td>
-                                    <td>
-                                        ${c.tolerancia ? `±${c.tolerancia}` : ''}
-                                        ${c.minimo !== undefined ? `[${c.minimo} - ${c.maximo}]` : ''}
-                                        ${!c.tolerancia && c.minimo === undefined ? 'Referencial' : ''}
-                                    </td>
-                                    <td style="font-size: 0.8rem; max-width: 250px; white-space: normal;">${c.metodologia || ''}</td>
-                                </tr>
-                            `).join('') || '<tr><td colspan="4" class="text-center py-3">No hay parámetros de calidad definidos</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="mt-4">
-                <!-- 5️⃣ Metas de producción -->
-                <div class="card p-3">
-                    <h4 class="mb-2" style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">5. Metas de Producción (Ref)</h4>
-                    <p style="font-size: 1.2rem; font-weight: bold; color: var(--success);">${p.metasProduccion?.metaEstandarTurno || 'No definida'} ${p.unidadProduccion} / Turno</p>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 8px;"><strong>Supuestos:</strong> ${p.metasProduccion?.supuestosOperativos || 'N/A'}</p>
-                </div>
-
-                <!-- 8️⃣ Personal operativo requerido -->
-                <div class="card p-3">
-                    <h4 class="mb-2" style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">8. Personal Operativo</h4>
-                    <p><strong>Min:</strong> ${p.personalOperativo?.minimo || 1} | <strong>Max:</strong> ${p.personalOperativo?.maximo || 2}</p>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 8px;"><strong>Reglas:</strong> ${p.personalOperativo?.reglasEspeciales || 'N/A'}</p>
-                </div>
-            </div>
-
-            <!-- 7️⃣ Catálogo de paros -->
-            <div class="mt-4">
-                <h4 class="mb-3" style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 4px;">7. Catálogo de Paros (Vocabulario)</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div style="font-size: 0.85rem;">
-                        <strong style="color: var(--error);">Operativos/Mecánicos:</strong>
-                        <ul style="margin: 4px 0; padding-left: 20px;">
-                            ${[...(p.catalogoParos?.operativos || []), ...(p.catalogoParos?.mecanicos || [])].slice(0, 6).map(paro => `<li>${paro}</li>`).join('')}
-                        </ul>
+                <!-- 1. Descripción del proceso -->
+                <section class="contract-section">
+                    <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">1. Descripción del Proceso</h4>
+                    <div class="card p-3" style="background: rgba(var(--primary-rgb), 0.02);">
+                        <p><strong>Operativa:</strong> ${p.descripcionProceso?.queHace || 'No definida'}</p>
+                        <p><strong>Transformación:</strong> ${p.descripcionProceso?.queTransforma || 'No definida'}</p>
+                        <p><strong>Entrada:</strong> ${p.descripcionProceso?.queRecibe || 'No definida'}</p>
+                        <p><strong>Salida:</strong> ${p.descripcionProceso?.queEntrega || 'No definida'}</p>
                     </div>
-                    <div style="font-size: 0.85rem;">
-                        <strong style="color: var(--warning);">Calidad/Externos:</strong>
-                        <ul style="margin: 4px 0; padding-left: 20px;">
-                            ${[...(p.catalogoParos?.calidad || []), ...(p.catalogoParos?.externos || [])].slice(0, 6).map(paro => `<li>${paro}</li>`).join('')}
-                        </ul>
-                    </div>
-                </div>
-            </div>
+                </section>
 
-            <!-- 9️⃣ Impacto de variabilidad -->
-            <div class="mt-4">
-                <h4 class="mb-3" style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 4px;">9. Impacto de Variabilidad</h4>
-                <div class="table-container">
-                    <table class="table table-sm" style="font-size: 0.85rem;">
-                        <tbody>
-                            ${p.impactoVariabilidad?.map(v => `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- 2. Metas de producción -->
+                    <section class="contract-section">
+                        <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">2. Metas de Producción</h4>
+                        <div class="card p-3 h-100">
+                            <p style="font-size: 1.25rem; font-weight: bold; color: var(--success); margin-bottom: 8px;">
+                                ${p.metasProduccion?.metaEstandarTurno || 'N/A'} ${p.unidadesReporte?.produccion || p.unidadProduccion} / Turno
+                            </p>
+                            <p style="font-size: 0.9rem;"><strong>Condiciones:</strong> ${p.metasProduccion?.supuestosOperativos || 'Estándar'}</p>
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
+                                <i data-lucide="trending-down" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>
+                                <strong>Impacto eficiencia:</strong> ${p.metasProduccion?.condicionesReduccionEficiencia || 'N/A'}
+                            </p>
+                        </div>
+                    </section>
+
+                    <!-- 3. Personal requerido -->
+                    <section class="contract-section">
+                        <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">3. Personal Requerido</h4>
+                        <div class="card p-3 h-100">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                <div style="background: var(--bg-secondary); padding: 8px 16px; border-radius: 8px; text-align: center;">
+                                    <span style="display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted);">Mínimo</span>
+                                    <strong style="font-size: 1.2rem;">${p.personalOperativo?.minimo || 1}</strong>
+                                </div>
+                                <div style="background: var(--bg-secondary); padding: 8px 16px; border-radius: 8px; text-align: center;">
+                                    <span style="display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted);">Máximo</span>
+                                    <strong style="font-size: 1.2rem;">${p.personalOperativo?.maximo || '-'}</strong>
+                                </div>
+                            </div>
+                            <p style="font-size: 0.9rem;"><strong>Reglas:</strong> ${p.personalOperativo?.reglasEspeciales || 'Sin reglas especiales'}</p>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- 4. Parámetros de calidad -->
+                <section class="contract-section">
+                    <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">4. Parámetros de Calidad</h4>
+                    <div class="table-container">
+                        <table class="table table-sm">
+                            <thead>
                                 <tr>
-                                    <td style="width: 40%;"><strong>${v.condicion}</strong></td>
-                                    <td>${v.impacto}</td>
+                                    <th>Parámetro</th>
+                                    <th>Nominal</th>
+                                    <th>Tolerancia / Rango</th>
+                                    <th>Metodología / Por qué</th>
                                 </tr>
-                            `).join('') || '<tr><td colspan="2" class="text-center">No declarado</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                            </thead>
+                            <tbody>
+                                ${p.parametrosCalidad?.map(c => `
+                                    <tr>
+                                        <td><strong>${c.etiqueta}</strong></td>
+                                        <td>${c.nominal || 'Ver Orden'} ${c.unidad || ''}</td>
+                                        <td>
+                                            ${c.tolerancia ? `±${c.tolerancia} ${c.unidad || ''}` : ''}
+                                            ${c.minimo !== undefined ? `[${c.minimo} - ${c.maximo}] ${c.unidad || ''}` : ''}
+                                            ${!c.tolerancia && c.minimo === undefined ? 'Referencial' : ''}
+                                        </td>
+                                        <td style="font-size: 0.85rem;">${c.metodologia || 'Inspección estándar'}</td>
+                                    </tr>
+                                `).join('') || '<tr><td colspan="4" class="text-center">No definidos</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
-            <!-- Información Técnica Adicional -->
-            <div class="mt-4" style="background: var(--bg-secondary); padding: 15px; border-radius: 8px; font-size: 0.85rem;">
-                <h4 class="mb-2" style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Especificaciones Técnicas de Sistema</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div><strong>Máquinas:</strong> ${p.maquinasPermitidas?.join(', ') || 'Ninguna'}</div>
-                    <div><strong>Versión:</strong> ${p.version}</div>
-                    <div><strong>Responsable:</strong> ${p.responsable}</div>
-                    <div><strong>Último cambio:</strong> ${p.motivo}</div>
+                <!-- 5. Parámetros operativos (Monitoreo) -->
+                <section class="contract-section">
+                    <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">5. Parámetros Operativos</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                        ${p.parametrosInformativos?.map(param => `
+                            <div style="background: var(--bg-secondary); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.85rem; font-weight: 500;">${param.etiqueta}</span>
+                                <span class="badge" style="background: var(--bg-primary); color: var(--primary);">${param.unidad || '-'}</span>
+                            </div>
+                        `).join('') || '<p class="text-muted">No hay variables de monitoreo definidas</p>'}
+                    </div>
+                </section>
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+                    <!-- 6. Catálogo de paros -->
+                    <section class="contract-section">
+                        <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">6. Catálogo de Paros</h4>
+                        <div class="card p-3">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div>
+                                    <strong style="color: var(--error); font-size: 0.8rem; text-transform: uppercase;">Operativos / Mecánicos</strong>
+                                    <ul style="margin: 8px 0; padding-left: 18px; font-size: 0.85rem; line-height: 1.4;">
+                                        ${[...(p.catalogoParos?.operativos || []), ...(p.catalogoParos?.mecanicos || [])].slice(0, 8).map(paro => `<li>${paro}</li>`).join('') || '<li>N/A</li>'}
+                                    </ul>
+                                </div>
+                                <div>
+                                    <strong style="color: var(--warning); font-size: 0.8rem; text-transform: uppercase;">Calidad / Externos</strong>
+                                    <ul style="margin: 8px 0; padding-left: 18px; font-size: 0.85rem; line-height: 1.4;">
+                                        ${[...(p.catalogoParos?.calidad || []), ...(p.catalogoParos?.externos || [])].slice(0, 8).map(paro => `<li>${paro}</li>`).join('') || '<li>N/A</li>'}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 7. Unidades de reporte -->
+                    <section class="contract-section">
+                        <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">7. Unidades de Reporte</h4>
+                        <div class="card p-3">
+                            <div class="mb-2">
+                                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; text-transform: uppercase;">Producción</span>
+                                <strong>${p.unidadesReporte?.produccion || p.unidadProduccion}</strong>
+                            </div>
+                            <div class="mb-2">
+                                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; text-transform: uppercase;">Merma</span>
+                                <strong>${p.unidadesReporte?.merma || 'kg'}</strong>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; text-transform: uppercase;">Rechazo</span>
+                                <strong>${p.unidadesReporte?.rechazo || 'No aplica'}</strong>
+                            </div>
+                        </div>
+                    </section>
                 </div>
+
             </div>
         `;
 
-        if (modal) modal.style.display = 'flex';
+        if (modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Evitar scroll en fondo
+        }
         if (window.lucide) window.lucide.createIcons();
     };
 });

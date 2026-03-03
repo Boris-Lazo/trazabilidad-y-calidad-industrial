@@ -34,9 +34,9 @@ class ImprentaContract extends ProcessContract {
             },
             tipoProceso: 'Por orden',
             metasProduccion: {
-                metaEstandarTurno: 25000,
+                metaEstandarTurno: 15000,
                 supuestosOperativos: 'Velocidad de 100 m/min. Meta en impresiones totales por turno.',
-                condicionesReduccionEficiencia: 'Montaje de clichés, limpieza de tinteros, ajuste de registro de color.'
+                condicionesReduccionEficiencia: 'Montaje de clichés, limpieza de tinteros, ajuste de registro de color. El cambio de estilo reduce la eficiencia.'
             },
             unidadesReporte: {
                 produccion: 'impresiones',
@@ -51,8 +51,8 @@ class ImprentaContract extends ProcessContract {
             },
             personalOperativo: {
                 minimo: 2,
-                maximo: 3,
-                reglasEspeciales: 'Requiere un prensista principal y un ayudante para preparación de tintas y montaje.'
+                maximo: 2,
+                reglasEspeciales: '2 personas obligatorias.'
             },
             impactoVariabilidad: [
                 { condicion: 'Viscosidad de tinta incorrecta', impacto: 'Provoca secado lento, repinte o pérdida de intensidad de color.' },

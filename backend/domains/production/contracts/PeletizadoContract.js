@@ -27,9 +27,9 @@ class PeletizadoContract extends ProcessContract {
             },
             tipoProceso: 'Por lotes',
             metasProduccion: {
-                metaEstandarTurno: 1500,
+                metaEstandarTurno: 250,
                 supuestosOperativos: 'Operación continua a 190 kg/h. Meta en kg de pellet recuperado.',
-                condicionesReduccionEficiencia: 'Material de entrada muy contaminado, saturación de filtros de malla, fallas en el sistema de corte sumergido.'
+                condicionesReduccionEficiencia: 'Material puro de cortina de laminado reduce eficiencia 40%. Material de entrada muy contaminado, saturación de filtros de malla, fallas en el sistema de corte sumergido.'
             },
             unidadesReporte: {
                 produccion: 'kg',
@@ -45,7 +45,7 @@ class PeletizadoContract extends ProcessContract {
             personalOperativo: {
                 minimo: 1,
                 maximo: 1,
-                reglasEspeciales: 'Un operador para alimentación manual de mermas y retiro de producto terminado.'
+                reglasEspeciales: '1 persona.'
             },
             impactoVariabilidad: [
                 { condicion: 'Mezcla de materiales (PP con PE)', impacto: 'Inestabilidad en el extruido y pellets de mala calidad mecánica.' },
