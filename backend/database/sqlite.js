@@ -1181,6 +1181,70 @@ const runFullSchema = () => {
     db.run(`CREATE INDEX IF NOT EXISTS idx_lotes_estado ON lotes(estado);`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_lote_historial_lote ON lote_historial_estado(lote_id);`);
 
+    // --- MÓDULO DE PLANIFICACIÓN SEMANAL ---
+    db.run(`CREATE TABLE IF NOT EXISTS plan_semanal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        anio INTEGER NOT NULL,
+        semana_iso INTEGER NOT NULL,
+        fecha_inicio DATE NOT NULL,
+        fecha_fin DATE NOT NULL,
+        estado TEXT CHECK(estado IN ('BORRADOR', 'PUBLICADO', 'AJUSTADO', 'CERRADO')) DEFAULT 'BORRADOR',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(anio, semana_iso)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS plan_detalle_ordenes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plan_id INTEGER NOT NULL,
+        orden_id INTEGER NOT NULL,
+        proceso_id INTEGER NOT NULL,
+        maquina_id INTEGER,
+        turno TEXT NOT NULL,
+        dia_semana INTEGER NOT NULL, -- 1 (Lunes) a 7 (Domingo)
+        secuencia INTEGER DEFAULT 0,
+        FOREIGN KEY (plan_id) REFERENCES plan_semanal(id),
+        FOREIGN KEY (orden_id) REFERENCES orden_produccion(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS plan_detalle_personal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plan_id INTEGER NOT NULL,
+        persona_id INTEGER NOT NULL,
+        proceso_id INTEGER NOT NULL,
+        maquina_id INTEGER,
+        turno TEXT NOT NULL,
+        dia_semana INTEGER NOT NULL,
+        rol_operativo_id INTEGER,
+        FOREIGN KEY (plan_id) REFERENCES plan_semanal(id),
+        FOREIGN KEY (persona_id) REFERENCES personas(id),
+        FOREIGN KEY (rol_operativo_id) REFERENCES roles_operativos(id)
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS catalogo_motivo_desviacion (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT UNIQUE NOT NULL,
+        activo BOOLEAN DEFAULT 1
+    );`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS desviaciones_plan (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plan_id INTEGER,
+        bitacora_id INTEGER,
+        proceso_id INTEGER,
+        maquina_id INTEGER,
+        tipo_desviacion TEXT NOT NULL, -- 'CAMBIO_ORDEN', 'CAMBIO_PERSONAL', 'CAMBIO_MAQUINA', 'AUSENCIA', etc.
+        valor_planificado TEXT,
+        valor_ejecutado TEXT,
+        motivo_id INTEGER,
+        comentario TEXT,
+        usuario TEXT,
+        fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (plan_id) REFERENCES plan_semanal(id),
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (motivo_id) REFERENCES catalogo_motivo_desviacion(id)
+    );`);
+
     // --- SEMILLAS ---
     // Las semillas deben ejecutarse en orden para respetar dependencias
     db.get("SELECT COUNT(*) as count FROM grupos", (err, row) => {
@@ -1306,6 +1370,21 @@ const runFullSchema = () => {
 
             stmtM.finalize();
             logger.info('Catálogo inicial de máquinas cargado.');
+        }
+    });
+
+    // Semilla de Motivos de Desviación
+    db.get("SELECT COUNT(*) as count FROM catalogo_motivo_desviacion", (err, row) => {
+        if (row && row.count === 0) {
+            const motivos = [
+                'Urgencia de Pedido', 'Falla de Máquina', 'Ausencia de Personal',
+                'Falta de Material', 'Error de Planeación', 'Ajuste de Prioridad',
+                'Retraso en Proceso Anterior'
+            ];
+            const stmtD = db.prepare("INSERT INTO catalogo_motivo_desviacion (nombre) VALUES (?)");
+            motivos.forEach(m => stmtD.run(m));
+            stmtD.finalize();
+            logger.info('Catálogo de motivos de desviación inicializado.');
         }
     });
 

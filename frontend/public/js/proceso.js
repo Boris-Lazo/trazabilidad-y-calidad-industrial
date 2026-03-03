@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('proceso-titulo').textContent = `Proceso: ${procesoNombre}`;
 
     let currentBitacora = null;
+    let currentPlan = null;
     let orders = [];
     let contrato = null;
     let maquinasAutorizadas = [];
@@ -34,6 +35,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         document.getElementById('bread-turno').textContent = currentBitacora.turno;
         document.getElementById('bread-fecha').textContent = currentBitacora.fecha_operativa;
+
+        // Cargar motivos de desviación
+        const motivosRes = await fetch('/api/planning/motivos-desviacion');
+        const motivosDesv = await motivosRes.json();
+        document.getElementById('select-motivo-desv').innerHTML = motivosDesv.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
 
         const procesoState = fullState.procesos.find(p => p.id == procesoId);
         applyEnforcedFlow(procesoState);
@@ -535,6 +541,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Mezclar datos genéricos con específicos
             data = { ...dataGen, ...data };
+            currentPlan = data.planificado;
+
+            // --- HERENCIA DE PLANIFICACIÓN ---
+            if (currentPlan) {
+                const tbodyP = document.getElementById('tbody-personal-planificado');
+                if (currentPlan.personal?.length) {
+                    currentPlan.personal.forEach(p => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td>${p.nombre_completo}</td><td>${p.rol_nombre || '-'}</td><td>✅</td>`;
+                        tbodyP.appendChild(tr);
+                    });
+                } else {
+                    tbodyP.innerHTML = '<tr><td colspan="3" style="text-align:center">No hay personal planificado</td></tr>';
+                }
+            }
+
+            if (currentPlan && !data.produccion?.length && !data.no_operativo) {
+                if (currentPlan.ordenes?.length) {
+                    currentPlan.ordenes.forEach(o => agregarProduccion({ orden_id: o.orden_id, maquina_id: o.maquina_id, cantidad: 0 }));
+                    if ([1, 3, 4].includes(pId)) {
+                        document.getElementById('select-orden-proceso').value = currentPlan.ordenes[0].orden_id;
+                    }
+                }
+            }
 
             if (data.no_operativo) {
                 document.getElementById('select-operatividad').value = 'no_operativo';
@@ -881,8 +911,65 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-agregar-produccion').onclick = () => agregarProduccion();
     document.getElementById('btn-agregar-desperdicio').onclick = () => agregarDesperdicio();
     document.getElementById('btn-agregar-incidente').onclick = () => agregarIncidente();
-    document.getElementById('btn-guardar').onclick = () => guardar(false);
-    document.getElementById('btn-guardar-volver').onclick = () => guardar(true);
+    document.getElementById('btn-guardar').onclick = () => checkDesviaciones(false);
+    document.getElementById('btn-guardar-volver').onclick = () => checkDesviaciones(true);
+
+    async function checkDesviaciones(volver) {
+        if (!currentPlan) return guardar(volver);
+
+        // Validar personal
+        const personasActuales = Array.from(new Set(personalAutorizado?.map(p => p.id) || [])); // TODO: Vincular personal real de bitácora si existiera tabla intermedia
+        // Por ahora simplificamos a Ordenes y Máquinas
+
+        const regs = Array.from(document.getElementById('tbody-produccion').querySelectorAll('tr')).map(tr => ({
+            orden_id: tr.querySelectorAll('select')[1].value,
+            maquina_id: tr.querySelector('select').value
+        }));
+
+        if ([1,3,4].includes(parseInt(procesoId))) {
+            const ord = document.getElementById('select-orden-proceso').value;
+            if (ord) regs.push({ orden_id: ord });
+        }
+
+        // Desviación de Orden
+        for (const r of regs) {
+            const planOrd = currentPlan.ordenes.find(o => o.orden_id == r.orden_id);
+            if (!planOrd) {
+                return abrirModalDesviacion('CAMBIO_ORDEN', 'N/A', r.orden_id, volver);
+            }
+            if (r.maquina_id && planOrd.maquina_id && r.maquina_id != planOrd.maquina_id) {
+                return abrirModalDesviacion('CAMBIO_MAQUINA', planOrd.maquina_id, r.maquina_id, volver);
+            }
+        }
+
+        await guardar(volver);
+    }
+
+    function abrirModalDesviacion(tipo, plan, actual, volver) {
+        document.getElementById('form-desv-tipo').value = tipo;
+        document.getElementById('form-desv-plan').value = plan;
+        document.getElementById('form-desv-actual').value = actual;
+        document.getElementById('desviacion-mensaje').textContent = `Se detectó un cambio de ${tipo.replace('_', ' ')} respecto a lo planificado.`;
+        document.getElementById('modal-desviacion').style.display = 'flex';
+        document.getElementById('btn-confirmar-desv').onclick = async () => {
+            await fetch('/api/planning/deviation', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    plan_id: currentPlan.plan.id,
+                    bitacora_id: currentBitacora.id,
+                    proceso_id: procesoId,
+                    tipo_desviacion: tipo,
+                    valor_planificado: plan,
+                    valor_ejecutado: actual,
+                    motivo_id: document.getElementById('select-motivo-desv').value,
+                    comentario: document.getElementById('comentario-desv').value
+                })
+            });
+            document.getElementById('modal-desviacion').style.display = 'none';
+            await guardar(volver);
+        };
+    }
 
     document.getElementById('select-operatividad').onchange = (e) => {
         const isNo = e.target.value === 'no_operativo';

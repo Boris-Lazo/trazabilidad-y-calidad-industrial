@@ -123,6 +123,15 @@ class PersonalController {
       next(error);
     }
   }
+
+  async getRolesOperativos(req, res, next) {
+    try {
+      const roles = await this.personalService.getRolesOperativos();
+      res.json({ success: true, data: roles });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = PersonalController;

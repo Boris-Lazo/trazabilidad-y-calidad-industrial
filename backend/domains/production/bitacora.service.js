@@ -13,14 +13,16 @@ class BitacoraService {
    * @param {MuestraRepository} muestraRepository
    * @param {AuditService} auditService
    * @param {ParoRepository} paroRepository
+   * @param {PlanningService} planningService
    */
-  constructor(bitacoraRepository, lineaEjecucionRepository, registroTrabajoRepository, muestraRepository, auditService, paroRepository) {
+  constructor(bitacoraRepository, lineaEjecucionRepository, registroTrabajoRepository, muestraRepository, auditService, paroRepository, planningService) {
     this.bitacoraRepository = bitacoraRepository;
     this.lineaEjecucionRepository = lineaEjecucionRepository;
     this.registroTrabajoRepository = registroTrabajoRepository;
     this.muestraRepository = muestraRepository;
     this.auditService = auditService;
     this.paroRepository = paroRepository;
+    this.planningService = planningService;
   }
 
   async getActiveBitacora() {
@@ -323,9 +325,16 @@ class BitacoraService {
           };
       }
 
+      // HERENCIA DE PLANIFICACIÓN
+      let planData = null;
+      if (this.planningService && !ultimoTurno) {
+          planData = await this.planningService.getPlanningForShift(bitacora.fecha_operativa, bitacora.turno, procesoId);
+      }
+
       return {
           no_operativo: !!(status && status.no_operativo),
           motivo_no_operativo: status ? status.motivo_no_operativo : '',
+          planificado: planData,
           muestras,
           produccion,
           desperdicio,

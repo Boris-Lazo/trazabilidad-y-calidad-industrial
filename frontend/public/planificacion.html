@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="/design-system/theme/index.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planificación Semanal | PROD-SYS</title>
+    <link rel="stylesheet" href="/design-system/index.css">
+    <script src="js/auth.js?v=1.5"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/design-system/index.js" defer></script>
+    <style>
+        .planning-grid {
+            display: grid;
+            grid-template-columns: 150px repeat(7, 1fr);
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+        }
+        .grid-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .grid-cell {
+            border: 1px solid var(--border-color);
+            min-height: 100px;
+            padding: 5px;
+        }
+        .day-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            display: block;
+        }
+        .shift-block {
+            margin-bottom: 10px;
+            padding: 5px;
+            background: rgba(0,0,0,0.02);
+            border-radius: 4px;
+        }
+        .shift-title {
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 5px;
+        }
+        .planned-item {
+            font-size: 0.75rem;
+            padding: 4px;
+            margin-bottom: 2px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--primary-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .item-actions {
+            display: none;
+        }
+        .planned-item:hover .item-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .btn-icon {
+            padding: 2px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+        }
+        .btn-icon:hover { color: var(--danger); }
+
+        .modal-planning {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <div class="main-container">
+            <header class="topbar">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <i data-lucide="calendar" class="text-primary"></i>
+                    <h1 style="margin:0;">Planificación Operativa Semanal</h1>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div class="form-group" style="margin:0; flex-direction: row; align-items: center; gap: 10px;">
+                        <label>Semana:</label>
+                        <input type="number" id="input-anio" class="form-control" style="width: 80px;" value="2025">
+                        <input type="number" id="input-semana" class="form-control" style="width: 60px;" value="1">
+                        <button id="btn-cargar-plan" class="btn btn-secondary">Cargar</button>
+                    </div>
+                    <button id="btn-publicar" class="btn btn-primary" style="display:none;">Publicar Plan</button>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <div id="plan-status-bar" class="card" style="margin-bottom: 1rem; display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>Estado: <span id="plan-estado-badge" class="badge">BORRADOR</span></div>
+                        <div id="plan-fechas-rango" style="font-weight: bold;"></div>
+                    </div>
+                </div>
+
+                <div id="no-plan-alert" class="card" style="text-align: center; padding: 3rem;">
+                    <p>No existe una planificación para esta semana.</p>
+                    <button id="btn-crear-plan" class="btn btn-primary">Crear Planificación</button>
+                </div>
+
+                <div id="planning-container" style="display: none;">
+                    <div class="planning-grid" id="grid-main">
+                        <div class="grid-header">Proceso</div>
+                        <div class="grid-header">Lunes</div>
+                        <div class="grid-header">Martes</div>
+                        <div class="grid-header">Miércoles</div>
+                        <div class="grid-header">Jueves</div>
+                        <div class="grid-header">Viernes</div>
+                        <div class="grid-header">Sábado</div>
+                        <div class="grid-header">Domingo</div>
+                        <!-- Filas dinámicas por proceso -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Asignación -->
+    <div id="modal-asignar" class="modal-planning">
+        <div class="card" style="width: 400px;">
+            <div class="card-header" id="modal-title">Asignar a Plan</div>
+            <div style="padding: 1.5rem;">
+                <input type="hidden" id="form-dia">
+                <input type="hidden" id="form-turno">
+                <input type="hidden" id="form-proceso">
+
+                <div class="form-group">
+                    <label>Tipo de Asignación</label>
+                    <select id="select-tipo-asig" class="form-control">
+                        <option value="ORDEN">Orden de Producción</option>
+                        <option value="PERSONAL">Personal Operativo</option>
+                    </select>
+                </div>
+
+                <div id="group-orden">
+                    <div class="form-group">
+                        <label>Orden de Producción</label>
+                        <select id="select-orden" class="form-control"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Máquina (Opcional)</label>
+                        <select id="select-maquina" class="form-control"></select>
+                    </div>
+                </div>
+
+                <div id="group-personal" style="display: none;">
+                    <div class="form-group">
+                        <label>Colaborador</label>
+                        <select id="select-persona" class="form-control"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Rol Operativo</label>
+                        <select id="select-rol-op" class="form-control"></select>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button id="btn-cancelar-modal" class="btn btn-secondary">Cancelar</button>
+                    <button id="btn-guardar-asig" class="btn btn-primary">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/planificacion.js"></script>
+</body>
+</html>

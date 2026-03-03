@@ -275,6 +275,10 @@ class PersonalService {
 
     return result;
   }
+
+  async getRolesOperativos() {
+    return await this.personalRepository.getRolesOperativos();
+  }
 }
 
 module.exports = PersonalService;
