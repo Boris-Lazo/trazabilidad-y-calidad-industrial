@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
     let currentPlan = null;
+    let dragulaInst = null;
     let procesos = [];
     let ordenes = [];
     let personal = [];
@@ -44,8 +45,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         ]);
 
         procesos = (await procRes.json()).data || [];
+        const selProc = document.getElementById('filter-proceso');
+        if (selProc) {
+            selProc.innerHTML = '<option value="">Todos los Procesos</option>' + procesos.map(proc => `<option value="${proc.processId}">${proc.nombre}</option>`).join('');
+        }
+
         const motivos = (await motRes.json());
-        document.getElementById('select-motivo-ajuste').innerHTML = motivos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
+        const optionsMotivos = motivos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
+        document.getElementById('select-motivo-ajuste').innerHTML = optionsMotivos;
+        document.getElementById('select-motivo-desviacion-dd').innerHTML = optionsMotivos;
         ordenes = (await ordRes.json()).data || [];
         personal = (await persRes.json()).data || [];
         rolesOperativos = (await rolesRes.json()).data || [];
@@ -69,17 +77,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         const res = await fetch(`/api/planning/week/${anio}/${semana}`);
         const data = await res.json();
 
-        if (data.plan) {
+        if (data && data.id) {
             currentPlan = data;
             document.getElementById('no-plan-alert').style.display = 'none';
             document.getElementById('planning-container').style.display = 'block';
+            document.getElementById('planning-filters').style.display = 'block';
             document.getElementById('plan-status-bar').style.display = 'block';
             renderPlan();
             cargarKPIs();
+            renderFiltros();
         } else {
             currentPlan = null;
             document.getElementById('no-plan-alert').style.display = 'block';
             document.getElementById('planning-container').style.display = 'none';
+            document.getElementById('planning-filters').style.display = 'none';
             document.getElementById('plan-status-bar').style.display = 'none';
         }
     }
@@ -120,8 +131,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ords.forEach(o => {
                         const item = document.createElement('div');
                         item.className = 'planned-item';
+                        item.setAttribute('data-id', o.id);
+                        item.setAttribute('data-orden-id', o.orden_id);
+                        item.setAttribute('data-maquina-id', o.maquina_id || '');
+                        item.setAttribute('data-texto', `${o.codigo_orden} ${o.producto}`.toLowerCase());
+                        item.setAttribute('title', 'Clic para editar');
+                        item.style.cursor = 'pointer';
+
                         item.innerHTML = `
-                            <span>📦 ${o.codigo_orden}</span>
+                            <span onclick='abrirEditar(${JSON.stringify(o).replace(/'/g, "&#39;")}, "ORDEN")' style="flex:1;">📦 ${o.codigo_orden}</span>
                             <div class="item-actions">
                                 <button class="btn-icon" onclick="eliminarAsig(${o.id}, 'ORDEN')">×</button>
                             </div>
@@ -135,14 +153,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const item = document.createElement('div');
                         item.className = 'planned-item';
                         item.style.borderLeftColor = 'var(--success)';
+                        item.setAttribute('data-id', p.id);
+                        item.setAttribute('data-personal-id', p.persona_id);
+                        item.setAttribute('data-rol-id', p.rol_operativo_id || '');
+                        item.setAttribute('data-maquina-id', p.maquina_id || '');
+                        item.setAttribute('data-texto', `${p.nombre} ${p.apellido} ${p.rol_nombre || ''}`.toLowerCase());
+                        item.setAttribute('title', 'Clic para editar');
+                        item.style.cursor = 'pointer';
+
                         item.innerHTML = `
-                            <span>👤 ${p.nombre}</span>
+                            <span onclick='abrirEditar(${JSON.stringify(p).replace(/'/g, "&#39;")}, "PERSONAL")' style="flex:1;">👤 ${p.nombre}</span>
                             <div class="item-actions">
                                 <button class="btn-icon" onclick="eliminarAsig(${p.id}, 'PERSONAL')">×</button>
                             </div>
                         `;
                         block.appendChild(item);
                     });
+
+                    block.setAttribute('data-proceso', proc.processId);
+                    block.setAttribute('data-dia', dia);
+                    block.setAttribute('data-turno', turno);
 
                     if (currentPlan.estado !== 'CERRADO') {
                         const btnAdd = document.createElement('button');
@@ -160,9 +190,85 @@ document.addEventListener('DOMContentLoaded', async () => {
                 grid.appendChild(cell);
             }
         });
+
+        initDragAndDrop();
+        aplicarFiltros(); // Re-aplicar filtros si están activos
     }
 
-    function abrirModal(procesoId, dia, turno) {
+    function initDragAndDrop() {
+        if (dragulaInst) dragulaInst.destroy();
+        if (!currentPlan || currentPlan.estado === 'CERRADO') return;
+
+        const containers = Array.from(document.querySelectorAll('.shift-block'));
+        dragulaInst = dragula(containers, {
+            accepts: function (el, target, source, sibling) {
+                // Ensure we don't drop items before the shift title
+                if (sibling && sibling.classList.contains('shift-title')) {
+                    return false;
+                }
+                // Don't drop items on or after the add button
+                if (sibling && sibling.tagName === 'BUTTON') {
+                    return false;
+                }
+                return true;
+            },
+            invalid: function (el, handle) {
+                return el.classList.contains('shift-title') || el.tagName === 'BUTTON';
+            }
+        });
+
+        dragulaInst.on('drop', async (el, target, source, sibling) => {
+            const isOrden = el.hasAttribute('data-orden-id');
+            const asigId = el.getAttribute('data-id');
+            const targetTurno = target.getAttribute('data-turno');
+            const targetDia = target.getAttribute('data-dia');
+            const targetProceso = target.getAttribute('data-proceso');
+
+            const endpoint = isOrden ? '/api/planning/update-order' : '/api/planning/update-personnel';
+
+            const payload = {
+                id: asigId,
+                plan_id: currentPlan.id,
+                proceso_id: targetProceso,
+                dia_semana: targetDia,
+                turno: targetTurno,
+                maquina_id: el.getAttribute('data-maquina-id') || null
+            };
+
+            if (!isOrden) {
+                payload.rol_operativo_id = el.getAttribute('data-rol-id') || null;
+            }
+
+            const isPublicado = currentPlan.estado === 'PUBLICADO' || currentPlan.estado === 'AJUSTADO';
+
+            if (isPublicado) {
+                const modalParams = { el, target, source, sibling, endpoint, payload };
+                mostrarModalDesviacionDD(modalParams);
+                return;
+            }
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    throw new Error('Error guardando posición');
+                }
+                // Si todo bien, la UI ya refleja el drop. Solo recargamos en background o dejamos así.
+                // Mejor recargar para asegurar consistencia
+                await cargarPlan();
+            } catch (err) {
+                console.error(err);
+                dragulaInst.cancel(true);
+                DesignSystem.showErrorModal('Error', 'No se pudo actualizar la posición de la asignación.');
+            }
+        });
+    }
+
+    function abrirModal(procesoId, dia, turno, asigData = null) {
         document.getElementById('form-proceso').value = procesoId;
         document.getElementById('form-dia').value = dia;
         document.getElementById('form-turno').value = turno;
@@ -177,14 +283,58 @@ document.addEventListener('DOMContentLoaded', async () => {
             maqProc.map(m => `<option value="${m.id}">${m.nombre_visible}</option>`).join('');
 
         document.getElementById('modal-asignar').style.display = 'flex';
+        document.getElementById('modal-asignar').removeAttribute('data-edit-id'); // Es nuevo
+        document.getElementById('select-tipo-asig').disabled = false;
+
+        // Reset specific values
+        document.getElementById('select-orden').value = '';
+        document.getElementById('select-maquina').value = '';
+        document.getElementById('select-persona').value = '';
+        document.getElementById('select-rol-op').value = '';
     }
+
+    window.abrirEditar = (data, tipo) => {
+        if (!currentPlan || currentPlan.estado === 'CERRADO') return;
+
+        document.getElementById('form-proceso').value = data.proceso_id;
+        document.getElementById('form-dia').value = data.dia_semana;
+        document.getElementById('form-turno').value = data.turno;
+
+        const isPublicado = currentPlan.estado === 'PUBLICADO' || currentPlan.estado === 'AJUSTADO';
+        document.getElementById('group-desviacion-plan').style.display = isPublicado ? 'block' : 'none';
+
+        // Cargar máquinas del proceso
+        const selMaq = document.getElementById('select-maquina');
+        const maqProc = maquinas.filter(m => m.proceso_id == data.proceso_id);
+        selMaq.innerHTML = '<option value="">Sin máquina fija</option>' +
+            maqProc.map(m => `<option value="${m.id}">${m.nombre_visible}</option>`).join('');
+
+        document.getElementById('select-tipo-asig').value = tipo;
+        document.getElementById('select-tipo-asig').disabled = true; // No se puede cambiar el tipo en edición
+        document.getElementById('group-orden').style.display = tipo === 'ORDEN' ? 'block' : 'none';
+        document.getElementById('group-personal').style.display = tipo === 'PERSONAL' ? 'block' : 'none';
+
+        if (tipo === 'ORDEN') {
+            document.getElementById('select-orden').value = data.orden_id;
+            document.getElementById('select-maquina').value = data.maquina_id || '';
+        } else {
+            document.getElementById('select-persona').value = data.persona_id;
+            document.getElementById('select-maquina').value = data.maquina_id || ''; // Personal can also have machinery sometimes
+            document.getElementById('select-rol-op').value = data.rol_operativo_id || '';
+        }
+
+        const modal = document.getElementById('modal-asignar');
+        modal.setAttribute('data-edit-id', data.id); // Guardamos ID de edicion
+        document.getElementById('modal-title').textContent = 'Editar Asignación';
+        modal.style.display = 'flex';
+    };
 
     window.eliminarAsig = async (id, tipo) => {
         DesignSystem.showConfirmModal('Eliminar Asignación', '¿Está seguro de que desea eliminar esta asignación del plan?', async () => {
             const endpoint = tipo === 'ORDEN' ? '/api/planning/delete-order' : '/api/planning/delete-personnel';
             await fetch(endpoint, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, plan_id: currentPlan.id })
             });
             await cargarPlan();
@@ -194,6 +344,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('select-tipo-asig').onchange = (e) => {
         document.getElementById('group-orden').style.display = e.target.value === 'ORDEN' ? 'block' : 'none';
         document.getElementById('group-personal').style.display = e.target.value === 'PERSONAL' ? 'block' : 'none';
+        document.getElementById('modal-asignar').style.display = 'none';
     };
 
     document.getElementById('btn-cancelar-modal').onclick = () => {
@@ -203,6 +354,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-guardar-asig').onclick = async () => {
         const tipo = document.getElementById('select-tipo-asig').value;
         const isPublicado = currentPlan.estado === 'PUBLICADO' || currentPlan.estado === 'AJUSTADO';
+        const editId = document.getElementById('modal-asignar').getAttribute('data-edit-id');
 
         const payload = {
             plan_id: currentPlan.id,
@@ -211,37 +363,49 @@ document.addEventListener('DOMContentLoaded', async () => {
             turno: document.getElementById('form-turno').value
         };
 
+        if (editId) payload.id = editId;
+
         if (isPublicado) {
-            payload.motivo_id = document.getElementById('select-motivo-ajuste').value;
+            const motivo_ajuste = document.getElementById('select-motivo-ajuste').value;
+            if (!motivo_ajuste) {
+                DesignSystem.showErrorModal('Validación', 'Debe seleccionar un motivo para modificar el plan publicado.');
+                return;
+            }
+            payload.motivo_id = motivo_ajuste;
             payload.comentario = document.getElementById('comentario-ajuste').value;
         }
+
+        let endpointBase = editId ? '/api/planning/update-' : '/api/planning/assign-';
 
         if (tipo === 'ORDEN') {
             payload.orden_id = document.getElementById('select-orden').value;
             payload.maquina_id = document.getElementById('select-maquina').value || null;
-            await fetch('/api/planning/assign-order', {
+            await fetch(`${endpointBase}order`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
         } else {
             payload.persona_id = document.getElementById('select-persona').value;
             payload.rol_operativo_id = document.getElementById('select-rol-op').value;
-            await fetch('/api/planning/assign-personnel', {
+            payload.maquina_id = document.getElementById('select-maquina').value || null;
+            await fetch(`${endpointBase}personnel`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
         }
 
         document.getElementById('modal-asignar').style.display = 'none';
+        document.getElementById('modal-asignar').removeAttribute('data-edit-id');
+        document.getElementById('modal-title').textContent = 'Asignar a Plan';
         await cargarPlan();
     };
 
     document.getElementById('btn-crear-plan').onclick = async () => {
         const res = await fetch('/api/planning/create', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ anio: anioInput.value, semana: semanaInput.value })
         });
         if (res.ok) await cargarPlan();
@@ -252,7 +416,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         DesignSystem.showConfirmModal('Publicar Planificación', '¿Desea publicar la planificación? Se volverá visible para el personal de operación.', async () => {
             await fetch('/api/planning/publish', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: currentPlan.id })
             });
             await cargarPlan();
@@ -260,6 +424,115 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     document.getElementById('btn-cargar-plan').onclick = cargarPlan;
+
+    // Lógica de Filtros
+    function renderFiltros() {
+        // Event listeners para filtros
+        document.getElementById('filter-proceso').addEventListener('change', aplicarFiltros);
+        document.getElementById('filter-turno').addEventListener('change', aplicarFiltros);
+        document.getElementById('filter-text').addEventListener('input', aplicarFiltros);
+        document.getElementById('btn-clear-filters').addEventListener('click', () => {
+            document.getElementById('filter-proceso').value = '';
+            document.getElementById('filter-turno').value = '';
+            document.getElementById('filter-text').value = '';
+            aplicarFiltros();
+        });
+    }
+
+    window.aplicarFiltros = () => {
+        if (!currentPlan) return;
+
+        const selProceso = document.getElementById('filter-proceso').value;
+        const selTurno = document.getElementById('filter-turno').value;
+        const txtValue = document.getElementById('filter-text').value.toLowerCase();
+
+        // Ocultar/Mostrar procesos completos
+        const filasProcesos = document.querySelectorAll('.grid-cell[style*="font-weight: bold"]');
+        let indexCelda = 0;
+
+        procesos.forEach((proc, i) => {
+            const rowHeader = filasProcesos[i];
+            const mostrarProceso = selProceso === '' || proc.processId == selProceso;
+
+            // Si el proceso no coincide, ocultamos toda su fila (header + 7 dias)
+            rowHeader.style.display = mostrarProceso ? 'block' : 'none';
+            // Las siguientes 7 celdas pertenecen a este proceso
+            const gridCells = document.querySelectorAll('#grid-main > .grid-cell:not([style*="font-weight: bold"])');
+
+            for (let d = 0; d < 7; d++) {
+                const dayCell = gridCells[i * 7 + d];
+                if (dayCell) {
+                    dayCell.style.display = mostrarProceso ? 'block' : 'none';
+
+                    if (mostrarProceso) {
+                        // Filtrar contenido interno de la celda (turnos y items)
+                        const turnosBlocks = dayCell.querySelectorAll('.shift-block');
+                        turnosBlocks.forEach(tb => {
+                            const tName = tb.getAttribute('data-turno');
+                            const mostrarTurno = selTurno === '' || selTurno === tName;
+                            tb.style.display = mostrarTurno ? 'block' : 'none';
+
+                            if (mostrarTurno) {
+                                // Filtrar items
+                                const items = tb.querySelectorAll('.planned-item');
+                                items.forEach(item => {
+                                    const textoItem = item.getAttribute('data-texto') || '';
+                                    if (txtValue === '' || textoItem.includes(txtValue)) {
+                                        item.style.display = 'flex';
+                                    } else {
+                                        item.style.display = 'none';
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+        });
+    };
+
+    function mostrarModalDesviacionDD(params) {
+        document.getElementById('comentario-desviacion-dd').value = '';
+        const modal = document.getElementById('modal-desviacion');
+        modal.style.display = 'flex';
+
+        document.getElementById('btn-cancelar-desviacion').onclick = () => {
+            modal.style.display = 'none';
+            dragulaInst.cancel(true);
+        };
+
+        document.getElementById('btn-guardar-desviacion').onclick = async () => {
+            const motivo_id = document.getElementById('select-motivo-desviacion-dd').value;
+            const comentario = document.getElementById('comentario-desviacion-dd').value;
+
+            if (!motivo_id) {
+                DesignSystem.showErrorModal('Error', 'Debe seleccionar un motivo de desviación.');
+                return;
+            }
+
+            params.payload.motivo_id = motivo_id;
+            params.payload.comentario = comentario;
+
+            try {
+                const res = await fetch(params.endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params.payload)
+                });
+
+                if (!res.ok) {
+                    throw new Error('Error guardando posición');
+                }
+                modal.style.display = 'none';
+                await cargarPlan();
+            } catch (err) {
+                console.error(err);
+                dragulaInst.cancel(true);
+                DesignSystem.showErrorModal('Error', 'No se pudo actualizar la posición de la asignación.');
+                modal.style.display = 'none';
+            }
+        };
+    }
 
     function getISOWeekData(date) {
         const d = new Date(date);
