@@ -41,6 +41,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbodyPreview = document.getElementById('tbody-preview');
     const resultadoImportacion = document.getElementById('resultado-importacion');
 
+    // Modal de Error y su lógica
+    const modalErrorSap = document.getElementById('modal-error-sap');
+    const mensajeErrorSap = document.getElementById('mensaje-error-sap');
+    const botonesCerrarError = document.querySelectorAll('.btn-cerrar-error');
+
+    function mostrarErrorModal(mensaje) {
+        mensajeErrorSap.textContent = mensaje;
+        modalErrorSap.style.display = 'flex';
+    }
+
+    botonesCerrarError.forEach(btn => {
+        btn.addEventListener('click', () => {
+            modalErrorSap.style.display = 'none';
+        });
+    });
+
     // Abrir modal
     btnImportarSap.addEventListener('click', () => {
         resetearModal();
@@ -72,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnPrevisualizar.addEventListener('click', async () => {
         const archivo = inputArchivoExcel.files[0];
         if (!archivo) {
-            alert('Por favor selecciona un archivo Excel.');
+            mostrarErrorModal('Por favor selecciona un archivo Excel.');
             return;
         }
 
@@ -97,11 +113,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 paso1.style.display = 'none';
                 paso2.style.display = 'block';
             } else {
-                alert('Error al procesar archivo: ' + result.error);
+                // El backend devuelve 400 para errores de parsing, capturados aquí
+                mostrarErrorModal('Error al procesar archivo: ' + result.error);
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error de conexión con el servidor.');
+            mostrarErrorModal('Error de conexión con el servidor o archivo inválido.');
         } finally {
             btnPrevisualizar.disabled = false;
             btnPrevisualizar.innerHTML = '<i data-lucide="eye" style="width:16px; height:16px; margin-right:8px; vertical-align:middle;"></i> Previsualizar';
@@ -141,11 +158,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 paso3.style.display = 'block';
                 if (window.lucide) lucide.createIcons();
             } else {
+                // El backend devuelve 422 (DomainError) para errores de validación de negocio
+                // Esto permite mostrar el error sin que auth.js cierre la sesión
                 mostrarErrores(result.error);
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error al confirmar importación.');
+            mostrarErrorModal('Error al confirmar importación. Verifique su conexión.');
         } finally {
             btnConfirmarImportacion.disabled = false;
             btnConfirmarImportacion.innerHTML = '<i data-lucide="check" style="width:14px; height:14px; margin-right:6px; vertical-align:middle;"></i> Confirmar e Importar';
