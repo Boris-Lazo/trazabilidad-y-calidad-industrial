@@ -159,14 +159,14 @@ class OrdenProduccionService {
     const filas = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
 
     // Validar estructura del archivo
-    if (filas.length < 2) {
+    if (filas.length < 4) {
       throw new ValidationError(
         'El archivo no contiene datos. Verifique que sea el reporte de Órdenes de SAP.'
       );
     }
 
-    // Validar encabezados en fila 0
-    const headers = filas[0] || [];
+    // Validar encabezados en fila índice 2
+    const headers = filas[2] || [];
     if (!headers.includes('Series de documentos') || !headers.includes('Nº documento')) {
       throw new ValidationError(
         'El archivo no tiene el formato esperado de SAP. ' +
@@ -175,8 +175,8 @@ class OrdenProduccionService {
       );
     }
 
-    // Datos desde fila 1
-    const datos = filas.slice(1);
+    // Datos desde fila índice 3 (fila 4 del Excel)
+    const datos = filas.slice(3);
 
     const resultado = {
       total_filas_excel: 0,
@@ -190,14 +190,15 @@ class OrdenProduccionService {
       // Ignorar filas completamente vacías
       if (!filaArr || filaArr.every(c => c === null || c === '')) continue;
 
-      // col[1] = Nº documento (7 dígitos numéricos)
-      const codigoDoc = filaArr[1];
+      // col[2] = Nº documento (7 dígitos numéricos)
+      const codigoDoc = filaArr[2];
       if (!codigoDoc || !/^\d{7}$/.test(String(codigoDoc).trim())) continue;
 
       resultado.total_filas_excel++;
 
+      // slice(1) elimina la columna vacía (col[0])
       // parsearFila recibe: [Serie, Nº doc, Descripción, CantPlan, ...]
-      const ordenParseada = parsearFila(filaArr, MAPEO_SAP);
+      const ordenParseada = parsearFila(filaArr.slice(1), MAPEO_SAP);
 
       // Serie SAP no reconocida → registrar para feedback al usuario
       if (!ordenParseada.proceso_id) {

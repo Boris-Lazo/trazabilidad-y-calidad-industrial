@@ -31,6 +31,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             renderTelares(telares, bitacora.id);
 
+            // Mostrar card de info de bitácora
+            document.getElementById('card-bitacora-info').style.display = 'block';
+
         } catch (error) {
             console.error('Error en ejecucion.js:', error);
             document.getElementById('content-ejecucion').innerHTML =

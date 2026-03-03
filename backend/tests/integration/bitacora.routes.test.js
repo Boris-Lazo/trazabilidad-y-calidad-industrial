@@ -43,4 +43,16 @@ describe('Bitacora Routes Integration Tests', () => {
             expect(response.body.data).toHaveProperty('turno');
         });
     });
+
+    describe('GET /api/bitacora/activa', () => {
+        test('retorna 200 y data null si no hay bitácora activa', async () => {
+            const response = await request(app)
+                .get('/api/bitacora/activa')
+                .set('Cookie', [`token=${adminToken}`]);
+
+            expect(response.status).toBe(200);
+            expect(response.body.success).toBe(true);
+            expect(response.body.data).toBeNull();
+        });
+    });
 });

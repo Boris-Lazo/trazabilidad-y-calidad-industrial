@@ -59,7 +59,7 @@ class ExtrusorPPContract extends ProcessContract {
                     unidad: 'g/9000m',
                     minimo: 790,
                     maximo: 820,
-                    nominal: 800,
+                    nominal: 805,
                     critico: true,
                     calculado: false,
                     metodologia: 'Promedio de 20 cintas de 50 m × 180'
@@ -146,7 +146,7 @@ class ExtrusorPPContract extends ProcessContract {
                     opcionesTipo: [
                         'Resina de polipropileno',
                         'Antifibrilante',
-                        'Pelet (ciclado)',
+                        'Pelet (reciclado)',
                         'Filtro anti UV',
                         'Oxobiodegradable',
                         'Masterbatch colorante'

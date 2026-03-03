@@ -72,6 +72,22 @@ class PlanningRepository {
     );
   }
 
+  async updateOrderAssignment(data) {
+    const { id, proceso_id, maquina_id, turno, dia_semana } = data;
+    await this.db.run(
+      'UPDATE plan_detalle_ordenes SET proceso_id = ?, maquina_id = ?, turno = ?, dia_semana = ? WHERE id = ?',
+      [proceso_id, maquina_id, turno, dia_semana, id]
+    );
+  }
+
+  async updatePersonnelAssignment(data) {
+    const { id, proceso_id, maquina_id, turno, dia_semana, rol_operativo_id } = data;
+    await this.db.run(
+      'UPDATE plan_detalle_personal SET proceso_id = ?, maquina_id = ?, turno = ?, dia_semana = ?, rol_operativo_id = ? WHERE id = ?',
+      [proceso_id, maquina_id, turno, dia_semana, rol_operativo_id, id]
+    );
+  }
+
   async deleteOrderAssignment(id) {
     await this.db.run('DELETE FROM plan_detalle_ordenes WHERE id = ?', [id]);
   }
@@ -89,8 +105,8 @@ class PlanningRepository {
                 WHERE pdo.plan_id = ? AND pdo.dia_semana = ? AND pdo.turno = ?`;
     let paramsO = [plan.id, dia_semana, turno];
     if (proceso_id) {
-        sqlO += " AND pdo.proceso_id = ?";
-        paramsO.push(proceso_id);
+      sqlO += " AND pdo.proceso_id = ?";
+      paramsO.push(proceso_id);
     }
     sqlO += " ORDER BY pdo.secuencia";
     const ordenes = await this.db.query(sqlO, paramsO);
@@ -102,8 +118,8 @@ class PlanningRepository {
                 WHERE pdp.plan_id = ? AND pdp.dia_semana = ? AND pdp.turno = ?`;
     let paramsP = [plan.id, dia_semana, turno];
     if (proceso_id) {
-        sqlP += " AND pdp.proceso_id = ?";
-        paramsP.push(proceso_id);
+      sqlP += " AND pdp.proceso_id = ?";
+      paramsP.push(proceso_id);
     }
     const personal = await this.db.query(sqlP, paramsP);
 
@@ -111,39 +127,39 @@ class PlanningRepository {
   }
 
   async getMotivosDesviacion() {
-      return await this.db.query('SELECT * FROM catalogo_motivo_desviacion WHERE activo = 1');
+    return await this.db.query('SELECT * FROM catalogo_motivo_desviacion WHERE activo = 1');
   }
 
   async recordDeviation(data) {
-      const { plan_id, bitacora_id, proceso_id, maquina_id, tipo_desviacion, valor_planificado, valor_ejecutado, motivo_id, comentario, usuario } = data;
-      await this.db.run(
-          `INSERT INTO desviaciones_plan (plan_id, bitacora_id, proceso_id, maquina_id, tipo_desviacion, valor_planificado, valor_ejecutado, motivo_id, comentario, usuario)
+    const { plan_id, bitacora_id, proceso_id, maquina_id, tipo_desviacion, valor_planificado, valor_ejecutado, motivo_id, comentario, usuario } = data;
+    await this.db.run(
+      `INSERT INTO desviaciones_plan (plan_id, bitacora_id, proceso_id, maquina_id, tipo_desviacion, valor_planificado, valor_ejecutado, motivo_id, comentario, usuario)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [plan_id, bitacora_id, proceso_id, maquina_id, tipo_desviacion, valor_planificado, valor_ejecutado, motivo_id, comentario, usuario]
-      );
+      [plan_id, bitacora_id, proceso_id, maquina_id, tipo_desviacion, valor_planificado, valor_ejecutado, motivo_id, comentario, usuario]
+    );
   }
 
   async getDeviationsByBitacora(bitacoraId) {
-      return await this.db.query(
-          `SELECT d.*, m.nombre as motivo_nombre
+    return await this.db.query(
+      `SELECT d.*, m.nombre as motivo_nombre
            FROM desviaciones_plan d
            LEFT JOIN catalogo_motivo_desviacion m ON d.motivo_id = m.id
            WHERE d.bitacora_id = ?`,
-          [bitacoraId]
-      );
+      [bitacoraId]
+    );
   }
 
   async createSnapshot(planId) {
-      await this.db.run('DELETE FROM plan_basal_ordenes WHERE plan_id = ?', [planId]);
-      await this.db.run('DELETE FROM plan_basal_personal WHERE plan_id = ?', [planId]);
+    await this.db.run('DELETE FROM plan_basal_ordenes WHERE plan_id = ?', [planId]);
+    await this.db.run('DELETE FROM plan_basal_personal WHERE plan_id = ?', [planId]);
 
-      await this.db.run(`
+    await this.db.run(`
           INSERT INTO plan_basal_ordenes (plan_id, orden_id, proceso_id, maquina_id, turno, dia_semana, secuencia)
           SELECT plan_id, orden_id, proceso_id, maquina_id, turno, dia_semana, secuencia
           FROM plan_detalle_ordenes WHERE plan_id = ?
       `, [planId]);
 
-      await this.db.run(`
+    await this.db.run(`
           INSERT INTO plan_basal_personal (plan_id, persona_id, proceso_id, maquina_id, turno, dia_semana, rol_operativo_id)
           SELECT plan_id, persona_id, proceso_id, maquina_id, turno, dia_semana, rol_operativo_id
           FROM plan_detalle_personal WHERE plan_id = ?
@@ -151,16 +167,16 @@ class PlanningRepository {
   }
 
   async hasBasalPlan(planId) {
-      const res = await this.db.get('SELECT COUNT(*) as count FROM plan_basal_ordenes WHERE plan_id = ?', [planId]);
-      return res.count > 0;
+    const res = await this.db.get('SELECT COUNT(*) as count FROM plan_basal_ordenes WHERE plan_id = ?', [planId]);
+    return res.count > 0;
   }
 
   async getExecutionData(planId) {
-      const plan = await this.findPlanById(planId);
-      if (!plan) return [];
+    const plan = await this.findPlanById(planId);
+    if (!plan) return [];
 
-      // Cruzar órdenes planificadas originalmente vs ejecución real en bitácoras
-      const sql = `
+    // Cruzar órdenes planificadas originalmente vs ejecución real en bitácoras
+    const sql = `
           SELECT
               pbo.orden_id, pbo.proceso_id, pbo.turno, pbo.dia_semana,
               op.codigo_orden,
@@ -179,7 +195,7 @@ class PlanningRepository {
                )
           WHERE pbo.plan_id = ?
       `;
-      return await this.db.query(sql, [plan.fecha_inicio, planId]);
+    return await this.db.query(sql, [plan.fecha_inicio, planId]);
   }
 }
 

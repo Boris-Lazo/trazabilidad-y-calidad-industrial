@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function resolverIdPorCodigo(codigo) {
         try {
-            const res = await fetch('/api/lotes/disponibles');
+            const res = await fetch('/api/lotes');
             const result = await res.json();
             if (!result.success) throw new Error('No se pudo buscar el lote');
             const lote = result.data.find(l => l.codigo_lote === codigo);

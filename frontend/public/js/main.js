@@ -32,38 +32,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Bloqueo estricto de navegación lateral (Arquitectura Imperativa)
-        const navProduccion = document.querySelector('.nav-group');
-        const navControl = document.querySelectorAll('.nav-group')[1];
+        // La navegación libre está permitida.
 
-        // REGLA: Durante cualquier estado de turno (activo o no),
-        // la navegación libre está PROHIBIDA. Solo se permite Bitácora como Hub.
-        const isOperativo = state.estadoTurno !== 'CERRADO';
-
-        if (navProduccion) {
-            navProduccion.querySelectorAll('a').forEach(a => {
-                if (!a.href.includes('bitacora.html')) {
-                    a.style.pointerEvents = 'none';
-                    a.style.opacity = '0.3';
-                }
-            });
-        }
-        if (navControl) {
-            navControl.style.pointerEvents = 'none';
-            navControl.style.opacity = '0.3';
-        }
-
-        // Redirección forzada desde el dashboard (Dashboard NO ES un menú)
-        if (path === '/' || path === '/index.html') {
-            if (state.siguienteAccion === 'IR_A_PROCESO' && state.actionPayload) {
-                const p = state.actionPayload;
-                window.location.href = `/proceso.html?id=${p.proceso_id}&nombre=${encodeURIComponent(p.proceso_nombre)}`;
-            }
-        }
 
         // Guardia Operativa: No permitir saltarse el flujo
-        if (operativePages.some(p => path.includes(p)) && !state.abierta) {
-             window.location.href = '/bitacora.html';
+        if (operativePages.some(p => path.includes(p)) && !state.abierta && !path.includes('ejecucion.html')) {
+            window.location.href = '/bitacora.html';
         }
 
         // Exportar estado para uso en otras pantallas
