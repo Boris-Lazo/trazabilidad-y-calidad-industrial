@@ -72,6 +72,65 @@ const DesignSystem = {
     },
 
     /**
+     * Modal de error estándar (No rompe sesión, permite cerrar y mantener contexto)
+     */
+    showErrorModal(title, message, options = {}) {
+        const modalId = 'ds-error-modal';
+        let modal = document.getElementById(modalId);
+
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = modalId;
+            modal.className = 'modal';
+            modal.style.zIndex = '3000';
+            document.body.appendChild(modal);
+        }
+
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 450px;">
+                <div class="modal-header" style="background: var(--error-bg); border-bottom: 1px solid var(--error);">
+                    <h2 style="color: var(--error); display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="alert-circle" style="width: 20px; height: 20px;"></i>
+                        <span id="ds-modal-title"></span>
+                    </h2>
+                    <button class="btn-close" id="ds-modal-close-x">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="ds-modal-message" style="margin-bottom: 0; line-height: 1.6;"></p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="ds-modal-close-btn">Cerrar</button>
+                    ${options.actionText ? `<button class="btn btn-primary" id="ds-modal-action-btn"></button>` : ''}
+                </div>
+            </div>
+        `;
+
+        modal.querySelector('#ds-modal-title').textContent = title || 'Error del Sistema';
+        modal.querySelector('#ds-modal-message').textContent = message;
+        if (options.actionText) {
+            modal.querySelector('#ds-modal-action-btn').textContent = options.actionText;
+        }
+
+        modal.style.display = 'flex';
+        if (window.lucide) window.lucide.createIcons();
+
+        const close = () => {
+            modal.style.display = 'none';
+            if (options.onClose) options.onClose();
+        };
+
+        modal.querySelector('#ds-modal-close-x').onclick = close;
+        modal.querySelector('#ds-modal-close-btn').onclick = close;
+
+        if (options.actionText && options.onAction) {
+            modal.querySelector('#ds-modal-action-btn').onclick = () => {
+                options.onAction();
+                close();
+            };
+        }
+    },
+
+    /**
      * Toast System
      */
     showToast(message, type = 'info', duration = 3000) {

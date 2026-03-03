@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (error) {
         console.error('Error inicializando proceso:', error);
-        alert('Error al cargar la configuración del proceso.');
+        DesignSystem.showErrorModal('Error de Configuración', 'No se pudo cargar la configuración técnica del proceso.');
     }
 
     function updateReloj() {
@@ -384,7 +384,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const result = await res.json();
             const data = result.data;
 
-            if (!data) { alert('No hay datos cerrados del turno anterior.'); return; }
+            if (!data) {
+                DesignSystem.showErrorModal('Sin Datos', 'No se encontraron registros cerrados del turno anterior para este proceso.');
+                return;
+            }
 
             if (data.parametros_operativos) {
                 Object.entries(data.parametros_operativos).forEach(([key, val]) => {
@@ -402,7 +405,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (e) {
             console.error(e);
-            alert('Error al copiar datos.');
+            DesignSystem.showErrorModal('Error al Copiar', 'Hubo un fallo al intentar recuperar los datos del turno anterior.');
         }
     };
 
@@ -824,7 +827,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const payload = buildPayload(pId);
 
         if (checkObservacionesObligatorias() && !payload.observaciones?.trim()) {
-            alert('Las observaciones son obligatorias si hay rechazos o desviaciones.');
+            DesignSystem.showErrorModal('Observación Requerida', 'Las observaciones son obligatorias cuando existen rechazos o desviaciones en la calidad.');
             return;
         }
 
@@ -837,10 +840,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (response.ok) {
                 if (volver) window.location.href = '/bitacora.html';
-                else { alert('Guardado con éxito.'); await updateBalanceTiempos(); }
+                else {
+                    DesignSystem.showToast('Guardado con éxito.', 'success');
+                    await updateBalanceTiempos();
+                }
             } else {
                 const err = await response.json();
-                alert('Error al guardar: ' + (err.message || 'Error del servidor'));
+                DesignSystem.showErrorModal('Error al Guardar', 'No se pudieron guardar los cambios: ' + (err.message || 'Error del servidor'));
             }
         } catch (e) {
             console.error(e);

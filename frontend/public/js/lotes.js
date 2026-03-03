@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.cambiarEstado = async (id) => {
         const nuevoEstado = prompt("Nuevo estado (activo, pausado, cerrado):");
         if (!nuevoEstado || !['activo', 'pausado', 'cerrado'].includes(nuevoEstado.toLowerCase())) {
-            if (nuevoEstado) alert("Estado inválido.");
+            if (nuevoEstado) DesignSystem.showErrorModal("Estado Inválido", "El estado seleccionado no es válido.");
             return;
         }
 
@@ -61,13 +61,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (res.ok) {
+                DesignSystem.showToast("Estado actualizado correctamente.", "success");
                 cargarLotes();
             } else {
                 const err = await res.json();
-                alert(err.error || "Error al cambiar estado");
+                DesignSystem.showErrorModal("Error al Cambiar Estado", err.error || "No se pudo actualizar el estado del lote.");
             }
         } catch (e) {
-            alert("Error de red");
+            DesignSystem.showErrorModal("Error de Conexión", "Hubo un fallo al intentar conectar con el servidor.");
         }
     };
 

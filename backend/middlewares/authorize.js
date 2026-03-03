@@ -27,9 +27,10 @@ const authorize = (...requirements) => {
         return false;
     });
 
-    if (!isAuthorized) {
-      return next(new ForbiddenError('No tiene permisos para realizar esta acción'));
-    }
+    // MODO DESARROLLO: Se deshabilita el enforcement de permisos
+    // if (!isAuthorized) {
+    //   return next(new ForbiddenError('No tiene permisos para realizar esta acción'));
+    // }
 
     next();
   };

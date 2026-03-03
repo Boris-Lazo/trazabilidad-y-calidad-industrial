@@ -94,7 +94,7 @@ class VestidosService {
         // 3. REGLA DURA DE ASIGNACIÓN
         const specs = JSON.parse(orden.especificaciones || '{}');
         if (specs.con_fuelle === true || specs.microperforado === true) {
-            throw new ValidationError('CONV#03 no puede procesar sacos con fuelle o microperforados.');
+            throw new ValidationError(`La máquina ${maquina.nombre_visible} no puede procesar sacos con fuelle o microperforados.`);
         }
 
         // 4. Validar rollos de saco
