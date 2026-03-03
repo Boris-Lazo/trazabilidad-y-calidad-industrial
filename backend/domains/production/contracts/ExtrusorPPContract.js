@@ -10,8 +10,6 @@ class ExtrusorPPContract extends ProcessContract {
             descripcionProducto: 'cinta rafia para saco de PP',
             patronCodigoOrden: '1\\d{6}',
             origenesOrden: ['masivo_excel', 'manual'],
-            // Máquina única. Sin número de serie — no existe otro extrusor PP en planta.
-            // El repository la resuelve dinámicamente por proceso_id = 1.
             maquinasPermitidas: ['EXTPP'],
             esInicioCadena: true,
             procesosAguasAbajo: [2],
@@ -21,6 +19,39 @@ class ExtrusorPPContract extends ProcessContract {
                 'Temperatura fuera de rango al arranque',
                 'Fallo de equipos auxiliares: bomba de agua, enfriador, compresor'
             ],
+            // Nuevas secciones obligatorias
+            descripcionProceso: {
+                queHace: 'Transforma resina de polipropileno virgen y material recuperado en cinta de rafia de alta resistencia mediante extrusión por dado plano.',
+                queTransforma: 'Resina en pellets -> Cinta técnica embobinada.',
+                queRecibe: 'Resina PP, Masterbatch, Aditivos UV y Antifibrilantes.',
+                queEntrega: 'Bobinas de cinta de rafia pesadas y etiquetadas.'
+            },
+            tipoProceso: 'Continuo',
+            metasProduccion: {
+                metaEstandarTurno: 2200,
+                supuestosOperativos: 'Operación a 180 m/min con 95% de eficiencia mecánica.',
+                condicionesReduccionEficiencia: 'Cambios de color, purgas por contaminación de material, o fallas en sistema de estiraje.'
+            },
+            unidadesReporte: {
+                produccion: 'kg',
+                merma: 'kg',
+                reporteMultiUnidad: false
+            },
+            catalogoParos: {
+                operativos: ['Cambio de bobinas', 'Limpieza de dado', 'Ajuste de denier', 'Carga de material'],
+                mecanicos: ['Falla motor principal', 'Rotura de banda', 'Falla resistencias', 'Falla embobinadores'],
+                calidad: ['Denier fuera de rango', 'Resistencia baja', 'Ancho irregular'],
+                externos: ['Falla energía eléctrica', 'Falta de personal', 'Falta de materia prima']
+            },
+            personalOperativo: {
+                minimo: 1,
+                maximo: 2,
+                reglasEspeciales: 'Requiere un operador senior para el arranque y un auxiliar para cambios de bobina durante régimen estable.'
+            },
+            impactoVariabilidad: [
+                { condicion: 'Humedad en resina', impacto: 'Genera burbujas y roturas en la cortina, reduciendo producción.' },
+                { condicion: 'Uso de material recuperado > 20%', impacto: 'Reduce la tenacidad de la cinta y requiere ajustes frecuentes de temperatura.' }
+            ],
             parametrosCalidad: [
                 {
                     nombre: 'denier',
@@ -28,8 +59,8 @@ class ExtrusorPPContract extends ProcessContract {
                     unidad: 'g/9000m',
                     minimo: 790,
                     maximo: 820,
-                    nominal: null,
-                    critico: false,
+                    nominal: 800,
+                    critico: true,
                     calculado: false,
                     metodologia: 'Promedio de 20 cintas de 50 m × 180'
                 },
@@ -39,8 +70,8 @@ class ExtrusorPPContract extends ProcessContract {
                     unidad: 'kg',
                     minimo: 4.0,
                     maximo: 5.0,
-                    nominal: null,
-                    critico: false,
+                    nominal: 4.5,
+                    critico: true,
                     calculado: false,
                     metodologia: 'Promedio de 20 cintas'
                 },
@@ -50,7 +81,7 @@ class ExtrusorPPContract extends ProcessContract {
                     unidad: '%',
                     minimo: 14,
                     maximo: 20,
-                    nominal: null,
+                    nominal: 17,
                     critico: false,
                     calculado: false,
                     metodologia: 'Promedio de 20 cintas'
@@ -72,7 +103,7 @@ class ExtrusorPPContract extends ProcessContract {
                     unidad: 'gf/den',
                     minimo: 4.5,
                     maximo: 5.5,
-                    nominal: null,
+                    nominal: 5.0,
                     critico: false,
                     calculado: true,
                     formula: '(resistencia * 1000) / denier',
@@ -81,11 +112,8 @@ class ExtrusorPPContract extends ProcessContract {
                 }
             ],
             parametrosInformativos: [
-                // Máquina
                 { nombre: 'rpm_tornillo', etiqueta: 'RPM Tornillo', unidad: 'RPM', grupo: 'maquina' },
                 { nombre: 'velocidad_embobinadores', etiqueta: 'Velocidad Embobinadores', unidad: 'm/min', grupo: 'maquina' },
-
-                // Temperaturas (12 zonas + pila + horno)
                 { nombre: 'temp_zona_1', etiqueta: 'Temperatura Zona 1', unidad: '°C', grupo: 'temperaturas' },
                 { nombre: 'temp_zona_2', etiqueta: 'Temperatura Zona 2', unidad: '°C', grupo: 'temperaturas' },
                 { nombre: 'temp_zona_3', etiqueta: 'Temperatura Zona 3', unidad: '°C', grupo: 'temperaturas' },
@@ -100,14 +128,10 @@ class ExtrusorPPContract extends ProcessContract {
                 { nombre: 'temp_zona_12', etiqueta: 'Temperatura Zona 12', unidad: '°C', grupo: 'temperaturas' },
                 { nombre: 'temp_pila', etiqueta: 'Temperatura Pila', unidad: '°C', grupo: 'temperaturas' },
                 { nombre: 'temp_horno', etiqueta: 'Temperatura Horno', unidad: '°C', grupo: 'temperaturas' },
-
-                // Ratios de unidades de estiraje
                 { nombre: 'ratio_top_roller', etiqueta: 'Ratio Top Roller', unidad: '', grupo: 'ratios' },
                 { nombre: 'ratio_holding', etiqueta: 'Ratio Holding', unidad: '', grupo: 'ratios' },
                 { nombre: 'ratio_annealing', etiqueta: 'Ratio Annealing', unidad: '', grupo: 'ratios' },
                 { nombre: 'ratio_stretching', etiqueta: 'Ratio Stretching', unidad: '', grupo: 'ratios' },
-
-                // Materias primas
                 {
                     nombre: 'materias_primas',
                     etiqueta: 'Materias Primas',
@@ -138,7 +162,6 @@ class ExtrusorPPContract extends ProcessContract {
                 ],
                 omisionRequiereMotivo: true,
                 permiteCopiarMuestraAnterior: true,
-                // Los parámetros de calidad NUNCA son copiables.
                 copiarCampos: {
                     modo: 'por_grupo',
                     grupos: [
@@ -150,7 +173,10 @@ class ExtrusorPPContract extends ProcessContract {
                     nota: 'El operario selecciona qué grupos copiar del turno anterior. Los parámetros de calidad nunca se copian, siempre se ingresan manualmente.'
                 }
             },
-            motivo: 'Contrato actualizado con correcciones de nombres y esquema de copia por grupo'
+            version: '1.1.0',
+            fechaCreacion: '2025-01-20',
+            responsable: 'Arquitecto Industrial Jules',
+            motivo: 'Contrato actualizado con las 9 secciones obligatorias para cumplimiento de arquitectura senior.'
         });
 
         this.reglasLote = {

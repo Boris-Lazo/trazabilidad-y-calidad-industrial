@@ -56,6 +56,37 @@ class ProcessContract {
         this.turnosPermitidos = data.turnosPermitidos || [1, 2, 3];
         this.origenOperario = 'modulo_planificacion';
 
+        // Estructura obligatoria del Contrato Técnico de Proceso (Senior Architect Requirement)
+        this.descripcionProceso = data.descripcionProceso || {
+            queHace: '',
+            queTransforma: '',
+            queRecibe: '',
+            queEntrega: ''
+        };
+        this.tipoProceso = data.tipoProceso || 'Por orden'; // Continuo / Por lotes / Por orden / Mixto
+        this.metasProduccion = data.metasProduccion || {
+            metaEstandarTurno: null,
+            supuestosOperativos: '',
+            condicionesReduccionEficiencia: ''
+        };
+        this.unidadesReporte = data.unidadesReporte || {
+            produccion: this.unidadProduccion,
+            merma: 'kg',
+            reporteMultiUnidad: false
+        };
+        this.catalogoParos = data.catalogoParos || {
+            operativos: [],
+            mecanicos: [],
+            calidad: [],
+            externos: []
+        };
+        this.personalOperativo = data.personalOperativo || {
+            minimo: 1,
+            maximo: 2,
+            reglasEspeciales: ''
+        };
+        this.impactoVariabilidad = data.impactoVariabilidad || [];
+
         // Historial inmutable de versiones
         this.historial = historial.length > 0 ? historial : [{
             version,
@@ -126,6 +157,13 @@ class ProcessContract {
             esInicioCadena: this.esInicioCadena,
             turnosPermitidos: this.turnosPermitidos,
             origenOperario: this.origenOperario,
+            descripcionProceso: this.descripcionProceso,
+            tipoProceso: this.tipoProceso,
+            metasProduccion: this.metasProduccion,
+            unidadesReporte: this.unidadesReporte,
+            catalogoParos: this.catalogoParos,
+            personalOperativo: this.personalOperativo,
+            impactoVariabilidad: this.impactoVariabilidad,
             historial: this.historial
         };
     }

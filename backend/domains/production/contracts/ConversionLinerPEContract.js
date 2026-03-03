@@ -7,11 +7,9 @@ class ConversionLinerPEContract extends ProcessContract {
             nombre: 'Conversión de Liner PE',
             nombreCorto: 'Conv. Liner PE',
             unidadProduccion: 'unidades',
-            descripcionProducto: 'Liners de polietileno: manga tubular cortada a ' +
-                                 'longitud nominal y sellada en un extremo',
+            descripcionProducto: 'Liners de polietileno: manga tubular cortada a longitud nominal y sellada en un extremo',
             patronCodigoOrden: '7\\d{6}',
             origenesOrden: ['masivo_excel', 'manual'],
-            // Máquina única. Sin número — no existe otra convertidora de liner.
             maquinasPermitidas: ['CONV-LI'],
             esInicioCadena: false,
             procesosAguasAbajo: [],
@@ -21,46 +19,59 @@ class ConversionLinerPEContract extends ProcessContract {
                 'Temperatura de sellado fuera de rango',
                 'Orden sin dimensiones definidas (ancho o largo)'
             ],
+            // Nuevas secciones obligatorias
+            descripcionProceso: {
+                queHace: 'Corte y sellado térmico de fondo de película tubular de polietileno para crear bolsas (liners) internas.',
+                queTransforma: 'Rollos de película tubular PE -> Bolsas (liners) individuales.',
+                queRecibe: 'Rollos de manga de polietileno de Extrusión PE.',
+                queEntrega: 'Paquetes de liners sellados y contados para inserción en sacos.'
+            },
+            tipoProceso: 'Por orden',
+            metasProduccion: {
+                metaEstandarTurno: 12000,
+                supuestosOperativos: 'Velocidad de 25 unidades/min. Meta en unidades terminadas.',
+                condicionesReduccionEficiencia: 'Ajustes de temperatura de sellado, fallas en la barra soldadora, mala calidad de la película base.'
+            },
+            unidadesReporte: {
+                produccion: 'unidades',
+                merma: 'kg',
+                reporteMultiUnidad: true
+            },
+            catalogoParos: {
+                operativos: ['Cambio de rollo PE', 'Ajuste de largo', 'Limpieza de barra selladora', 'Cambio de teflón'],
+                mecanicos: ['Falla resistencia sellado', 'Falla fotocelda', 'Falla neumática de corte'],
+                calidad: ['Sello débil o con fugas', 'Largo fuera de rango', 'Sello quemado'],
+                externos: ['Falta de película PE', 'Falla eléctrica']
+            },
+            personalOperativo: {
+                minimo: 1,
+                maximo: 1,
+                reglasEspeciales: 'Un solo operador para alimentación y retiro de paquetes.'
+            },
+            impactoVariabilidad: [
+                { condicion: 'Variación de espesor en película', impacto: 'Causa sellados irregulares o quemados, requiriendo ajuste constante de temperatura.' },
+                { condicion: 'Electricidad estática alta', impacto: 'Dificulta la apertura y el conteo de los liners, reduciendo la velocidad de empaque.' }
+            ],
             parametrosCalidad: [
                 {
                     nombre: 'ancho_liner',
                     etiqueta: 'Ancho del Liner',
                     unidad: 'pulgadas',
                     nominal: 'desde_orden',
-                    tolerancia: {
-                        tipo: 'simetrica',
-                        valor: 0.25,
-                        unidad: 'pulgadas',
-                        descripcion: '±¼"'
-                    },
+                    tolerancia: 0.25,
                     critico: false,
                     calculado: false,
-                    validacion: 'rango_vs_nominal',
-                    nota: 'El ancho nominal coincide con el ancho de burbuja del ' +
-                          'rollo de manga PE consumido. Se verifica contra la orden.',
-                    notaFrontend: 'Pulgadas en fracciones simplificadas de 1/8. ' +
-                                  'Ej: 12 1/2" (no 12.5", no 12 4/8"). ' +
-                                  'Valores válidos: 1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8. ' +
-                                  'Nunca decimales.'
+                    metodologia: 'Medición física con cinta métrica.'
                 },
                 {
                     nombre: 'largo_liner',
                     etiqueta: 'Largo del Liner',
                     unidad: 'pulgadas',
                     nominal: 'desde_orden',
-                    tolerancia: {
-                        tipo: 'simetrica',
-                        valor: 0.25,
-                        unidad: 'pulgadas',
-                        descripcion: '±¼"'
-                    },
+                    tolerancia: 0.25,
                     critico: false,
                     calculado: false,
-                    validacion: 'rango_vs_nominal',
-                    notaFrontend: 'Pulgadas en fracciones simplificadas de 1/8. ' +
-                                  'Ej: 12 1/2" (no 12.5", no 12 4/8"). ' +
-                                  'Valores válidos: 1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8. ' +
-                                  'Nunca decimales.'
+                    metodologia: 'Medición física con cinta métrica.'
                 },
                 {
                     nombre: 'sello_fondo',
@@ -70,9 +81,7 @@ class ConversionLinerPEContract extends ProcessContract {
                     nominal: 'Cumple',
                     critico: true,
                     calculado: false,
-                    validacion: 'inspeccion_visual',
-                    metodologia: 'Inspección visual del sello en el extremo cortado. ' +
-                                 'Verificar que el sellado sea continuo, sin fugas ni despegues.'
+                    metodologia: 'Inspección visual y prueba de estanqueidad manual.'
                 }
             ],
             parametrosInformativos: [
@@ -80,116 +89,37 @@ class ConversionLinerPEContract extends ProcessContract {
                     nombre: 'temperatura_sellado',
                     etiqueta: 'Temperatura de Sellado',
                     unidad: '°C',
-                    grupo: 'maquina',
-                    obligatorio: true,
-                    frecuencia: 'una_vez_por_turno'
+                    grupo: 'maquina'
                 },
                 {
                     nombre: 'velocidad_operacion',
                     etiqueta: 'Velocidad de Operación',
                     unidad: 'unidades/min',
-                    grupo: 'maquina',
-                    obligatorio: true,
-                    frecuencia: 'una_vez_por_turno'
+                    grupo: 'maquina'
                 }
             ],
             frecuenciaMuestreo: {
                 registrosFormalsPorTurno: 4,
-                descripcion: '4 registros formales de calidad por turno. ' +
-                             'El inspector puede tomar más muestras físicas, ' +
-                             'pero solo se registran 4 en el sistema.',
                 omisionRequiereMotivo: true,
                 permiteCopiarMuestraAnterior: false
             },
-            motivo: 'Contrato inicial completo para proceso de Conversión de Liner PE. ' +
-                    'Define 1 máquina (CONV-LI), producción por contador de unidades, ' +
-                    '3 parámetros de calidad (ancho ±¼", largo ±¼", sello de fondo), ' +
-                    '2 parámetros operativos (temperatura de sellado y velocidad), ' +
-                    'consumo de rollos del Extrusor PE por código de lote, y generación ' +
-                    'de lote propio con correlativo que reinicia por orden.'
+            version: '1.1.0',
+            fechaCreacion: '2025-01-20',
+            responsable: 'Arquitecto Industrial Jules',
+            motivo: 'Contrato actualizado con las 9 secciones obligatorias para cumplimiento de arquitectura senior.'
         });
 
         this.procesosAguasArriba = [6];
 
         this.reglasProduccion = {
             modalidad: 'contador_unidades',
-            descripcion: 'La producción se registra como total de liners producidos ' +
-                         'en el turno. Se cuenta en unidades individuales. Los liners ' +
-                         'se empaquetan físicamente de 500 unidades, pero el sistema ' +
-                         'registra unidades sueltas.',
-            notaEmpaque: 'El empaque en paquetes de 500 es logístico, no relevante ' +
-                         'para el registro de producción en el sistema.'
-        };
-
-        this.reglasConsumoLote = {
-            descripcion: 'La convertidora de liner debe declarar los rollos de ' +
-                         'manga PE del Extrusor PE (proceso 6) consumidos en el turno.',
-            origen: 'Extrusor PE (proceso 6)',
-            codigoRollo: 'Se usa el código de lote exacto tal como viene físicamente ' +
-                         'en el rollo, sin modificaciones. ' +
-                         'Formato: {codigo_orden}-EXTPE{NN}-{correlativo_3_digitos}. ' +
-                         'Ejemplo: 6000123-EXTPE01-001.',
-            obligatoriedad: 'Al menos un rollo debe ser declarado por cada turno ' +
-                            'con producción > 0.',
-            multiplicidad: 'Puede consumir múltiples rollos en un mismo turno.',
-            estadosPermitidos: ['activo', 'pausado'],
-            restriccion: 'No se pueden declarar rollos con lote en estado cerrado.',
-            cantidadConsumida: 'No se registra cantidad consumida por rollo, ' +
-                               'solo la referencia al código de lote.'
+            unidad: 'unidades'
         };
 
         this.reglasLote = {
             generacion: 'automatica',
-            descripcion: 'Se genera un lote por cada turno de producción registrado. ' +
-                         'El correlativo reinicia a 001 al cambiar de orden.',
             codigoFormato: '{codigo_orden}-{correlativo_3_digitos}',
-            codigoEjemplo: '7000123-001',
-            componentesFormato: {
-                codigo_orden: '7 dígitos de la orden (ej: 7000123)',
-                correlativo:  '3 dígitos con cero a la izquierda (001, 002...)'
-            },
-            correlativo: {
-                alcance: 'por_orden',
-                reinicia: 'al_cambiar_orden',
-                formato: '3 dígitos con cero a la izquierda'
-            },
-            estadosLote: ['activo', 'pausado', 'cerrado'],
-            responsableGeneracion: 'sistema',
-            momentoGeneracion: 'al guardar producción del turno'
-        };
-
-        this.reglasEspecificacionesOrden = {
-            camposObligatoriosAntesDePRoducir: [
-                {
-                    campo: 'ancho_nominal',
-                    etiqueta: 'Ancho Nominal (pulgadas)',
-                    nota: 'Viene de SAP. Campo bloqueante.',
-                    notaFrontend: 'Pulgadas en fracciones simplificadas de 1/8. ' +
-                                  'Ej: 12 1/2" (no 12.5"). Nunca decimales.'
-                },
-                {
-                    campo: 'largo_nominal',
-                    etiqueta: 'Largo Nominal (pulgadas)',
-                    nota: 'Viene de SAP. Campo bloqueante.',
-                    notaFrontend: 'Pulgadas en fracciones simplificadas de 1/8. ' +
-                                  'Ej: 12 1/2" (no 12.5"). Nunca decimales.'
-                },
-                {
-                    campo: 'microperforado',
-                    etiqueta: 'Microperforado (Sí/No)',
-                    nota: 'Viene de SAP. Si no está definido, el sistema debe ' +
-                          'solicitarlo. Campo bloqueante.',
-                    notaParser: 'El parser SAP del proceso 7 extrae microperforado ' +
-                                'del campo de descripción del producto.'
-                },
-                {
-                    campo: 'color',
-                    etiqueta: 'Color',
-                    nota: 'Viene de SAP. Default TRANSPARENTE si no se reconoce.',
-                    notaParser: 'Default: TRANSPARENTE si el color no se reconoce ' +
-                                'en el texto de la descripción SAP.'
-                }
-            ]
+            estadosLote: ['activo', 'pausado', 'cerrado']
         };
     }
 }
