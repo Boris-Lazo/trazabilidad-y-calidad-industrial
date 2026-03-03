@@ -24,7 +24,40 @@ class LaminadoContract extends ProcessContract {
                 'Temperatura fuera de rango al arranque',
                 'Cambio de orden en proceso'
             ],
-            maquinasPermitidas: ['LAM01'],
+            maquinasPermitidas: ['LAM-01'],
+            // Nuevas secciones obligatorias
+            descripcionProceso: {
+                queHace: 'Recubrimiento de tela circular con una capa delgada de polímero fundido para impermeabilización y refuerzo.',
+                queTransforma: 'Tela circular + Resina de laminación -> Tela laminada.',
+                queRecibe: 'Rollos de tela de telares y resinas de polietileno/polipropileno.',
+                queEntrega: 'Rollos de tela laminada listos para impresión o conversión.'
+            },
+            tipoProceso: 'Por orden',
+            metasProduccion: {
+                metaEstandarTurno: 8000,
+                supuestosOperativos: 'Velocidad de línea de 40 m/min. Meta en metros lineales.',
+                condicionesReduccionEficiencia: 'Problemas de adherencia, fallas en el tratador corona, o defectos en la tela base.'
+            },
+            unidadesReporte: {
+                produccion: 'metros',
+                merma: 'kg',
+                reporteMultiUnidad: true
+            },
+            catalogoParos: {
+                operativos: ['Montaje de rollo', 'Cambio de receta', 'Limpieza de labios de dado', 'Enhebrado'],
+                mecanicos: ['Falla extrusor laminación', 'Falla sistema de enfriamiento', 'Falla tratador corona'],
+                calidad: ['Baja adherencia', 'Variación de gramaje cortina', 'Ancho incorrecto'],
+                externos: ['Falta de tela base', 'Falla energía', 'Falta de resina']
+            },
+            personalOperativo: {
+                minimo: 2,
+                maximo: 3,
+                reglasEspeciales: 'Requiere un operador de extrusión y un auxiliar de montaje/desmontaje de rollos.'
+            },
+            impactoVariabilidad: [
+                { condicion: 'Humedad en resina de laminación', impacto: 'Causa ojos de pescado y falta de adherencia.' },
+                { condicion: 'Tensión irregular en tela base', impacto: 'Provoca arrugas en el laminado y desperdicio de material.' }
+            ],
             parametrosCalidad: [
                 {
                     nombre: 'gramaje_cortina',
@@ -70,7 +103,6 @@ class LaminadoContract extends ProcessContract {
                 }
             ],
             parametrosInformativos: [
-                // Grupo Temperaturas
                 { nombre: 'temp_zona_1', etiqueta: 'Temperatura Zona 1', unidad: '°C', grupo: 'temperaturas' },
                 { nombre: 'temp_zona_2', etiqueta: 'Temperatura Zona 2', unidad: '°C', grupo: 'temperaturas' },
                 { nombre: 'temp_zona_3', etiqueta: 'Temperatura Zona 3', unidad: '°C', grupo: 'temperaturas' },
@@ -86,13 +118,9 @@ class LaminadoContract extends ProcessContract {
                 { nombre: 'temp_zona_13', etiqueta: 'Temperatura Zona 13', unidad: '°C', grupo: 'temperaturas' },
                 { nombre: 'temp_zona_14', etiqueta: 'Temperatura Zona 14', unidad: '°C', grupo: 'temperaturas' },
                 { nombre: 'temp_rodo_precalentamiento', etiqueta: 'Temperatura Rodo de Precalentamiento', unidad: '°C', grupo: 'temperaturas' },
-
-                // Grupo Máquina
                 { nombre: 'rpm_extrusor', etiqueta: 'RPM Extrusor de Laminado', unidad: 'RPM', grupo: 'maquina' },
                 { nombre: 'velocidad_linea', etiqueta: 'Velocidad de Línea', unidad: 'm/min', grupo: 'maquina' },
                 { nombre: 'amperaje_tratador_corona', etiqueta: 'Amperaje Tratador Corona', unidad: 'A', grupo: 'maquina' },
-
-                // Grupo Producción Contador
                 {
                     nombre: 'acumulado_contador',
                     etiqueta: 'Acumulado Contador al cierre del tramo',
@@ -123,10 +151,10 @@ class LaminadoContract extends ProcessContract {
                 permiteCopiarMuestraAnterior: false,
                 nota: 'Los parámetros operativos (temperaturas, RPM, velocidad) no cambian rollo a rollo dentro del mismo tramo de orden. Solo se registran una vez por tramo. Los parámetros de calidad se registran individualmente por rollo.'
             },
-            version: '1.0.0',
-            fechaCreacion: '2025-01-01',
-            responsable: 'Sistema (Despliegue)',
-            motivo: 'Contrato inicial completo para proceso de Laminado. Define consumo de rollos de Telares por código individual, materias primas de cortina con hoja técnica PDF por lote, parámetros de calidad por rollo (gramaje cortina, gramaje tejido referencial, adherencia, ancho), 15 temperaturas más parámetros operativos del extrusor integrado, verificación de color por cambio de orden, y desperdicio en kg con destino a Peletizado.'
+            version: '1.1.0',
+            fechaCreacion: '2025-01-20',
+            responsable: 'Arquitecto Industrial Jules',
+            motivo: 'Contrato actualizado con las 9 secciones obligatorias para cumplimiento de arquitectura senior.'
         });
 
         // Campos específicos de laminado
