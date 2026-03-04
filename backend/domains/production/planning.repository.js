@@ -181,6 +181,8 @@ class PlanningRepository {
               pbo.orden_id, pbo.proceso_id, pbo.turno, pbo.dia_semana,
               op.codigo_orden,
               bt.id as bitacora_id,
+              bt.turno as turno_ejecutado,
+              CAST(strftime('%w', bt.fecha_operativa) AS INTEGER) as dia_ejecutado,
               rt.cantidad_producida,
               rt.fecha_hora as fecha_ejecucion
           FROM plan_basal_ordenes pbo

@@ -1,6 +1,6 @@
 const ValidationError = require('../../shared/errors/ValidationError');
 const NotFoundError = require('../../shared/errors/NotFoundError');
-const logger = require('../../shared/logger/logger');
+const { logger } = require('../../shared/logger/logger');
 
 class ExtrusorPPService {
   constructor(extrusorPPRepository, loteService, lineaEjecucionRepository, auditService) {

@@ -208,15 +208,49 @@ class PlanningService {
 
   async getKPIs(planId) {
     const execution = await this.planningRepository.getExecutionData(planId);
-    if (!execution.length) return { cumplimiento_global: 0, total_ordenes: 0, ejecutadas: 0 };
+    if (!execution.length) {
+      return {
+        cumplimiento_global: 0,
+        total_ordenes: 0,
+        ejecutadas_en_fecha: 0,
+        ejecutadas_fuera_fecha: 0,
+        no_ejecutadas: 0,
+        detalle: []
+      };
+    }
 
     const total = execution.length;
-    const ejecutadas = execution.filter(e => e.bitacora_id && e.cantidad_producida > 0).length;
+
+    // Ejecutada en fecha = produjo en el día y turno exacto planificado
+    const ejecutadasEnFecha = execution.filter(e => {
+      // Conversión SQLite (0=Dom, 1=Lun...6=Sab) a Plan (1=Lun...7=Dom)
+      let diaEjec = e.dia_ejecutado;
+      if (diaEjec === 0) diaEjec = 7;
+
+      return e.bitacora_id &&
+        e.cantidad_producida > 0 &&
+        e.turno_ejecutado === e.turno &&
+        diaEjec === e.dia_semana;
+    }).length;
+
+    // Ejecutada fuera de fecha = produjo pero en día o turno distinto
+    const ejecutadasFueraFecha = execution.filter(e => {
+      let diaEjec = e.dia_ejecutado;
+      if (diaEjec === 0) diaEjec = 7;
+
+      return e.bitacora_id &&
+        e.cantidad_producida > 0 &&
+        (e.turno_ejecutado !== e.turno || diaEjec !== e.dia_semana);
+    }).length;
+
+    const noEjecutadas = total - ejecutadasEnFecha - ejecutadasFueraFecha;
 
     return {
-      cumplimiento_global: Math.round((ejecutadas / total) * 100),
+      cumplimiento_global: Math.round((ejecutadasEnFecha / total) * 100),
       total_ordenes: total,
-      ejecutadas: ejecutadas,
+      ejecutadas_en_fecha: ejecutadasEnFecha,
+      ejecutadas_fuera_fecha: ejecutadasFueraFecha,
+      no_ejecutadas: noEjecutadas,
       detalle: execution
     };
   }

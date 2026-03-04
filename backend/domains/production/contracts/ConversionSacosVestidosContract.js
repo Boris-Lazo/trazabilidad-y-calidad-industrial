@@ -10,7 +10,7 @@ class ConversionSacosVestidosContract extends ProcessContract {
             descripcionProducto: 'Sacos de polipropileno con liner de polietileno insertado — corte, costura de fondo y vestido en un solo proceso',
             patronCodigoOrden: '9\\d{6}',
             origenesOrden: ['masivo_excel', 'manual'],
-            maquinasPermitidas: ['CONV#03'],
+            maquinasPermitidas: ['CONV03'],
             esInicioCadena: false,
             procesosAguasAbajo: [],
             restriccionesInicio: [
@@ -129,6 +129,10 @@ class ConversionSacosVestidosContract extends ProcessContract {
 
         this.reglasRollosEntrada = {
             descripcion: 'Consume material de saco y manga PE simultáneamente.'
+        };
+
+        this.reglasAsignacionMaquina = {
+            'CONV03': { con_fuelle: false, microperforado: false }
         };
     }
 }

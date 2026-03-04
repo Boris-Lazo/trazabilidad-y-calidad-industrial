@@ -71,7 +71,10 @@ class PeletizadoContract extends ProcessContract {
                     metodologia: 'Descripción del tipo de desperdicio procesado.'
                 }
             ],
-            parametrosInformativos: [],
+            parametrosInformativos: [
+                // PENDIENTE: parámetros operacionales (temperaturas, RPM, velocidad
+                // de extrusión) serán agregados cuando se disponga del relevamiento.
+            ],
             frecuenciaMuestreo: {
                 registrosFormalsPorTurno: 2,
                 distribucion: [
@@ -88,6 +91,28 @@ class PeletizadoContract extends ProcessContract {
         });
 
         this.procesosAguasAbajo = [1, 3];
+
+        this.reglasReporteBolsas = {
+            descripcion: 'Al cierre del turno el operario registra el número de bolsas ' +
+                         'de pellet producidas, cada bolsa pesa nominalmente 25 kg. ' +
+                         'El sistema calcula el peso teórico (bolsas × 25 kg) y lo ' +
+                         'contrasta con el peso real pesado. La diferencia queda ' +
+                         'registrada en el reporte de turno.',
+            pesoBolsaNominal_kg: 25,
+            registroObligatorio: true,
+            camposReporte: [
+                { nombre: 'bolsas_producidas', tipo: 'entero', etiqueta: 'Número de bolsas' },
+                { nombre: 'peso_real_kg', tipo: 'numerico', etiqueta: 'Peso real total (kg)' },
+                { nombre: 'peso_teorico_kg', tipo: 'calculado',
+                  formula: 'bolsas_producidas * 25',
+                  etiqueta: 'Peso teórico (kg)' },
+                { nombre: 'diferencia_kg', tipo: 'calculado',
+                  formula: 'peso_real_kg - peso_teorico_kg',
+                  etiqueta: 'Diferencia (kg)' }
+            ],
+            nota: 'La diferencia entre peso teórico y real es informativa. ' +
+                  'No bloquea el guardado del turno pero sí queda visible en el reporte.'
+        };
     }
 }
 

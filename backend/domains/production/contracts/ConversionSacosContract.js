@@ -23,7 +23,7 @@ class ConversionSacosContract extends ProcessContract {
                 'Cambio de orden en proceso',
                 'Rotura de hilo de costura'
             ],
-            maquinasPermitidas: ['CONV#01', 'CONV#02', 'CONV#03'],
+            maquinasPermitidas: ['CONV01', 'CONV02', 'CONV03'],
             // Nuevas secciones obligatorias
             descripcionProceso: {
                 queHace: 'Corte automático de tela circular y costura de fondo para formar el saco industrial.',
@@ -142,6 +142,12 @@ class ConversionSacosContract extends ProcessContract {
             unidad: 'kg',
             destinos: ['Peletizado', 'Descarte final'],
             registroObligatorio: true
+        };
+
+        this.reglasAsignacionMaquina = {
+            'CONV01': { con_fuelle: true, microperforado: true },
+            'CONV02': { con_fuelle: true, microperforado: true },
+            'CONV03': { con_fuelle: false, microperforado: false }
         };
     }
 }
