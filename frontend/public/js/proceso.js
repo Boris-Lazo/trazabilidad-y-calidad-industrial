@@ -951,12 +951,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         await guardar(volver);
     }
 
+    function cerrarModalDesviacion() {
+        document.getElementById('modal-desviacion').style.display = 'none';
+        document.getElementById('select-motivo-desv').value = '';
+        document.getElementById('comentario-desv').value = '';
+        document.getElementById('form-desv-tipo').value = '';
+        document.getElementById('form-desv-plan').value = '';
+        document.getElementById('form-desv-actual').value = '';
+    }
+
     function abrirModalDesviacion(tipo, plan, actual, volver) {
         document.getElementById('form-desv-tipo').value = tipo;
         document.getElementById('form-desv-plan').value = plan;
         document.getElementById('form-desv-actual').value = actual;
         document.getElementById('desviacion-mensaje').textContent = `Se detectó un cambio de ${tipo.replace('_', ' ')} respecto a lo planificado.`;
         document.getElementById('modal-desviacion').style.display = 'flex';
+
+        document.getElementById('btn-cerrar-desv').onclick = cerrarModalDesviacion;
+        document.getElementById('btn-cancelar-desv').onclick = cerrarModalDesviacion;
+
         document.getElementById('btn-confirmar-desv').onclick = async () => {
             await fetch('/api/planning/deviation', {
                 method: 'POST',
@@ -972,7 +985,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     comentario: document.getElementById('comentario-desv').value
                 })
             });
-            document.getElementById('modal-desviacion').style.display = 'none';
+            cerrarModalDesviacion();
             await guardar(volver);
         };
     }

@@ -343,7 +343,10 @@
     <!-- Modal Desviación (Obligatorio) -->
     <div id="modal-desviacion" class="modal-planning" style="display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center;">
         <div class="card" style="width: 500px; border-top: 5px solid var(--danger);">
-            <div class="card-header">⚠️ REGISTRO DE DESVIACIÓN DETECTADA</div>
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>⚠️ REGISTRO DE DESVIACIÓN DETECTADA</span>
+                <button id="btn-cerrar-desv" class="btn-close" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: inherit; line-height: 1;">&times;</button>
+            </div>
             <div style="padding: 1.5rem;">
                 <p id="desviacion-mensaje" style="font-weight: bold; margin-bottom: 1rem;"></p>
                 <input type="hidden" id="form-desv-tipo">
@@ -360,6 +363,7 @@
                 </div>
 
                 <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button id="btn-cancelar-desv" class="btn btn-secondary">Cancelar</button>
                     <button id="btn-confirmar-desv" class="btn btn-primary">Confirmar y Continuar</button>
                 </div>
             </div>
