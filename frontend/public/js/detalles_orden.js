@@ -25,20 +25,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const infoGeneral = document.getElementById('info-general');
             infoGeneral.innerHTML = `
                 <div>
-                    <label style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Producto</label>
-                    <div style="font-weight: 600;">${orden.producto || 'N/A'}</div>
+                    <label class="text-muted font-xs uppercase">Producto</label>
+                    <div class="text-bold">${orden.producto || 'N/A'}</div>
                 </div>
                 <div>
-                    <label style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Cantidad Objetivo</label>
+                    <label class="text-muted font-xs uppercase">Cantidad Objetivo</label>
                     <div>${orden.cantidad_objetivo || 0} ${orden.unidad || ''}</div>
                 </div>
                 <div>
-                    <label style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Fecha Planificada</label>
+                    <label class="text-muted font-xs uppercase">Fecha Planificada</label>
                     <div>${orden.fecha_planificada ? new Date(orden.fecha_planificada).toLocaleDateString() : 'N/A'}</div>
                 </div>
                 <div>
-                    <label style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Prioridad</label>
-                    <div style="text-transform: capitalize;">${orden.prioridad || 'media'}</div>
+                    <label class="text-muted font-xs uppercase">Prioridad</label>
+                    <div class="capitalize">${orden.prioridad || 'media'}</div>
                 </div>
             `;
 
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tablaLineas = document.querySelector('#tabla-lineas tbody');
             tablaLineas.innerHTML = '';
             if (data.lineas_ejecucion.length === 0) {
-                tablaLineas.innerHTML = '<tr><td colspan="4" style="text-align: center;">No hay líneas asociadas</td></tr>';
+                tablaLineas.innerHTML = '<tr><td colspan="4" class="text-center">No hay líneas asociadas</td></tr>';
             } else {
                 data.lineas_ejecucion.forEach(linea => {
                     const fila = `
@@ -74,12 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td><strong>Proceso #${linea.proceso_id}</strong></td>
                             <td><span class="badge badge-info">${linea.estado}</span></td>
                             <td>
-                                <div style="width: 100px; background: var(--border-color); height: 6px; border-radius: 3px;">
-                                    <div style="width: 60%; background: var(--success); height: 100%; border-radius: 3px;"></div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill w-60"></div>
                                 </div>
                             </td>
                             <td>
-                                <a href="/ejecucion.html?lineaId=${linea.id}" class="button button-outline" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;">Operar</a>
+                                <a href="/ejecucion.html?lineaId=${linea.id}" class="button button-outline font-xs p-1">Operar</a>
                             </td>
                         </tr>
                     `;
@@ -90,9 +90,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Historial (Simulado o real si tuviéramos tabla auditoría)
             const historial = document.getElementById('historial-eventos');
             historial.innerHTML = `
-                <div style="border-left: 2px solid var(--primary-color); padding-left: 1rem; position: relative;">
-                    <div style="font-size: 0.8rem; font-weight: 600;">Orden Creada</div>
-                    <div style="font-size: 0.7rem; color: var(--text-muted);">${new Date(orden.fecha_creacion).toLocaleString()}</div>
+                <div class="historial-event-item">
+                    <div class="font-sm text-bold">Orden Creada</div>
+                    <div class="font-xs text-muted">${new Date(orden.fecha_creacion).toLocaleString()}</div>
                 </div>
             `;
 

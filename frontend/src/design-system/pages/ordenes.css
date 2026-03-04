@@ -1,0 +1,129 @@
+/* Page-specific styles for Órdenes */
+
+.ordenes-importar-modal {
+    max-width: 950px;
+    width: 95vw;
+}
+
+.ordenes-importar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ordenes-importar-step1-btn {
+    width: 200px;
+}
+
+.ordenes-importar-preview-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.ordenes-importar-sticky-head {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg-card);
+}
+
+.ordenes-importar-ya-existentes-title {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+}
+
+.ordenes-importar-ya-existentes-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.ordenes-importar-no-reconocidas-alert {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.ordenes-importar-error-modal {
+    max-width: 500px;
+}
+
+.ordenes-importar-error-header {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+.ordenes-importar-error-btn-close {
+    padding: 4px;
+    min-height: auto;
+    border: none !important;
+    background: transparent !important;
+    color: var(--error) !important;
+}
+
+.ordenes-importar-error-btn-ok {
+    background: var(--error) !important;
+    border-color: var(--error) !important;
+}
+
+.dot-warning {
+    color: var(--warning);
+}
+
+.grid-custom-orden {
+    display: grid !important;
+    grid-template-columns: 2fr 1fr 1fr !important;
+}
+
+.import-stat-card {
+    padding: 12px;
+    flex: 1;
+    min-width: 130px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.import-stat-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+.import-stat-value {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.import-stat-sub {
+    font-size: 10px;
+    color: var(--text-secondary);
+    opacity: 0.3;
+}
+
+.espec-list {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.espec-item { margin-bottom: 2px; }
+
+.editable-val {
+    border-bottom: 1px dashed var(--text-secondary);
+    padding: 0 2px;
+}
+
+.select-pendiente {
+    padding: 2px 4px;
+    height: 24px;
+    font-size: 11px;
+}
+
+.import-results-container {
+    margin-top: 8px;
+    font-size: 13px;
+    max-height: 200px;
+    overflow-y: auto;
+}

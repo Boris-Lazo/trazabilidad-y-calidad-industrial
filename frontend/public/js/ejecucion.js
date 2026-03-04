@@ -8,8 +8,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (!bitacoraRes.success || !bitacoraRes.data) {
                 document.getElementById('content-ejecucion').innerHTML = `
-                    <div class="card" style="text-align: center; padding: 2rem;">
-                        <i data-lucide="alert-circle" style="width: 48px; height: 48px; color: var(--warning); margin-bottom: 1rem;"></i>
+                    <div class="card text-center p-3">
+                        <i data-lucide="alert-circle" class="icon-huge text-warning mb-2"></i>
                         <p class="text-muted">No hay bitácora activa en este momento.</p>
                         <a href="/bitacora.html" class="button button-primary mt-2">Ir a Bitácora</a>
                     </div>
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderTelares(telares, bitacora.id);
 
             // Mostrar card de info de bitácora
-            document.getElementById('card-bitacora-info').style.display = 'block';
+            document.getElementById('card-bitacora-info').classList.remove('d-none');
 
         } catch (error) {
             console.error('Error en ejecucion.js:', error);
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             else if (t.estado === 'Parcial') badgeClass = 'badge-warning';
 
             card.innerHTML = `
-                <div class="alert-indicator" style="display: ${t.tieneAlertas ? 'block' : 'none'}"></div>
+                <div class="alert-indicator ${t.tieneAlertas ? 'block' : 'd-none'}"></div>
                 <div class="telar-header">
                     <span class="telar-id">${t.codigo}</span>
                     <span class="badge ${badgeClass}">${t.estado}</span>

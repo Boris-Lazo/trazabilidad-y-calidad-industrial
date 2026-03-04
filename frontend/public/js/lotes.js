@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tablaLotesBody.innerHTML = '';
 
             if (lotes.length === 0) {
-                tablaLotesBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay lotes de producción registrados.</td></tr>';
+                tablaLotesBody.innerHTML = '<tr><td colspan="5" class="text-center">No hay lotes de producción registrados.</td></tr>';
                 return;
             }
 
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>Orden #${lote.orden_id}</td>
                         <td><span class="badge ${lote.estado === 'activo' ? 'badge-success' : (lote.estado === 'pausado' ? 'badge-warning' : 'badge-info')}">${lote.estado}</span></td>
                         <td>
-                            <div style="display: flex; gap: 0.5rem;">
+                            <div class="d-flex gap-1">
                                 <button class="btn btn-secondary btn-sm" onclick="verTrazabilidad(${lote.id})">Trazabilidad</button>
                                 ${lote.estado !== 'cerrado' ? `<button class="btn btn-outline btn-sm" onclick="cambiarEstado(${lote.id})">Estado</button>` : ''}
                             </div>
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Error cargando lotes:', error);
-            tablaLotesBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger);">Error al cargar los datos.</td></tr>';
+        tablaLotesBody.innerHTML = '<tr><td colspan="5" class="text-center text-error">Error al cargar los datos.</td></tr>';
         }
     }
 

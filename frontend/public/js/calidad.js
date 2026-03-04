@@ -6,8 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const panelMuestras = document.createElement('div');
     panelMuestras.id = 'panel-muestras';
     panelMuestras.className = 'card';
-    panelMuestras.style.marginTop = '2rem';
-    panelMuestras.style.display = 'none';
     container.appendChild(panelMuestras);
 
     async function cargarLotesPendientes() {
@@ -20,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             listaCalidadBody.innerHTML = '';
             if (lotes.length === 0) {
-                listaCalidadBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay lotes pendientes de evaluación.</td></tr>';
+            listaCalidadBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay lotes pendientes de evaluación.</td></tr>';
                 return;
             }
 
@@ -32,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${lote.proceso_nombre}</td>
                     <td>Orden #${lote.orden_id}</td>
                     <td><span class="badge ${lote.estado === 'activo' ? 'badge-success' : 'badge-warning'}">${lote.estado}</span></td>
-                    <td style="display: flex; gap: 0.5rem;">
+                    <td class="d-flex gap-1">
                         <button class="btn btn-secondary btn-sm" onclick="verMuestras(${lote.id}, '${lote.codigo_lote}')">Ver Muestras</button>
                         <button class="btn btn-outline btn-sm" onclick="cerrarLote(${lote.id})">Cerrar Lote</button>
                     </td>
@@ -40,13 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 listaCalidadBody.appendChild(fila);
             });
         } catch (error) {
-            listaCalidadBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--danger);">${error.message}</td></tr>`;
+        listaCalidadBody.innerHTML = `<tr><td colspan="6" class="text-center text-error">${error.message}</td></tr>`;
         }
     }
 
     window.verMuestras = async (id, codigo) => {
-        panelMuestras.innerHTML = '<div style="padding: 2rem; text-align: center;">Cargando muestras...</div>';
-        panelMuestras.style.display = 'block';
+        panelMuestras.innerHTML = '<div class="calidad-muestras-loading">Cargando muestras...</div>';
+        panelMuestras.classList.add('block');
         panelMuestras.scrollIntoView({ behavior: 'smooth' });
 
         try {
@@ -56,12 +54,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const muestras = result.data || [];
             panelMuestras.innerHTML = `
-                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="card-header calidad-muestras-header">
                     <span>Resultados de Calidad: ${codigo}</span>
-                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('panel-muestras').style.display='none'">Cerrar Panel</button>
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('panel-muestras').classList.remove('block')">Cerrar Panel</button>
                 </div>
                 <div class="table-container">
-                    <table>
+                    <table class="table">
                         <thead>
                             <tr>
                                 <th>Parámetro</th>
@@ -76,15 +74,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <td>${m.parametro}</td>
                                     <td>${m.valor}</td>
                                     <td><span class="badge ${m.resultado === 'Cumple' ? 'badge-success' : 'badge-error'}">${m.resultado}</span></td>
-                                    <td style="color: var(--text-muted); font-size: 0.8rem;">${new Date(m.fecha_registro).toLocaleString()}</td>
+                                    <td class="text-muted font-sm">${new Date(m.fecha_registro).toLocaleString()}</td>
                                 </tr>
-                            `).join('') : '<tr><td colspan="4" style="text-align: center;">No hay muestras registradas para este lote.</td></tr>'}
+                            `).join('') : '<tr><td colspan="4" class="text-center">No hay muestras registradas para este lote.</td></tr>'}
                         </tbody>
                     </table>
                 </div>
             `;
         } catch (error) {
-            panelMuestras.innerHTML = `<div class="badge badge-error" style="margin: 1rem; padding: 1rem; text-align: center; width: calc(100% - 2rem);">${error.message}</div>`;
+            panelMuestras.innerHTML = `<div class="badge badge-error calidad-muestras-error">${error.message}</div>`;
         }
     };
 

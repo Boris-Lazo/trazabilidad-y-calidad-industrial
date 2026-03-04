@@ -51,16 +51,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             let statusBadgeClass = 'badge-outline';
             let cardBorderStyle = '';
 
+            let extraCardClass = '';
             if (t.estado.includes('Completo')) {
                 statusBadgeClass = 'badge-success';
             } else if (t.estado.includes('Con desviación')) {
                 statusBadgeClass = 'badge-warning';
-                cardBorderStyle = 'border-left: 4px solid var(--warning);';
+                extraCardClass = 'border-l-warning';
             } else if (t.estado.includes('Parcial')) {
                 statusBadgeClass = 'badge-warning';
             } else if (t.estado.includes('Revisión')) {
                 statusBadgeClass = 'badge-error';
-                cardBorderStyle = 'border-left: 4px solid var(--danger);';
+                extraCardClass = 'border-l-danger';
             }
 
             // Si falta dato crítico (ej. sin orden pero con producción, o sin datos del todo)
@@ -68,16 +69,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 statusBadgeClass = 'badge-outline';
             }
 
-            card.style = cardBorderStyle;
+            if (extraCardClass) card.classList.add(extraCardClass);
 
             card.innerHTML = `
-                <div class="alert-indicator" style="display: ${t.tieneAlertas ? 'block' : 'none'}"></div>
+                <div class="alert-indicator ${t.tieneAlertas ? 'block' : 'd-none'}"></div>
                 <div class="telar-header">
                     <span class="telar-id">${t.codigo}</span>
                     <span class="badge ${statusBadgeClass}">${t.estado}</span>
                 </div>
                 <div class="telar-info">
-                    <div style="margin-bottom: 4px;"><strong>Orden:</strong> ${t.ordenActiva}</div>
+                    <div class="mb-1"><strong>Orden:</strong> ${t.ordenActiva}</div>
                     <div><strong>Producción:</strong> ${t.produccionTotal} m</div>
                 </div>
                 <div class="telar-metrics">

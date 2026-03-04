@@ -1,0 +1,72 @@
+/* Page-specific styles for Bitácora */
+
+.topbar-bitacora {
+    height: auto;
+    padding: 1rem 1.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    border-bottom: 2px solid var(--primary);
+}
+
+.header-contexto {
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--info-bg);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    display: none;
+}
+
+.bitacora-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.cierre-irreversible-btn {
+    background: var(--error) !important;
+    border-color: var(--error) !important;
+}
+
+.process-card-content {
+    padding: 1rem;
+}
+
+.process-card-footer {
+    background: var(--bg-alt);
+    padding: 0.75rem 1rem;
+    text-align: right;
+}
+
+.historical-alert {
+    background: #1f2937 !important;
+    color: white !important;
+    margin-bottom: 2rem !important;
+    text-align: center !important;
+    padding: 2rem !important;
+    border: 4px solid var(--error) !important;
+}
+
+.historical-mode .main-container {
+    filter: grayscale(0.5);
+    pointer-events: none;
+}
+
+.historical-mode .sidebar {
+    filter: grayscale(0.5);
+}
+
+.resumen-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 0.85rem;
+}
+
+.checklist-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}

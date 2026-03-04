@@ -77,13 +77,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <tr>
                             <th>#</th>
                             ${cols.map(p => `
-                                <th style="font-size: 0.8rem;">
+                                <th class="proceso-calidad-th">
                                     ${p.etiqueta}
-                                    ${p.unidad ? `<br><small style="color:var(--text-secondary)">${p.unidad}</small>` : ''}
+                                    ${p.unidad ? `<br><small class="text-secondary">${p.unidad}</small>` : ''}
                                 </th>
                             `).join('')}
                             <th>Estado</th>
-                            <th style="width:40px;"></th>
+                            <th class="w-40"></th>
                         </tr>
                     </thead>
                     <tbody id="tbody-calidad-dinamica"></tbody>
@@ -102,14 +102,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const inputsHtml = contrato.parametrosCalidad.map(p => {
             const val = data[p.nombre] !== undefined ? data[p.nombre] : '';
-            const readonly = p.calculado ? 'readonly style="background:rgba(0,0,0,0.05)"' : '';
-            return `<td><input type="number" class="form-control input-calidad" data-nombre="${p.nombre}" value="${val}" step="0.01" ${readonly} style="padding: 4px; font-size: 0.9rem;"></td>`;
+            const readonly = p.calculado ? 'readonly class="bg-black-005"' : '';
+            return `<td><input type="number" class="form-control input-calidad proceso-calidad-input" data-nombre="${p.nombre}" value="${val}" step="0.01" ${readonly}></td>`;
         }).join('');
 
         let extraTd = '';
         if (parseInt(procesoId) === 4) {
             extraTd = `<td>
-                <select class="form-control input-inspeccion" style="padding: 4px; font-size: 0.8rem;">
+                <select class="form-control input-inspeccion proceso-select-sm">
                     <option value="1" ${data.inspeccion_indice == 1 ? 'selected' : ''}>1</option>
                     <option value="2" ${data.inspeccion_indice == 2 ? 'selected' : ''}>2</option>
                     <option value="3" ${data.inspeccion_indice == 3 ? 'selected' : ''}>3</option>
@@ -122,13 +122,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             ${extraTd}
             ${inputsHtml}
             <td>
-                <select class="form-control select-estado-muestra" style="padding: 4px; font-size: 0.8rem;">
+                <select class="form-control select-estado-muestra proceso-select-sm">
                     <option value="Aceptable" ${data.estado === 'Aceptable' ? 'selected' : ''}>Aceptable</option>
                     <option value="Observación" ${data.estado === 'Observación' ? 'selected' : ''}>Observación</option>
                     <option value="Rechazo" ${data.estado === 'Rechazo' ? 'selected' : ''}>Rechazo</option>
                 </select>
             </td>
-            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
+            <td><button class="btn-eliminar-fila proceso-btn-delete">×</button></td>
         `;
 
         tbody.appendChild(tr);
@@ -218,18 +218,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         Object.entries(grupos).forEach(([grupo, campos]) => {
             const titulo = grupo.charAt(0).toUpperCase() + grupo.slice(1);
             const grid = campos.map(p => `
-                <div class="form-group" style="margin: 0;">
-                    <label style="font-size: 0.75rem; margin-bottom: 2px;">${p.etiqueta}${p.unidad ? ` (${p.unidad})` : ''}</label>
-                    <input type="number" class="form-control param-informativo"
+                <div class="form-group mb-0">
+                    <label class="proceso-param-label">${p.etiqueta}${p.unidad ? ` (${p.unidad})` : ''}</label>
+                    <input type="number" class="form-control param-informativo proceso-param-input"
                            data-nombre="${p.nombre}" data-grupo="${p.grupo}"
-                           step="0.01" placeholder="—" style="padding: 6px;">
+                           step="0.01" placeholder="—">
                 </div>
             `).join('');
 
             container.innerHTML += `
-                <div style="margin-bottom: 1.5rem;">
-                    <h4 style="font-size:0.8rem; color:var(--text-secondary); margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);">${titulo}</h4>
-                    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem;">${grid}</div>
+                <div class="mb-3">
+                    <h4 class="proceso-param-group-title">${titulo}</h4>
+                    <div class="dashboard-grid proceso-param-grid">${grid}</div>
                 </div>
             `;
         });
@@ -248,17 +248,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <thead>
                         <tr>
                             ${paramLista.campos.map(c => `<th>${c.etiqueta}</th>`).join('')}
-                            <th style="width:40px;"></th>
+                            <th class="w-40"></th>
                         </tr>
                     </thead>
                     <tbody id="tbody-materias-dinamica"></tbody>
                 </table>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <button id="btn-agregar-materia" class="btn btn-secondary" style="font-size: 0.8rem;">+ Agregar Materia Prima</button>
-                <div style="font-weight: bold;">TOTAL MEZCLA: <span id="total-mezcla">0%</span></div>
+            <div class="d-flex justify-between align-center">
+                <button id="btn-agregar-materia" class="btn btn-secondary font-sm">+ Agregar Materia Prima</button>
+                <div class="text-bold">TOTAL MEZCLA: <span id="total-mezcla">0%</span></div>
             </div>
-            <div id="warning-mezcla" class="text-error" style="display: none; margin-top: 0.5rem; font-size: 0.8rem;">
+            <div id="warning-mezcla" class="text-error d-none mt-1 font-sm">
                 ⚠ La mezcla debe sumar exactamente 100%
             </div>
         `;
@@ -274,15 +274,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         tr.innerHTML = paramLista.campos.map(campo => {
             if (campo.nombre === 'tipo' && paramLista.opcionesTipo) {
                 return `<td>
-                    <select class="form-control input-materia" data-campo="${campo.nombre}" style="padding: 4px;">
+                    <select class="form-control input-materia p-1" data-campo="${campo.nombre}">
                         <option value="">— Seleccione —</option>
                         ${paramLista.opcionesTipo.map(opt => `<option value="${opt}" ${data[campo.nombre] === opt ? 'selected' : ''}>${opt}</option>`).join('')}
                     </select>
                 </td>`;
             }
             const type = campo.nombre === 'porcentaje' ? 'number' : 'text';
-            return `<td><input type="${type}" class="form-control input-materia" data-campo="${campo.nombre}" value="${data[campo.nombre] || ''}" style="padding: 4px;"></td>`;
-        }).join('') + `<td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>`;
+            return `<td><input type="${type}" class="form-control input-materia p-1" data-campo="${campo.nombre}" value="${data[campo.nombre] || ''}"></td>`;
+        }).join('') + `<td><button class="btn-eliminar-fila proceso-btn-delete">×</button></td>`;
 
         tbody.appendChild(tr);
         tr.querySelectorAll('.input-materia').forEach(input => { input.oninput = calcularTotalMezcla; });
@@ -441,9 +441,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const headerTr = document.querySelector('#tabla-calidad-dinamica thead tr');
                 if (headerTr && !headerTr.querySelector('.col-inspeccion')) {
                      const th = document.createElement('th');
-                     th.className = 'col-inspeccion';
+                 th.className = 'col-inspeccion font-sm';
                      th.textContent = 'Inspección';
-                     th.style.fontSize = '0.8rem';
                      headerTr.insertBefore(th, headerTr.children[1]);
                 }
             }
@@ -456,7 +455,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         tr.innerHTML = `
             <td><input type="text" class="form-control codigo-rollo" value="${data.codigo_rollo || ''}" placeholder="R-XXXX"></td>
             <td><input type="number" class="form-control metros-laminados" value="${data.metros_laminados || ''}" step="0.01"></td>
-            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
+            <td><button class="btn-eliminar-fila proceso-btn-delete">×</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelector('.btn-eliminar-fila').onclick = () => tr.remove();
@@ -469,7 +468,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <td><input type="text" class="form-control codigo-rollo" value="${data.codigo_rollo || ''}" placeholder="R-XXXX"></td>
             <td><input type="number" class="form-control metros-consumidos" value="${data.metros_consumidos || ''}" step="0.01"></td>
             <td><input type="number" class="form-control impresiones-producidas" value="${data.impresiones_producidas || ''}"></td>
-            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
+            <td><button class="btn-eliminar-fila proceso-btn-delete">×</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelector('.btn-eliminar-fila').onclick = () => tr.remove();
@@ -479,13 +478,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tbody = document.getElementById('tbody-tintas');
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><input type="number" class="form-control tinta-pos" value="${data.posicion || ''}" style="width:50px;"></td>
+            <td><input type="number" class="form-control tinta-pos proceso-tinta-pos" value="${data.posicion || ''}"></td>
             <td><input type="text" class="form-control tinta-num" value="${data.numero_color || ''}"></td>
             <td><input type="text" class="form-control tinta-pantone" value="${data.codigo_pantone || ''}"></td>
             <td><input type="text" class="form-control tinta-tipo" value="${data.tipo || ''}"></td>
             <td><input type="text" class="form-control tinta-marca" value="${data.marca || ''}"></td>
             <td><input type="text" class="form-control tinta-lote" value="${data.lote || ''}"></td>
-            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
+            <td><button class="btn-eliminar-fila proceso-btn-delete">×</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelector('.btn-eliminar-fila').onclick = () => tr.remove();
@@ -556,7 +555,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         tbodyP.appendChild(tr);
                     });
                 } else {
-                    tbodyP.innerHTML = '<tr><td colspan="3" style="text-align:center">No hay personal planificado</td></tr>';
+                    tbodyP.innerHTML = '<tr><td colspan="3" class="text-center">No hay personal planificado</td></tr>';
                 }
             }
 
@@ -868,10 +867,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const orderOptions = orders.map(o => `<option value="${o.id}" ${data.orden_id == o.id ? 'selected' : ''}>${o.codigo_orden}</option>`).join('');
 
         tr.innerHTML = `
-            <td><select class="form-control" style="padding: 4px;">${maquinaOptions}</select></td>
-            <td><select class="form-control" style="padding: 4px;">${orderOptions}</select></td>
-            <td><input type="number" class="form-control" value="${data.cantidad || ''}" style="padding: 4px;"></td>
-            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
+            <td><select class="form-control p-1">${maquinaOptions}</select></td>
+            <td><select class="form-control p-1">${orderOptions}</select></td>
+            <td><input type="number" class="form-control p-1" value="${data.cantidad || ''}"></td>
+            <td><button class="btn-eliminar-fila proceso-btn-delete">×</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelector('.btn-eliminar-fila').onclick = () => tr.remove();
@@ -884,11 +883,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const orderOptions = orders.map(o => `<option value="${o.id}" ${data.orden_id == o.id ? 'selected' : ''}>${o.codigo_orden}</option>`).join('');
 
         tr.innerHTML = `
-            <td><select class="form-control" style="padding: 4px;">${maquinaOptions}</select></td>
-            <td><select class="form-control" style="padding: 4px;">${orderOptions}</select></td>
-            <td><input type="number" class="form-control" value="${data.kg || ''}" style="padding: 4px;"></td>
-            <td><input type="text" class="form-control" value="${data.motivo || ''}" style="padding: 4px;"></td>
-            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
+            <td><select class="form-control p-1">${maquinaOptions}</select></td>
+            <td><select class="form-control p-1">${orderOptions}</select></td>
+            <td><input type="number" class="form-control p-1" value="${data.kg || ''}"></td>
+            <td><input type="text" class="form-control p-1" value="${data.motivo || ''}"></td>
+            <td><button class="btn-eliminar-fila proceso-btn-delete">×</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelector('.btn-eliminar-fila').onclick = () => tr.remove();
@@ -898,17 +897,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tbody = document.getElementById('tbody-incidentes');
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><input type="number" class="form-control" value="${data.tiempo || ''}" style="padding: 4px;"></td>
-            <td><input type="text" class="form-control" value="${data.motivo || ''}" style="padding: 4px;"></td>
+            <td><input type="number" class="form-control p-1" value="${data.tiempo || ''}"></td>
+            <td><input type="text" class="form-control p-1" value="${data.motivo || ''}"></td>
             <td>
-                <select class="form-control" style="padding: 4px;">
+                <select class="form-control p-1">
                     <option value="Operativa" ${data.clasificacion === 'Operativa' ? 'selected' : ''}>Operativa</option>
                     <option value="Mecánica" ${data.clasificacion === 'Mecánica' ? 'selected' : ''}>Mecánica</option>
                     <option value="Eléctrica" ${data.clasificacion === 'Eléctrica' ? 'selected' : ''}>Eléctrica</option>
                     <option value="Calidad" ${data.clasificacion === 'Calidad' ? 'selected' : ''}>Calidad</option>
                 </select>
             </td>
-            <td><button class="btn-eliminar-fila" style="color:var(--danger); border:none; background:none; cursor:pointer;">×</button></td>
+            <td><button class="btn-eliminar-fila proceso-btn-delete">×</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelector('.btn-eliminar-fila').onclick = () => { tr.remove(); updateBalanceTiempos(); };

@@ -82,13 +82,13 @@ const MaquinaModule = {
                     </td>
                     <td>${new Date(m.updated_at).toLocaleString()}</td>
                     <td>
-                        <div style="display: flex; gap: 8px;">
+                        <div class="d-flex gap-1">
                             ${canManage && m.estado_actual !== 'Baja' ? `
                             <button class="btn btn-secondary btn-sm" onclick="MaquinaModule.openModal(${m.id})" title="Cambiar Estado">
-                                <i data-lucide="settings-2" style="width:14px; height:14px;"></i>
+                                <i data-lucide="settings-2" class="icon-xs"></i>
                             </button>` : ''}
                             <button class="btn btn-secondary btn-sm" onclick="MaquinaModule.viewHistory(${m.id})" title="Ver Historial">
-                                <i data-lucide="history" style="width:14px; height:14px;"></i>
+                                <i data-lucide="history" class="icon-xs"></i>
                             </button>
                         </div>
                     </td>
@@ -127,16 +127,16 @@ const MaquinaModule = {
 
         const warning = document.getElementById('active-orders-warning');
         if (machine.ordenes_activas > 0) {
-            warning.style.display = 'block';
+            warning.classList.add('block');
         } else {
-            warning.style.display = 'none';
+            warning.classList.remove('block');
         }
 
-        document.getElementById('modal-estado-maquina').style.display = 'flex';
+        document.getElementById('modal-estado-maquina').classList.add('d-flex');
     },
 
     closeModal() {
-        document.getElementById('modal-estado-maquina').style.display = 'none';
+        document.getElementById('modal-estado-maquina').classList.remove('d-flex');
     },
 
     async saveStatusChange() {
@@ -192,13 +192,13 @@ const MaquinaModule = {
                         <td><span class="badge ${this.getStatusClass(h.estado_anterior)}">${(h.estado_anterior || 'N/A').toUpperCase()}</span></td>
                         <td><span class="badge ${this.getStatusClass(h.estado_nuevo)}">${h.estado_nuevo.toUpperCase()}</span></td>
                         <td>
-                            <div style="font-size: 11px; color: var(--text-secondary);">${h.categoria_motivo || ''}</div>
+                            <div class="font-xs text-secondary">${h.categoria_motivo || ''}</div>
                             ${h.motivo}
                         </td>
                         <td>${h.usuario}</td>
                     </tr>
                 `).join('');
-                document.getElementById('modal-historial').style.display = 'flex';
+                document.getElementById('modal-historial').classList.add('d-flex');
             }
         } catch (e) {
             DesignSystem.showToast('Error al cargar historial', 'error');

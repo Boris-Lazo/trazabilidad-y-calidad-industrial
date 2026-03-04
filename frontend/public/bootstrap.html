@@ -6,53 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inicialización del Sistema | PROD-SYS</title>
     <link rel="stylesheet" href="/design-system/index.css">
+    <link rel="stylesheet" href="/design-system/utilities.css">
+    <link rel="stylesheet" href="/design-system/pages/bootstrap.css">
     <script src="/design-system/index.js" defer></script>
-    <style>
-        .bootstrap-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: var(--bg-primary);
-            padding: 24px;
-        }
-        .bootstrap-box {
-            width: 100%;
-            max-width: 600px;
-        }
-        .bootstrap-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        .bootstrap-title {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 8px;
-        }
-        .bootstrap-subtitle {
-            color: var(--text-secondary);
-            font-size: 16px;
-        }
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-        @media (max-width: 600px) {
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        .alert-info {
-            background-color: rgba(30, 64, 175, 0.1);
-            border-left: 4px solid #1E40AF;
-            padding: 16px;
-            margin-bottom: 24px;
-            color: var(--text-primary);
-            font-size: 14px;
-        }
-    </style>
 </head>
 <body class="bootstrap-page">
     <div class="bootstrap-container">
@@ -106,9 +62,9 @@
                     <input class="form-control" type="password" id="password" name="password" placeholder="Mínimo 8 caracteres" required minlength="8">
                 </div>
 
-                <div id="bootstrap-error" class="error-message" style="display: none; margin-bottom: 16px;"></div>
+                <div id="bootstrap-error" class="error-message d-none mb-3"></div>
 
-                <button type="submit" id="btn-init" class="btn btn-primary" style="width:100%; margin-top: 8px;">Inicializar Sistema y Crear Administrador</button>
+                <button type="submit" id="btn-init" class="btn btn-primary w-100 mt-1">Inicializar Sistema y Crear Administrador</button>
             </form>
         </div>
     </div>

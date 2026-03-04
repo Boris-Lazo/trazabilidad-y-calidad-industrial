@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión | PROD-SYS</title>
     <link rel="stylesheet" href="/design-system/index.css">
+    <link rel="stylesheet" href="/design-system/utilities.css">
     <script src="js/auth.js"></script>
     <script src="/design-system/index.js" defer></script>
 </head>
@@ -24,14 +25,14 @@
                     <label for="password">Contraseña</label>
                     <input class="form-control" type="password" id="password" name="password" placeholder="Ingrese su contraseña" required>
                 </div>
-                <div id="login-error" class="error-message" style="display: none;"></div>
-                <button type="submit" id="btn-login" class="btn btn-primary" style="width:100%">Iniciar Sesión</button>
+                <div id="login-error" class="error-message d-none"></div>
+                <button type="submit" id="btn-login" class="btn btn-primary w-100">Iniciar Sesión</button>
             </form>
         </div>
     </div>
     <!-- Modal Cambio de Contraseña Obligatorio -->
-    <div id="modal-change-password" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
+    <div id="modal-change-password" class="modal d-none">
+        <div class="modal-content mw-400">
             <div class="modal-header">
                 <h2>Cambio de Contraseña Obligatorio</h2>
             </div>
@@ -50,11 +51,11 @@
                         <label class="form-label">Confirmar Nueva Contraseña</label>
                         <input type="password" id="confirm-password" class="form-control" required minlength="8">
                     </div>
-                    <div id="cp-error" class="error-message" style="display: none; margin-top: 10px;"></div>
+                    <div id="cp-error" class="error-message d-none mt-2"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" id="btn-save-password" class="btn btn-primary" style="width: 100%;">Cambiar Contraseña y Entrar</button>
+                <button type="button" id="btn-save-password" class="btn btn-primary w-100">Cambiar Contraseña y Entrar</button>
             </div>
         </div>
     </div>

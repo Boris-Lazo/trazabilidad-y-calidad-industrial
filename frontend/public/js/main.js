@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error("Estado operativo incompleto. Contacte soporte.");
             const isHome = path === '/' || path === '/index.html';
             if (operativePages.some(p => path.includes(p)) || isHome) {
-                document.body.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100vh; flex-direction:column; font-family:sans-serif; background:#fef2f2; color:#991b1b; text-align:center; padding:2rem;"><h1>⚠️ ESTADO OPERATIVO INCOMPLETO</h1><p style="font-size:1.2rem;">El sistema no pudo determinar su siguiente paso obligatorio.<br>Contacte a soporte técnico de inmediato.</p></div>';
+                document.body.innerHTML = '<div class="d-flex align-center justify-center vh-100 flex-column font-sans bg-danger-subtle text-error text-center p-4"><h1>⚠️ ESTADO OPERATIVO INCOMPLETO</h1><p class="font-lg">El sistema no pudo determinar su siguiente paso obligatorio.<br>Contacte a soporte técnico de inmediato.</p></div>';
             }
             return;
         }

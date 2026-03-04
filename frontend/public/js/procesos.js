@@ -7,7 +7,7 @@
 window.closeModal = () => {
     const modal = document.getElementById('modal-proceso');
     if (modal) {
-        modal.style.display = 'none';
+        modal.classList.remove('d-flex');
         document.body.style.overflow = 'auto'; // Restaurar scroll
     }
 };
@@ -55,27 +55,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
-                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.03);">
-                    <span style="font-weight: bold; font-size: 1.1rem;">${p.nombre}</span>
+                <div class="card-header d-flex justify-between align-center bg-black-005">
+                    <span class="text-bold font-lg">${p.nombre}</span>
                     <span class="badge badge-info">ID: ${p.processId}</span>
                 </div>
                 <div class="card-body">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                    <div class="grid-2 mb-2">
                         <div>
-                            <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Área</span>
+                            <span class="font-sm text-muted block">Área</span>
                             <strong>${p.area}</strong>
                         </div>
                         <div>
-                            <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Versión</span>
+                            <span class="font-sm text-muted block">Versión</span>
                             <strong>${p.version}</strong>
                         </div>
                     </div>
                     <p><strong>Tipo de Proceso:</strong> ${p.tipoProceso || 'No definido'}</p>
                     <p><strong>Unidad de Medida:</strong> ${p.unidadProduccion}</p>
                 </div>
-                <div class="card-footer" style="text-align: right; border-top: 1px solid var(--border);">
+                <div class="card-footer text-right border-top">
                     <button class="btn btn-primary btn-sm" id="btn-detalle-${index}">
-                        <i data-lucide="scroll-text" style="width: 14px; height: 14px; margin-right: 4px; vertical-align: middle;"></i>
+                        <i data-lucide="scroll-text" class="icon-xs v-middle mr-1"></i>
                         Ver Contrato Técnico
                     </button>
                 </div>
@@ -96,24 +96,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!titulo || !body) return;
 
-        // Asegurar fondo opaco y scroll interno si es necesario
+        // Limpiar estilos inline
         if (modalContent) {
-            modalContent.style.background = 'var(--bg-primary, #ffffff)';
-            modalContent.style.color = 'var(--text-primary, #1a1a1a)';
-            modalContent.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
-            modalContent.style.maxHeight = '90vh';
-            modalContent.style.overflowY = 'auto';
+            modalContent.classList.add('scroll-y');
         }
 
-        titulo.innerHTML = `<i data-lucide="shield-check" style="width: 24px; height: 24px; margin-right: 12px; color: var(--primary);"></i> Contrato Técnico: ${p.nombre}`;
+        titulo.innerHTML = `<i data-lucide="shield-check" class="icon-lg mr-1 text-primary"></i> Contrato Técnico: ${p.nombre}`;
 
         body.innerHTML = `
-            <div class="contract-container" style="display: flex; flex-direction: column; gap: 24px; background: inherit;">
+            <div class="contract-container">
 
                 <!-- 1. Descripción del proceso -->
                 <section class="contract-section">
-                    <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">1. Descripción del Proceso</h4>
-                    <div class="card p-3" style="background: rgba(var(--primary-rgb), 0.02);">
+                    <h4 class="contract-section-title">1. Descripción del Proceso</h4>
+                    <div class="card p-3 contract-highlight-card">
                         <p><strong>Operativa:</strong> ${p.descripcionProceso?.queHace || 'No definida'}</p>
                         <p><strong>Transformación:</strong> ${p.descripcionProceso?.queTransforma || 'No definida'}</p>
                         <p><strong>Entrada:</strong> ${p.descripcionProceso?.queRecibe || 'No definida'}</p>
@@ -121,17 +117,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </section>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="grid-2">
                     <!-- 2. Metas de producción -->
                     <section class="contract-section">
-                        <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">2. Metas de Producción</h4>
+                        <h4 class="contract-section-title">2. Metas de Producción</h4>
                         <div class="card p-3 h-100">
-                            <p style="font-size: 1.25rem; font-weight: bold; color: var(--success); margin-bottom: 8px;">
+                            <p class="contract-meta-value">
                                 ${p.metasProduccion?.metaEstandarTurno || 'N/A'} ${p.unidadesReporte?.produccion || p.unidadProduccion} / Turno
                             </p>
-                            <p style="font-size: 0.9rem;"><strong>Condiciones:</strong> ${p.metasProduccion?.supuestosOperativos || 'Estándar'}</p>
-                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
-                                <i data-lucide="trending-down" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>
+                            <p class="font-md"><strong>Condiciones:</strong> ${p.metasProduccion?.supuestosOperativos || 'Estándar'}</p>
+                            <p class="font-sm text-muted mt-1">
+                                <i data-lucide="trending-down" class="icon-xs v-middle mr-1"></i>
                                 <strong>Impacto eficiencia:</strong> ${p.metasProduccion?.condicionesReduccionEficiencia || 'N/A'}
                             </p>
                         </div>
@@ -139,26 +135,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     <!-- 3. Personal requerido -->
                     <section class="contract-section">
-                        <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">3. Personal Requerido</h4>
+                        <h4 class="contract-section-title">3. Personal Requerido</h4>
                         <div class="card p-3 h-100">
-                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                <div style="background: var(--bg-secondary); padding: 8px 16px; border-radius: 8px; text-align: center;">
-                                    <span style="display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted);">Mínimo</span>
-                                    <strong style="font-size: 1.2rem;">${p.personalOperativo?.minimo || 1}</strong>
+                            <div class="d-flex align-center gap-2 mb-2">
+                                <div class="contract-personal-box">
+                                    <span class="block font-xs uppercase text-muted">Mínimo</span>
+                                    <strong class="font-lg">${p.personalOperativo?.minimo || 1}</strong>
                                 </div>
-                                <div style="background: var(--bg-secondary); padding: 8px 16px; border-radius: 8px; text-align: center;">
-                                    <span style="display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted);">Máximo</span>
-                                    <strong style="font-size: 1.2rem;">${p.personalOperativo?.maximo || '-'}</strong>
+                                <div class="contract-personal-box">
+                                    <span class="block font-xs uppercase text-muted">Máximo</span>
+                                    <strong class="font-lg">${p.personalOperativo?.maximo || '-'}</strong>
                                 </div>
                             </div>
-                            <p style="font-size: 0.9rem;"><strong>Reglas:</strong> ${p.personalOperativo?.reglasEspeciales || 'Sin reglas especiales'}</p>
+                            <p class="font-md"><strong>Reglas:</strong> ${p.personalOperativo?.reglasEspeciales || 'Sin reglas especiales'}</p>
                         </div>
                     </section>
                 </div>
 
                 <!-- 4. Parámetros de calidad -->
                 <section class="contract-section">
-                    <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">4. Parámetros de Calidad</h4>
+                    <h4 class="contract-section-title">4. Parámetros de Calidad</h4>
                     <div class="table-container">
                         <table class="table table-sm">
                             <thead>
@@ -179,7 +175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                             ${c.minimo !== undefined ? `[${c.minimo} - ${c.maximo}] ${c.unidad || ''}` : ''}
                                             ${!c.tolerancia && c.minimo === undefined ? 'Referencial' : ''}
                                         </td>
-                                        <td style="font-size: 0.85rem;">${c.metodologia || 'Inspección estándar'}</td>
+                                        <td class="font-sm">${c.metodologia || 'Inspección estándar'}</td>
                                     </tr>
                                 `).join('') || '<tr><td colspan="4" class="text-center">No definidos</td></tr>'}
                             </tbody>
@@ -189,32 +185,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 <!-- 5. Parámetros operativos (Monitoreo) -->
                 <section class="contract-section">
-                    <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">5. Parámetros Operativos</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                    <h4 class="contract-section-title">5. Parámetros Operativos</h4>
+                    <div class="contract-param-grid">
                         ${p.parametrosInformativos?.map(param => `
-                            <div style="background: var(--bg-secondary); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.85rem; font-weight: 500;">${param.etiqueta}</span>
-                                <span class="badge" style="background: var(--bg-primary); color: var(--primary);">${param.unidad || '-'}</span>
+                            <div class="contract-param-item">
+                                <span class="font-sm text-bold">${param.etiqueta}</span>
+                                <span class="badge bg-light text-primary">${param.unidad || '-'}</span>
                             </div>
                         `).join('') || '<p class="text-muted">No hay variables de monitoreo definidas</p>'}
                     </div>
                 </section>
 
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+                <div class="grid-1-2">
                     <!-- 6. Catálogo de paros -->
-                    <section class="contract-section">
-                        <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">6. Catálogo de Paros</h4>
+                    <section class="contract-section col-span-2">
+                        <h4 class="contract-section-title">6. Catálogo de Paros</h4>
                         <div class="card p-3">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div class="grid-2">
                                 <div>
-                                    <strong style="color: var(--error); font-size: 0.8rem; text-transform: uppercase;">Operativos / Mecánicos</strong>
-                                    <ul style="margin: 8px 0; padding-left: 18px; font-size: 0.85rem; line-height: 1.4;">
+                                    <strong class="contract-paro-type-oper font-xs uppercase">Operativos / Mecánicos</strong>
+                                    <ul class="contract-paros-list">
                                         ${[...(p.catalogoParos?.operativos || []), ...(p.catalogoParos?.mecanicos || [])].slice(0, 8).map(paro => `<li>${paro}</li>`).join('') || '<li>N/A</li>'}
                                     </ul>
                                 </div>
                                 <div>
-                                    <strong style="color: var(--warning); font-size: 0.8rem; text-transform: uppercase;">Calidad / Externos</strong>
-                                    <ul style="margin: 8px 0; padding-left: 18px; font-size: 0.85rem; line-height: 1.4;">
+                                    <strong class="contract-paro-type-qual font-xs uppercase">Calidad / Externos</strong>
+                                    <ul class="contract-paros-list">
                                         ${[...(p.catalogoParos?.calidad || []), ...(p.catalogoParos?.externos || [])].slice(0, 8).map(paro => `<li>${paro}</li>`).join('') || '<li>N/A</li>'}
                                     </ul>
                                 </div>
@@ -224,18 +220,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     <!-- 7. Unidades de reporte -->
                     <section class="contract-section">
-                        <h4 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase;">7. Unidades de Reporte</h4>
+                        <h4 class="contract-section-title">7. Unidades de Reporte</h4>
                         <div class="card p-3">
                             <div class="mb-2">
-                                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; text-transform: uppercase;">Producción</span>
+                                <span class="block font-xs text-muted uppercase">Producción</span>
                                 <strong>${p.unidadesReporte?.produccion || p.unidadProduccion}</strong>
                             </div>
                             <div class="mb-2">
-                                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; text-transform: uppercase;">Merma</span>
+                                <span class="block font-xs text-muted uppercase">Merma</span>
                                 <strong>${p.unidadesReporte?.merma || 'kg'}</strong>
                             </div>
                             <div>
-                                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; text-transform: uppercase;">Rechazo</span>
+                                <span class="block font-xs text-muted uppercase">Rechazo</span>
                                 <strong>${p.unidadesReporte?.rechazo || 'No aplica'}</strong>
                             </div>
                         </div>
@@ -246,7 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
 
         if (modal) {
-            modal.style.display = 'flex';
+            modal.classList.add('d-flex');
             document.body.style.overflow = 'hidden'; // Evitar scroll en fondo
         }
         if (window.lucide) window.lucide.createIcons();

@@ -1,0 +1,58 @@
+/* Page-specific styles for Detalles de Orden */
+
+.detalles-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+}
+
+.detalles-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.info-general-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.resumen-produccion-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+}
+
+.historial-eventos-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.theme-toggle-btn {
+    padding: 4px 8px;
+    min-height: 32px;
+    border: none !important;
+    background: transparent !important;
+}
+
+.progress-bar-container {
+    width: 100px;
+    background: var(--border);
+    height: 6px;
+    border-radius: 3px;
+}
+
+.progress-bar-fill {
+    background: var(--success);
+    height: 100%;
+    border-radius: 3px;
+}
+
+.historial-event-item {
+    border-left: 2px solid var(--primary);
+    padding-left: 1rem;
+    position: relative;
+}
+
+.capitalize { text-transform: capitalize; }

@@ -6,22 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Colaboradores | PROD-SYS</title>
     <link rel="stylesheet" href="/design-system/index.css">
+    <link rel="stylesheet" href="/design-system/utilities.css">
+    <link rel="stylesheet" href="/design-system/pages/personal.css">
     <script src="js/auth.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/design-system/index.js" defer></script>
-    <style>
-        .topbar-actions {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        .sortable {
-            cursor: pointer;
-        }
-        .sortable:hover {
-            background-color: #f0f0f0;
-        }
-    </style>
 </head>
 <body>
     <div class="app-layout">
@@ -76,12 +65,12 @@
                     </div>
                 </div>
             </nav>
-            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
-                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+            <div class="sidebar-user-section">
+                <div id="user-display" class="sidebar-user-display">
+                    <i data-lucide="user" class="icon-xs v-middle mr-1"></i>
                     <span id="user-name-label">Usuario: -</span>
                 </div>
-                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
+                <a href="/login.html" id="logout-link" class="btn btn-secondary sidebar-logout-btn">
                     <i data-lucide="log-out" class="nav-icon"></i>
                     <span>Cerrar Sesión</span>
                 </a>
@@ -91,8 +80,8 @@
         <div class="main-container">
             <header class="topbar">
                  <h1 id="page-title">Gestión de Colaboradores</h1>
-                <div style="display: flex; align-items: center; gap: 16px;">
-                    <input type="text" id="search-staff" class="form-control" placeholder="Buscar..." style="width: 280px;">
+                <div class="topbar-actions">
+                    <input type="text" id="search-staff" class="form-control w-280" placeholder="Buscar...">
                     <button id="btn-nuevo-personal" class="btn btn-primary">
                         <i data-lucide="user-plus"></i> Nuevo Colaborador
                     </button>
@@ -106,20 +95,20 @@
             <div class="page-content">
                 <!-- Filtros -->
                 <div class="card mb-4">
-                    <div class="card-body" style="display: flex; gap: 16px; align-items: flex-end;">
-                        <div class="form-group mb-0" style="flex: 1;">
+                    <div class="card-body d-flex gap-2 align-end">
+                        <div class="form-group mb-0 flex-1">
                             <label class="form-label">Filtrar por Área</label>
                             <select id="filter-area" class="form-control">
                                 <option value="">Todas</option>
                             </select>
                         </div>
-                        <div class="form-group mb-0" style="flex: 1;">
+                        <div class="form-group mb-0 flex-1">
                             <label class="form-label">Filtrar por Rol</label>
                             <select id="filter-rol" class="form-control">
                                 <option value="">Todos</option>
                             </select>
                         </div>
-                        <div class="form-group mb-0" style="flex: 1;">
+                        <div class="form-group mb-0 flex-1">
                             <label class="form-label">Estado Laboral</label>
                             <select id="filter-estado-laboral" class="form-control">
                                 <option value="">Todos</option>
@@ -128,7 +117,7 @@
                                 <option value="Baja">Baja</option>
                             </select>
                         </div>
-                        <div class="form-group mb-0" style="flex: 1;">
+                        <div class="form-group mb-0 flex-1">
                             <label class="form-label">Estado Usuario</label>
                             <select id="filter-estado-usuario" class="form-control">
                                 <option value="">Todos</option>
@@ -169,15 +158,15 @@
     </div>
 
     <!-- Modal Nuevo Colaborador -->
-    <div id="modal-personal" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 600px;">
+    <div id="modal-personal" class="modal d-none">
+        <div class="modal-content mw-600">
             <div class="modal-header">
                 <h2 id="modal-title">Registrar Nuevo Colaborador</h2>
                 <button id="btn-close-personal" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="form-personal">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="grid-2">
                         <div class="form-group">
                             <label class="form-label">Nombre</label>
                             <input type="text" id="p-nombre" class="form-control" required>
@@ -187,7 +176,7 @@
                             <input type="text" id="p-apellido" class="form-control" required>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="grid-2">
                         <div class="form-group">
                             <label class="form-label">Código Interno</label>
                             <input type="text" id="p-codigo" class="form-control" required>
@@ -197,7 +186,7 @@
                             <input type="email" id="p-email" class="form-control" required>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="grid-2">
                         <div class="form-group">
                             <label class="form-label">Área Organizacional</label>
                             <select id="p-area" class="form-control" required>
@@ -211,7 +200,7 @@
                             </select>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="grid-2">
                         <div class="form-group">
                             <label class="form-label">Fecha Ingreso</label>
                             <input type="date" id="p-fecha-ingreso" class="form-control" required>
@@ -221,7 +210,7 @@
                             <input type="text" id="p-telefono" class="form-control">
                         </div>
                     </div>
-                    <div id="edit-audit-fields" style="display: none;">
+                    <div id="edit-audit-fields" class="d-none">
                         <div class="form-group">
                             <label class="form-label">Estado Laboral</label>
                             <select id="p-estado" class="form-control">
@@ -254,14 +243,14 @@
     </div>
 
     <!-- Modal Cambio de Estado de Usuario -->
-    <div id="modal-estado-usuario" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
+    <div id="modal-estado-usuario" class="modal d-none">
+        <div class="modal-content mw-400">
             <div class="modal-header">
                 <h2>Cambiar Estado de Acceso</h2>
                 <button id="btn-close-status" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
-                <p id="status-target-name" style="font-weight: 600; margin-bottom: 12px;"></p>
+                <p id="status-target-name" class="text-bold mb-2"></p>
                 <div class="form-group">
                     <label class="form-label">Nuevo Estado</label>
                     <select id="u-estado" class="form-control">
@@ -285,7 +274,7 @@
                     <label class="form-label">Motivo Descriptivo (Obligatorio)</label>
                     <textarea id="u-motivo" class="form-control" rows="3" placeholder="Ej: Ausencia injustificada, fin de contrato, etc."></textarea>
                 </div>
-                <div id="status-warning" class="badge badge-danger w-100 mb-3" style="display: none; white-space: normal; text-align: left; padding: 10px;">
+                <div id="status-warning" class="badge badge-error w-100 mb-3 d-none ws-normal text-left p-2">
                     <strong>Atención:</strong> El estado 'Baja lógica' es irreversible e impedirá cualquier acceso futuro.
                 </div>
             </div>
@@ -297,8 +286,8 @@
     </div>
 
     <!-- Modal Detalle (Solo Lectura) -->
-    <div id="modal-detalle" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 900px;">
+    <div id="modal-detalle" class="modal d-none">
+        <div class="modal-content mw-900">
             <div class="modal-header">
                 <h2 id="detail-title">Detalle de Colaborador</h2>
                 <button id="btn-close-detail" class="btn-close">&times;</button>
@@ -306,11 +295,11 @@
             <div class="modal-body">
                 <div id="detail-indicator" class="mb-3"></div>
 
-                <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+                <div class="dashboard-grid grid-gap-3">
                     <!-- Columna Izquierda: Info General -->
                     <div>
                         <h3 class="mb-3">Información del Personal</h3>
-                        <div id="staff-info-details" class="card p-3 mb-4" style="background: rgba(0,0,0,0.02); line-height: 1.8;">
+                        <div id="staff-info-details" class="card p-3 mb-4">
                             <!-- Se llena dinámicamente -->
                         </div>
 
@@ -328,7 +317,7 @@
                         </div>
 
                         <h3 class="mb-3">Historial de Grupos</h3>
-                        <div class="table-container shadow-sm" style="max-height: 200px; overflow-y: auto; margin-bottom: 20px;">
+                        <div class="table-container shadow-sm max-h-200 mb-4">
                             <table class="table table-sm">
                                 <thead>
                                     <tr>
@@ -367,8 +356,8 @@
     </div>
 
     <!-- Modal Asignación (Separado) -->
-    <div id="modal-asignacion" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 450px;">
+    <div id="modal-asignacion" class="modal d-none">
+        <div class="modal-content mw-450">
             <div class="modal-header">
                 <h2>Registrar Nueva Asignación</h2>
                 <button id="btn-close-assignment" class="btn-close">&times;</button>

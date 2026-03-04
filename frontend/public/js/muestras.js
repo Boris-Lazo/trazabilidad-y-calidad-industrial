@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tablaMuestrasBody.innerHTML = ''; // Limpiar la tabla
 
             if (muestras.length === 0) {
-                tablaMuestrasBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay muestras de calidad registradas.</td></tr>';
+                tablaMuestrasBody.innerHTML = '<tr><td colspan="5" class="text-center">No hay muestras de calidad registradas.</td></tr>';
                 return;
             }
 
@@ -55,8 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td><strong>#${muestra.id}</strong></td>
                         <td>Lote #${muestra.lote_produccion_id}</td>
                         <td><span class="badge ${badgeClass}">${muestra.resultado}</span></td>
-                        <td>${muestra.observaciones || '<span style="color: var(--text-muted)">Sin observaciones</span>'}</td>
-                        <td style="color: var(--text-muted);">${new Date(muestra.fecha_registro).toLocaleString()}</td>
+                        <td>${muestra.observaciones || '<span class="text-muted">Sin observaciones</span>'}</td>
+                        <td class="text-muted">${new Date(muestra.fecha_registro).toLocaleString()}</td>
                     </tr>
                 `;
                 tablaMuestrasBody.innerHTML += fila;
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Error cargando muestras:', error);
-            tablaMuestrasBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger);">Error al cargar los datos.</td></tr>';
+            tablaMuestrasBody.innerHTML = '<tr><td colspan="5" class="text-center text-error">Error al cargar los datos.</td></tr>';
         }
     }
 
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (!datosMuestra.lote_produccion_id || !datosMuestra.resultado) {
-            mensajeCreacion.innerHTML = '<span style="color: var(--danger);">Por favor, complete todos los campos requeridos.</span>';
+            mensajeCreacion.innerHTML = '<span class="text-error">Por favor, complete todos los campos requeridos.</span>';
             return;
         }
 
@@ -99,13 +99,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const resultado = result.data;
-            mensajeCreacion.innerHTML = `<span style="color: var(--success); font-weight: 500;">¡Muestra #${resultado.id} registrada con éxito!</span>`;
+            mensajeCreacion.innerHTML = `<span class="text-success text-bold">¡Muestra #${resultado.id} registrada con éxito!</span>`;
             formCrearMuestra.reset();
             cargarMuestras(); // Recargar la lista de muestras
 
         } catch (error) {
             console.error('Error al registrar la muestra:', error);
-            mensajeCreacion.innerHTML = `<span style="color: var(--danger);">Error: ${error.message}</span>`;
+            mensajeCreacion.innerHTML = `<span class="text-error">Error: ${error.message}</span>`;
         }
     });
 

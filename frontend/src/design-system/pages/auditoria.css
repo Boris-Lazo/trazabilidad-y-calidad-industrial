@@ -1,0 +1,24 @@
+/* Page-specific styles for Auditoria */
+
+.auditoria-filtros-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+}
+
+.audit-diff-container {
+    display: none;
+    font-family: monospace;
+    font-size: 0.75rem;
+    background: var(--bg-alt);
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+
+.audit-val-ant { color: var(--error); }
+.audit-val-nue { color: var(--success); }
+.font-08 { font-size: 0.8rem; }
+.font-075 { font-size: 0.75rem; }
+.font-085 { font-size: 0.85rem; }
+.white-nowrap { white-space: nowrap; }

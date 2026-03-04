@@ -1,0 +1,142 @@
+/* Page-specific styles for Proceso */
+
+.topbar-proceso {
+    height: auto;
+    padding: 1rem 1.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    border-bottom: 2px solid var(--primary);
+}
+
+.proceso-header-main {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    align-items: center;
+}
+
+.proceso-back-btn {
+    padding: 4px;
+    border: none !important;
+    background: transparent !important;
+}
+
+.proceso-progreso-barra {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0,0,0,0.05);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+}
+
+.proceso-blocking-alert {
+    background: var(--error-bg);
+    color: var(--error);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    border: 2px solid var(--error);
+}
+
+.proceso-operatividad-card {
+    border-left: 5px solid var(--warning) !important;
+    margin-bottom: 2rem;
+}
+
+.proceso-operatividad-body {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    padding: 0.5rem 1rem;
+}
+
+.proceso-copiar-btn {
+    float: right;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    min-height: 24px;
+    margin-top: -4px;
+}
+
+.proceso-orden-especifica {
+    padding: 1rem;
+    background: rgba(0,0,0,0.02);
+    border-bottom: 1px solid var(--border);
+}
+
+.proceso-section-padding {
+    padding: 1rem;
+}
+
+.proceso-footer-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin: 3rem 0 5rem 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.proceso-modal-desviacion {
+    width: 500px;
+    border-top: 5px solid var(--error);
+}
+
+.w-50 { width: 50px !important; }
+.mw-250 { max-width: 250px !important; }
+
+.proceso-calidad-th {
+    font-size: 0.8rem;
+}
+
+.proceso-calidad-input {
+    padding: 4px;
+    font-size: 0.9rem;
+}
+
+.proceso-select-sm {
+    padding: 4px;
+    font-size: 0.8rem;
+}
+
+.proceso-btn-delete {
+    color: var(--error);
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.proceso-param-label {
+    font-size: 0.75rem;
+    margin-bottom: 2px;
+}
+
+.proceso-param-input {
+    padding: 6px;
+}
+
+.proceso-param-group-title {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.proceso-param-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+    gap: 1rem !important;
+}
+
+.proceso-tinta-pos {
+    width: 50px;
+}
+
+.aviso-obligatorio {
+    font-size: 0.875rem;
+    background: var(--error-bg);
+    padding: 0.5rem;
+    border-radius: 4px;
+}

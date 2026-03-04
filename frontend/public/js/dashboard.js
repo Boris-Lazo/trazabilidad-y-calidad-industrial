@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const state = (await resEstado.json()).data || {};
 
             if (!state.estadoTurno) {
-                document.body.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100vh; flex-direction:column; font-family:sans-serif;"><h1>⚠️ ERROR DE SISTEMA</h1><p>Estado operativo incompleto. Contacte soporte.</p></div>';
+                document.body.innerHTML = '<div class="d-flex align-center justify-center vh-100 flex-column font-sans"><h1>⚠️ ERROR DE SISTEMA</h1><p>Estado operativo incompleto. Contacte soporte.</p></div>';
                 return;
             }
 
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 title.textContent = 'Bienvenido al Turno';
                 desc.textContent = 'No hay una bitácora abierta. Inicie el turno para comenzar el registro operativo.';
                 btn.textContent = 'ABRIR BITÁCORA DE TURNO';
-                iconContainer.innerHTML = '<i data-lucide="play-circle" style="width: 64px; height: 64px; color: var(--primary-color);"></i>';
+                iconContainer.innerHTML = '<i data-lucide="play-circle" class="icon-huge text-primary"></i>';
                 break;
             case 'EN_PROCESO':
                 title.textContent = 'Turno en Curso';
@@ -76,20 +76,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? `IR A ${(state.actionPayload.proceso_nombre || 'PROCESO').toUpperCase()}`
                     : 'VER PROCESOS';
                 btn.className = 'btn btn-primary';
-                iconContainer.innerHTML = '<i data-lucide="activity" style="width: 64px; height: 64px; color: var(--primary-color);"></i>';
+                iconContainer.innerHTML = '<i data-lucide="activity" class="icon-huge text-primary"></i>';
                 break;
             case 'LISTO_PARA_CIERRE':
                 title.textContent = 'Procesos Completados';
                 desc.textContent = 'Todos los procesos han sido registrados. Puede proceder al cierre del turno.';
                 btn.textContent = 'REALIZAR CIERRE DE TURNO';
                 btn.className = 'btn btn-primary';
-                iconContainer.innerHTML = '<i data-lucide="check-circle" style="width: 64px; height: 64px; color: var(--success);"></i>';
+                iconContainer.innerHTML = '<i data-lucide="check-circle" class="icon-huge text-success"></i>';
                 break;
             case 'CERRADO':
                 title.textContent = 'Turno Finalizado';
                 desc.textContent = 'Esta bitácora ha sido cerrada. El sistema se encuentra en modo de solo lectura.';
-                btn.style.display = 'none';
-                iconContainer.innerHTML = '<i data-lucide="lock" style="width: 64px; height: 64px; color: var(--text-secondary);"></i>';
+                btn.classList.add('d-none');
+                iconContainer.innerHTML = '<i data-lucide="lock" class="icon-huge text-secondary"></i>';
                 break;
             default:
                 title.textContent = 'Sincronizando...';

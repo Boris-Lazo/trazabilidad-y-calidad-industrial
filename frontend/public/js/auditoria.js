@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const res = await fetch(`/api/auditoria?${params.toString()}`);
             if (res.status === 403) {
-                tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--danger);">No tienes permisos para ver los logs de auditoría</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-error">No tienes permisos para ver los logs de auditoría</td></tr>';
                 return;
             }
             const result = await res.json();
@@ -36,14 +36,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             renderLogs(result.data);
         } catch (error) {
-            tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--danger);">${error.message}</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-error">${error.message}</td></tr>`;
         }
     }
 
     function renderLogs(logs) {
         tableBody.innerHTML = '';
         if (logs.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No se encontraron registros de auditoría.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No se encontraron registros de auditoría.</td></tr>';
             return;
         }
 
@@ -55,17 +55,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const fila = document.createElement('tr');
             fila.innerHTML = `
-                <td style="font-size: 0.8rem; white-space: nowrap;">${new Date(log.fecha_hora).toLocaleString()}</td>
+                <td class="font-08 white-nowrap">${new Date(log.fecha_hora).toLocaleString()}</td>
                 <td><strong>${log.usuario}</strong></td>
                 <td><span class="badge ${actionClass}">${log.accion}</span></td>
-                <td>${log.entidad} <span style="font-size: 0.75rem; color: var(--text-muted);">ID: ${log.entidad_id || '-'}</span></td>
+                <td>${log.entidad} <span class="font-075 text-muted">ID: ${log.entidad_id || '-'}</span></td>
                 <td>
-                    <div style="font-size: 0.85rem;">${log.motivo_cambio || '-'}</div>
+                    <div class="font-085">${log.motivo_cambio || '-'}</div>
                     ${log.valor_anterior || log.valor_nuevo ? `
-                        <button class="btn btn-outline btn-sm" onclick="toggleDetails(this)" style="padding: 2px 4px; font-size: 0.7rem; margin-top: 4px;">Ver Diferencia</button>
-                        <div class="diff-container" style="display: none; font-family: monospace; font-size: 0.75rem; background: var(--bg-secondary); padding: 0.5rem; border-radius: 4px; margin-top: 4px;">
-                            <div style="color: var(--danger);">Ant: ${log.valor_anterior || 'null'}</div>
-                            <div style="color: var(--success);">Nue: ${log.valor_nuevo || 'null'}</div>
+                        <button class="btn btn-outline btn-sm font-sm p-1 mt-1" onclick="toggleDetails(this)">Ver Diferencia</button>
+                        <div class="audit-diff-container">
+                            <div class="audit-val-ant">Ant: ${log.valor_anterior || 'null'}</div>
+                            <div class="audit-val-nue">Ant: ${log.valor_nuevo || 'null'}</div>
                         </div>
                     ` : ''}
                 </td>

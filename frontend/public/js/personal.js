@@ -145,13 +145,12 @@ const PersonalModule = {
 
         if (isReadOnly) {
             const btnNuevo = document.getElementById('btn-nuevo-personal');
-            if (btnNuevo) btnNuevo.style.display = 'none';
+            if (btnNuevo) btnNuevo.classList.add('d-none');
             if (!document.getElementById('readonly-notice')) {
                 const notice = document.createElement('div');
                 notice.id = 'readonly-notice';
-                notice.className = 'badge badge-warning mb-3 w-100';
-                notice.style.padding = '10px';
-                notice.innerHTML = '<i data-lucide="info" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i> Información histórica y no editable para Inspectores.';
+                notice.className = 'badge badge-warning mb-3 w-100 p-2';
+                notice.innerHTML = '<i data-lucide="info" class="icon-xs v-middle mr-1"></i> Información histórica y no editable para Inspectores.';
                 tbody.closest('.card').parentElement.insertBefore(notice, tbody.closest('.card'));
                 DesignSystem.initLucide();
             }
@@ -195,13 +194,12 @@ const PersonalModule = {
 
         tbody.innerHTML = filtered.map(p => {
             const isAuxActive = p.es_auxiliar_activo;
-            const rowStyle = isAuxActive ? 'background-color: rgba(30, 64, 175, 0.05); border-left: 4px solid var(--primary-base);' : '';
 
             return `
-            <tr style="${rowStyle}" data-staff-id="${p.id}">
+            <tr class="${isAuxActive ? 'personal-aux-active' : ''}" data-staff-id="${p.id}">
                 <td>
                     <strong>${p.codigo_interno}</strong>
-                    ${isAuxActive ? '<br><small class="text-primary" style="font-weight:600;">Auxiliar con Acceso</small>' : ''}
+                    ${isAuxActive ? '<br><small class="text-primary text-bold">Auxiliar con Acceso</small>' : ''}
                 </td>
                 <td>${p.nombre} ${p.apellido}</td>
                 <td>${p.area_nombre}</td>
@@ -212,24 +210,24 @@ const PersonalModule = {
                     </span>
                 </td>
                 <td>
-                    <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="d-flex align-center gap-1">
                         <span class="badge ${p.estado_usuario && p.estado_usuario.toLowerCase() === 'activo' ? 'badge-success' : 'badge-warning'}">
                             ${(p.estado_usuario || 'S/U').toUpperCase()}
                         </span>
                         ${canManage && p.estado_usuario !== 'Baja lógica' ? `
                         <button class="btn btn-secondary btn-sm btn-status" title="Estado / Acceso">
-                            <i data-lucide="shield" style="width:14px; height:14px;"></i>
+                            <i data-lucide="shield" class="icon-xs"></i>
                         </button>` : ''}
                     </div>
                 </td>
                 <td>
-                    <div style="display: flex; gap: 8px;">
+                    <div class="d-flex gap-1">
                         ${canManage && p.estado_usuario !== 'Baja lógica' ? `
                         <button class="btn btn-secondary btn-sm btn-edit" title="Editar">
-                            <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                            <i data-lucide="pencil" class="icon-xs"></i>
                         </button>` : ''}
                         <button class="btn btn-secondary btn-sm btn-view" title="Ver Detalle">
-                            <i data-lucide="eye" style="width:14px; height:14px;"></i>
+                            <i data-lucide="eye" class="icon-xs"></i>
                         </button>
                     </div>
                 </td>
@@ -308,13 +306,13 @@ const PersonalModule = {
                 const p = this.staff.find(s => s.id === this.currentStaffId);
                 const warning = document.getElementById('status-warning');
                 if (e.target.value === 'Baja lógica') {
-                    warning.style.display = 'block';
+                    warning.classList.add('block');
                     warning.innerHTML = '<strong>Atención:</strong> El estado \'Baja lógica\' es irreversible e impedirá cualquier acceso futuro.';
                 } else if (p && p.es_auxiliar_activo) {
-                    warning.style.display = 'block';
+                    warning.classList.add('block');
                     warning.innerHTML = '<strong>Atención:</strong> Este colaborador es un Auxiliar con acceso activo. Desactivar su acceso revocará sus permisos de inmediato.';
                 } else {
-                    warning.style.display = 'none';
+                    warning.classList.remove('block');
                 }
             });
         }
@@ -388,19 +386,20 @@ const PersonalModule = {
             document.getElementById('p-categoria').value = '';
 
             codigoInput.disabled = true;
-            editFields.style.display = 'block';
+            editFields.classList.add('block');
+            editFields.classList.add('block');
         } else {
             modalTitle.textContent = 'Registrar Nuevo Personal';
             codigoInput.disabled = false;
-            editFields.style.display = 'none';
+            editFields.classList.remove('block');
             document.getElementById('p-rol-org').disabled = true;
         }
 
-        document.getElementById('modal-personal').style.display = 'flex';
+        document.getElementById('modal-personal').classList.add('d-flex');
     },
 
     closeModal() {
-        document.getElementById('modal-personal').style.display = 'none';
+        document.getElementById('modal-personal').classList.remove('d-flex');
     },
 
     async saveStaff() {
@@ -480,8 +479,8 @@ const PersonalModule = {
                 const indicator = document.getElementById('detail-indicator');
                 if (isAuxActive) {
                     indicator.innerHTML = `
-                        <div class="badge badge-primary w-100" style="padding: 10px; text-align: left; font-size: 0.9rem;">
-                            <i data-lucide="shield-check" class="inline-icon"></i>
+                        <div class="badge badge-primary w-100 text-left p-2 font-md">
+                            <i data-lucide="shield-check" class="icon-xs v-middle mr-1"></i>
                             <strong>Atención:</strong> Colaborador identificado como Auxiliar con acceso activo al sistema.
                         </div>
                     `;
@@ -501,15 +500,15 @@ const PersonalModule = {
                 `;
 
                 document.getElementById('current-op-role').innerHTML = p.rol_operativo_actual
-                    ? `<span class="badge badge-info" style="font-size: 1.1rem; padding: 8px 16px;">${p.rol_operativo_actual.rol_nombre}</span>`
+                    ? `<span class="badge badge-info font-lg p-2">${p.rol_operativo_actual.rol_nombre}</span>`
                     : '<span class="text-secondary italic">Sin rol operativo asignado</span>';
 
                 const assignmentsList = document.getElementById('active-assignments-details');
                 if (p.asignaciones_activas && p.asignaciones_activas.length > 0) {
                     assignmentsList.innerHTML = p.asignaciones_activas.map(a => `
-                        <div class="card p-2 mb-2" style="border-left: 4px solid var(--primary-base); background: rgba(0,0,0,0.02);">
-                            <div style="font-weight: 600;">${a.proceso_nombre} ${a.maquina_codigo ? '- ' + a.maquina_codigo : ''}</div>
-                            <div style="font-size: 12px; color: var(--text-secondary);">Turno: ${a.turno} ${a.permanente ? '(Permanente)' : ''}</div>
+                        <div class="card p-2 mb-2 personal-assignment-card">
+                            <div class="text-bold">${a.proceso_nombre} ${a.maquina_codigo ? '- ' + a.maquina_codigo : ''}</div>
+                            <div class="font-sm text-secondary">Turno: ${a.turno} ${a.permanente ? '(Permanente)' : ''}</div>
                         </div>
                     `).join('');
                 } else {
@@ -548,7 +547,7 @@ const PersonalModule = {
     },
 
     closeDetailModal() {
-        document.getElementById('modal-detalle').style.display = 'none';
+        document.getElementById('modal-detalle').classList.remove('d-flex');
     },
 
     openStatusModal(id, name, currentStatus) {
@@ -564,17 +563,17 @@ const PersonalModule = {
 
         const warning = document.getElementById('status-warning');
         if (p && p.es_auxiliar_activo) {
-            warning.style.display = 'block';
+            warning.classList.add('block');
             warning.innerHTML = '<strong>Atención:</strong> Este colaborador es un Auxiliar con acceso activo. Desactivar su acceso revocará sus permisos de inmediato.';
         } else {
-            warning.style.display = 'none';
+            warning.classList.remove('block');
         }
 
-        document.getElementById('modal-estado-usuario').style.display = 'flex';
+        document.getElementById('modal-estado-usuario').classList.add('d-flex');
     },
 
     closeStatusModal() {
-        document.getElementById('modal-estado-usuario').style.display = 'none';
+        document.getElementById('modal-estado-usuario').classList.remove('d-flex');
     },
 
     async saveStatusChange() {
@@ -619,7 +618,7 @@ const PersonalModule = {
     },
 
     closeAssignmentModal() {
-        document.getElementById('modal-asignacion').style.display = 'none';
+        document.getElementById('modal-asignacion').classList.remove('d-flex');
     },
 
     async saveAssignment() {

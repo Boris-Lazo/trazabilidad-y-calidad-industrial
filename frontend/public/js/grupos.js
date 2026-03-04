@@ -62,11 +62,11 @@ const GruposModule = {
         if (!list) return;
 
         list.innerHTML = this.grupos.map(g => `
-            <div class="list-group-item ${this.currentGrupoId === g.id ? 'active' : ''}" data-id="${g.id}" style="cursor: pointer;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="list-group-item ${this.currentGrupoId === g.id ? 'active' : ''} cursor-pointer" data-id="${g.id}">
+                <div class="d-flex justify-between align-center">
                     <div>
-                        <div style="font-weight: 600;">${g.nombre}</div>
-                        <div style="font-size: 12px; opacity: 0.8;">${g.tipo === 'operativo' ? 'Producción' : 'Administración'}</div>
+                        <div class="text-bold">${g.nombre}</div>
+                        <div class="font-sm opacity-08">${g.tipo === 'operativo' ? 'Producción' : 'Administración'}</div>
                     </div>
                     <span class="badge ${g.tipo === 'operativo' ? 'badge-info' : 'badge-secondary'}">${g.turno_actual}</span>
                 </div>
@@ -85,17 +85,16 @@ const GruposModule = {
             if (!document.getElementById('readonly-notice-grupos')) {
                 const notice = document.createElement('div');
                 notice.id = 'readonly-notice-grupos';
-                notice.className = 'badge badge-warning mb-3 w-100';
-                notice.style.padding = '10px';
-                notice.innerHTML = '<i data-lucide="info" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i> Información histórica y no editable para Inspectores.';
+                notice.className = 'badge badge-warning mb-3 w-100 grupos-readonly-notice';
+                notice.innerHTML = '<i data-lucide="info" class="icon-xs v-middle mr-1"></i> Información histórica y no editable para Inspectores.';
                 const container = document.getElementById('detalle-grupo-container');
                 container.insertBefore(notice, container.firstChild);
                 DesignSystem.initLucide();
             }
         }
 
-        document.getElementById('no-grupo-selected').style.display = 'none';
-        document.getElementById('detalle-grupo-container').style.display = 'flex';
+        document.getElementById('no-grupo-selected').classList.add('d-none');
+        document.getElementById('detalle-grupo-container').classList.add('d-flex');
 
         try {
             const res = await fetch(`/api/grupos/${id}`);
@@ -109,12 +108,14 @@ const GruposModule = {
                 // Mostrar/Ocultar control de turno (fijo para administrativos)
                 const btnRotar = document.getElementById('btn-rotar-turno');
                 if (btnRotar) {
-                    btnRotar.style.display = (g.tipo === 'administrativo' || isReadOnly) ? 'none' : 'block';
+                    if (g.tipo === 'administrativo' || isReadOnly) btnRotar.classList.add('d-none');
+                    else btnRotar.classList.remove('d-none');
                 }
 
                 const btnAdd = document.getElementById('btn-add-integrante');
                 if (btnAdd) {
-                    btnAdd.style.display = isReadOnly ? 'none' : 'block';
+                    if (isReadOnly) btnAdd.classList.add('d-none');
+                    else btnAdd.classList.remove('d-none');
                 }
 
                 this.renderIntegrantes(g.integrantes);
@@ -139,21 +140,21 @@ const GruposModule = {
 
         tbody.innerHTML = integrantes.map(i => `
             <tr>
-                <td style="font-weight: 500;">${i.nombre} ${i.apellido}</td>
+                <td class="text-bold">${i.nombre} ${i.apellido}</td>
                 <td><code>${i.codigo_interno}</code></td>
                 <td>
-                    <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="d-flex align-center gap-2">
                         <span>${i.rol_operativo || '<em class="text-secondary">Sin asignar</em>'}</span>
                         ${!isReadOnly ? `
-                        <button class="btn btn-secondary btn-sm btn-edit-rol" style="padding: 2px 4px;" data-id="${i.persona_id}" data-nombre="${i.nombre} ${i.apellido}">
-                            <i data-lucide="edit-3" style="width:12px; height:12px;"></i>
+                        <button class="btn btn-secondary btn-sm btn-edit-rol p-1" data-id="${i.persona_id}" data-nombre="${i.nombre} ${i.apellido}">
+                            <i data-lucide="edit-3" class="icon-xs"></i>
                         </button>` : ''}
                     </div>
                 </td>
                 <td>
                     ${!isReadOnly ? `
                     <button class="btn btn-danger btn-sm btn-remove-integrante" data-id="${i.persona_id}" data-nombre="${i.nombre} ${i.apellido}" title="Remover del grupo">
-                        <i data-lucide="user-minus" style="width:14px; height:14px;"></i>
+                        <i data-lucide="user-minus" class="icon-xs"></i>
                     </button>` : '<span class="badge badge-secondary">Activo</span>'}
                 </td>
             </tr>
@@ -166,7 +167,7 @@ const GruposModule = {
         if (!tbody) return;
 
         if (!historial || historial.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-secondary" style="font-size: 13px;">No hay registros históricos</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-secondary font-md">No hay registros históricos</td></tr>';
             return;
         }
 
@@ -176,11 +177,11 @@ const GruposModule = {
             const esPasado = !!h.fecha_hasta;
 
             return `
-                <tr style="${esPasado ? 'opacity: 0.7; background-color: rgba(0,0,0,0.02);' : 'font-weight: 500;'}">
+                <tr class="${esPasado ? 'grupos-history-past' : 'text-bold'}">
                     <td>${h.nombre} ${h.apellido}</td>
-                    <td style="font-size: 12px;">${fechaDesde}</td>
-                    <td style="font-size: 12px;">${fechaHasta}</td>
-                    <td style="font-size: 12px; font-style: italic;">${h.motivo || '-'}</td>
+                    <td class="font-sm">${fechaDesde}</td>
+                    <td class="font-sm">${fechaHasta}</td>
+                    <td class="font-sm italic">${h.motivo || '-'}</td>
                 </tr>
             `;
         }).join('');
@@ -212,7 +213,8 @@ const GruposModule = {
         if (selectTipo) {
             selectTipo.addEventListener('change', (e) => {
                 const container = document.getElementById('nuevo-grupo-turno-container');
-                container.style.display = e.target.value === 'administrativo' ? 'none' : 'block';
+                if (e.target.value === 'administrativo') container.classList.add('d-none');
+                else container.classList.remove('d-none');
             });
         }
 
@@ -268,12 +270,12 @@ const GruposModule = {
 
     openModal(modalId) {
         const modal = document.getElementById(modalId);
-        if (modal) modal.style.display = 'flex';
+        if (modal) modal.classList.add('d-flex');
     },
 
     closeModal(modalId) {
         const modal = document.getElementById(modalId);
-        if (modal) modal.style.display = 'none';
+        if (modal) modal.classList.remove('d-flex');
     },
 
     openRolModal(personaId, nombre) {

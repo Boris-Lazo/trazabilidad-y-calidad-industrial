@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bitácora de Turno | PROD-SYS</title>
     <link rel="stylesheet" href="/design-system/index.css">
+    <link rel="stylesheet" href="/design-system/utilities.css">
+    <link rel="stylesheet" href="/design-system/pages/bitacora.css">
     <script src="js/auth.js?v=1.5"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/design-system/index.js" defer></script>
@@ -67,12 +69,12 @@
                     </div>
                 </div>
             </nav>
-            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
-                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+            <div class="sidebar-user-section">
+                <div id="user-display" class="sidebar-user-display">
+                    <i data-lucide="user" class="icon-xs v-middle mr-1"></i>
                     <span id="user-name-label">Usuario: -</span>
                 </div>
-                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
+                <a href="/login.html" id="logout-link" class="btn btn-secondary sidebar-logout-btn">
                     <i data-lucide="log-out" class="nav-icon"></i>
                     <span>Cerrar Sesión</span>
                 </a>
@@ -81,22 +83,22 @@
 
         <div class="main-container" id="main-content">
             <!-- Header Persistente: Contexto Operativo -->
-            <header class="topbar" style="height: auto; padding: 1rem 1.5rem; flex-direction: column; align-items: flex-start; gap: 0.5rem; border-bottom: 2px solid var(--primary-color);">
-                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                    <h1 style="margin: 0;">Bitácora de Turno</h1>
-                    <div id="reloj-container" style="text-align: right; font-family: monospace;">
-                        <div id="reloj-fecha" style="font-size: 0.8rem; color: var(--text-secondary);">--/--/----</div>
-                        <div id="reloj-hora" style="font-size: 1.2rem; font-weight: bold;">--:--</div>
+            <header class="topbar topbar-bitacora">
+                <div class="d-flex justify-between w-100 align-center">
+                    <h1 class="m-0">Bitácora de Turno</h1>
+                    <div id="reloj-container" class="text-right font-mono">
+                        <div id="reloj-fecha" class="font-sm text-secondary">--/--/----</div>
+                        <div id="reloj-hora" class="font-lg text-bold">--:--</div>
                     </div>
                 </div>
 
-                <div id="header-contexto" style="display: none; width: 100%; justify-content: space-between; align-items: center; background: rgba(59, 130, 246, 0.1); padding: 0.5rem 1rem; border-radius: 4px;">
-                    <div style="display: flex; gap: 2rem;">
-                        <div><small style="color: var(--text-secondary); display: block;">Turno</small><strong id="info-turno">-</strong></div>
-                        <div><small style="color: var(--text-secondary); display: block;">Fecha Operativa</small><strong id="info-fecha">-</strong></div>
-                        <div><small style="color: var(--text-secondary); display: block;">Inspector</small><strong id="info-inspector">-</strong></div>
+                <div id="header-contexto" class="header-contexto d-flex">
+                    <div class="d-flex gap-4">
+                        <div><small class="text-secondary block">Turno</small><strong id="info-turno">-</strong></div>
+                        <div><small class="text-secondary block">Fecha Operativa</small><strong id="info-fecha">-</strong></div>
+                        <div><small class="text-secondary block">Inspector</small><strong id="info-inspector">-</strong></div>
                     </div>
-                    <div style="text-align: right;">
+                    <div class="text-right">
                         <span class="badge badge-info" id="info-estado">CARGANDO...</span>
                     </div>
                 </div>
@@ -104,8 +106,8 @@
 
             <div class="page-content">
                 <!-- Vista Apertura -->
-                <div id="view-apertura" style="display: none;">
-                    <div class="card" style="max-width: 500px; margin: 2rem auto;">
+                <div id="view-apertura" class="d-none">
+                    <div class="card mw-500 mx-auto mt-4">
                         <div class="card-header">Abrir Nueva Bitácora</div>
                         <p class="mb-4">No hay una bitácora abierta para el turno actual.</p>
                         <form id="form-abrir-bitacora">
@@ -113,29 +115,29 @@
                                 <label for="inspector">Nombre del Inspector</label>
                                 <input class="form-control" type="text" id="inspector" readonly>
                             </div>
-                            <button type="submit" class="btn btn-primary" style="width: 100%;">Abrir Bitácora</button>
+                            <button type="submit" class="btn btn-primary w-100">Abrir Bitácora</button>
                         </form>
                     </div>
                 </div>
 
                 <!-- Vista Abierta: Dashboard de Procesos -->
-                <div id="view-abierta" style="display: none;">
-                    <div id="warning-horario" class="card" style="display: none; background: var(--danger-subtle); color: var(--danger); border-color: var(--danger); margin-bottom: 1rem;">
-                        <i data-lucide="alert-triangle" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 8px;"></i>
+                <div id="view-abierta" class="d-none">
+                    <div id="warning-horario" class="card bg-danger-subtle mb-2 d-none">
+                        <i data-lucide="alert-triangle" class="icon-sm v-middle mr-1"></i>
                         <strong>Aviso:</strong> Esta bitácora fue creada fuera del horario habitual del turno.
                     </div>
 
                     <h2 class="section-title">Estado de Procesos</h2>
-                    <div id="grid-procesos" class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                    <div id="grid-procesos" class="dashboard-grid bitacora-grid">
                         <!-- Se llena dinámicamente con tarjetas -->
                     </div>
 
-                    <div style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
-                        <div style="color: var(--text-secondary); font-size: 0.9rem;">
-                            <i data-lucide="info" style="width: 14px; height: 14px; vertical-align: middle;"></i>
+                    <div class="mt-6 d-flex justify-between align-center border-top pt-3">
+                        <div class="text-secondary font-md">
+                            <i data-lucide="info" class="icon-xs v-middle"></i>
                             Todos los procesos deben estar en <strong>Completo</strong> o <strong>Revisión</strong> para cerrar.
                         </div>
-                        <button id="btn-cerrar-bitacora" class="btn btn-primary" style="min-width: 200px;" disabled>
+                        <button id="btn-cerrar-bitacora" class="btn btn-primary minw-200" disabled>
                             Finalizar y Cerrar Turno
                         </button>
                     </div>
@@ -145,52 +147,52 @@
     </div>
 
     <!-- Modal de Cierre: Integrity Checklist -->
-    <div id="modal-cierre" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
-        <div class="card" style="max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; border: 4px solid var(--danger);">
-            <div class="card-header" style="background: var(--danger); color: white;">
-                <i data-lucide="alert-triangle" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;"></i>
+    <div id="modal-cierre" class="modal-overlay d-none">
+        <div class="card mw-600 w-95 scroll-y border-danger p-0">
+            <div class="card-header bg-danger p-2 m-0">
+                <i data-lucide="alert-triangle" class="icon-md v-middle mr-1"></i>
                 EVENTO IRREVERSIBLE: CIERRE DE TURNO
             </div>
 
-            <div style="padding: 1.5rem;">
-                <div style="background: var(--danger-subtle); padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; color: var(--danger);">
-                    <p style="font-weight: bold; margin: 0;">ESTÁS CERRANDO EL TURNO <span id="modal-turno-text">-</span> DEL <span id="modal-fecha-text">-</span>.</p>
-                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Este es un acto administrativo final. Los datos registrados serán inmutables.</p>
-                    <p style="margin: 0.5rem 0 0 0; font-size: 1rem; font-weight: bold;">ADVERTENCIA: No podrás revertir este cambio.</p>
+            <div class="p-3">
+                <div class="bg-danger-subtle p-2 mb-3">
+                    <p class="text-bold m-0">ESTÁS CERRANDO EL TURNO <span id="modal-turno-text">-</span> DEL <span id="modal-fecha-text">-</span>.</p>
+                    <p class="mt-1 m-0 font-md">Este es un acto administrativo final. Los datos registrados serán inmutables.</p>
+                    <p class="mt-1 m-0 text-bold">ADVERTENCIA: No podrás revertir este cambio.</p>
                 </div>
 
                 <div class="mb-4">
-                    <p style="font-weight: bold; font-size: 0.9rem; margin-bottom: 0.5rem;">Resumen de Producción y Calidad:</p>
-                    <div id="resumen-cierre-container" style="margin: 1rem 0; display: flex; flex-direction: column; gap: 0.5rem; border: 1px solid var(--border-color); padding: 1rem; border-radius: 4px; background: #f9fafb;">
+                    <p class="text-bold font-md mb-1">Resumen de Producción y Calidad:</p>
+                    <div id="resumen-cierre-container" class="mb-2 d-flex flex-column gap-1 border p-2 bg-light">
                         <!-- Se llena dinámicamente -->
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <p style="font-weight: bold; font-size: 0.9rem; margin-bottom: 0.5rem;">Resumen de integridad de los procesos:</p>
-                    <div id="checklist-procesos" style="margin: 1rem 0; display: flex; flex-direction: column; gap: 0.5rem; border: 1px solid var(--border-color); padding: 1rem; border-radius: 4px; background: #f9fafb;">
+                    <p class="text-bold font-md mb-1">Resumen de integridad de los procesos:</p>
+                    <div id="checklist-procesos" class="mb-2 d-flex flex-column gap-1 border p-2 bg-light">
                         <!-- Se llena dinámicamente -->
                     </div>
                 </div>
 
-                <div id="container-revision" style="display: none; background: rgba(239, 68, 68, 0.05); padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; border-left: 4px solid var(--danger);">
-                    <p class="text-error" style="font-weight: bold; margin-bottom: 0.5rem;">
-                        <i data-lucide="alert-circle" style="width: 16px; height: 16px; vertical-align: middle;"></i>
+                <div id="container-revision" class="d-none bg-danger-subtle p-2 mb-3">
+                    <p class="text-error text-bold mb-1">
+                        <i data-lucide="alert-circle" class="icon-sm v-middle"></i>
                         Justificación Obligatoria (Procesos en Revisión)
                     </p>
                     <textarea id="obs-revision" class="form-control" rows="3" placeholder="Explique los rechazos o incidentes detectados..."></textarea>
                 </div>
 
-                <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
-                    <label class="form-group" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-                        <input type="checkbox" id="check-confirmacion-final" style="width: 20px; height: 20px;">
-                        <span style="font-weight: bold; color: var(--text-primary);">Entiendo que este acto es irreversible y bloqueo permanentemente los registros.</span>
+                <div class="mt-4 border-top pt-3">
+                    <label class="form-group d-flex align-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="check-confirmacion-final" class="icon-md">
+                        <span class="text-bold">Entiendo que este acto es irreversible y bloqueo permanentemente los registros.</span>
                     </label>
                 </div>
 
-                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                <div class="d-flex gap-2 justify-end mt-4">
                     <button id="cancelar-cierre" class="btn btn-secondary">Cancelar</button>
-                    <button id="confirmar-cierre" class="btn btn-primary" style="background: var(--danger); border-color: var(--danger);" disabled>Confirmar Cierre Irreversible</button>
+                    <button id="confirmar-cierre" class="btn btn-primary cierre-irreversible-btn" disabled>Confirmar Cierre Irreversible</button>
                 </div>
             </div>
         </div>

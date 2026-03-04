@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = result.data || [];
             tabla.innerHTML = '';
             if (data.length === 0) {
-                tabla.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay incidentes registrados</td></tr>';
+                tabla.innerHTML = '<tr><td colspan="5" class="text-center">No hay incidentes registrados</td></tr>';
                 return;
             }
             data.forEach(inc => {
@@ -21,15 +21,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const fila = `
                     <tr>
-                        <td style="font-size: 0.8rem; color: var(--text-muted);">${new Date(inc.fecha_creacion).toLocaleString()}</td>
+                        <td class="font-sm text-muted">${new Date(inc.fecha_creacion).toLocaleString()}</td>
                         <td>
-                            <div style="font-weight: 600;">${inc.titulo}</div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">${inc.descripcion}</div>
+                            <div class="text-bold">${inc.titulo}</div>
+                            <div class="font-xs text-muted">${inc.descripcion}</div>
                         </td>
                         <td><span class="badge ${sevClass}">${inc.severidad}</span></td>
                         <td><span class="badge ${inc.estado === 'abierto' ? 'badge-warning' : 'badge-success'}">${inc.estado}</span></td>
                         <td>
-                            ${inc.estado === 'abierto' ? `<button class="button button-outline" onclick="cerrarIncidente(${inc.id})" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;">Cerrar</button>` : '-'}
+                            ${inc.estado === 'abierto' ? `<button class="button button-outline font-xs p-1" onclick="cerrarIncidente(${inc.id})">Cerrar</button>` : '-'}
                         </td>
                     </tr>
                 `;

@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Telar - Sistema de Control Industrial</title>
     <link rel="stylesheet" href="/design-system/index.css">
+    <link rel="stylesheet" href="/design-system/utilities.css">
     <link rel="stylesheet" href="/css/telares.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -65,12 +66,12 @@
                     </div>
                 </div>
             </nav>
-            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
-                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+            <div class="sidebar-user-section">
+                <div id="user-display" class="sidebar-user-display">
+                    <i data-lucide="user" class="icon-xs v-middle mr-1"></i>
                     <span id="user-name-label">Usuario: -</span>
                 </div>
-                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
+                <a href="/login.html" id="logout-link" class="btn btn-secondary sidebar-logout-btn">
                     <i data-lucide="log-out" class="nav-icon"></i>
                     <span>Cerrar Sesión</span>
                 </a>
@@ -102,7 +103,7 @@
                 <!-- CABECERA DE TELAR (Datos de Orden) -->
                 <div class="card mb-4">
                     <div class="card-header">INFORMACIÓN DE LA ORDEN ACTIVA</div>
-                    <div class="card-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; padding: 16px;">
+                    <div class="card-body grid-auto-200 p-3">
                         <div>
                             <div class="spec-label">Ancho Nominal</div>
                             <div class="spec-value" id="val-ancho-nominal">--</div>
@@ -124,7 +125,7 @@
 
                 <div class="dashboard-grid">
                     <!-- 1. PRODUCCIÓN -->
-                    <div class="card form-section" style="grid-column: span 2;">
+                    <div class="card form-section col-span-2">
                         <div class="card-header">1. PRODUCCIÓN POR ORDEN (Metros)</div>
                         <div class="table-container">
                             <table class="table" id="tabla-produccion">
@@ -135,13 +136,13 @@
                                         <th>Metros Producidos</th>
                                         <th>Desperdicio (kg)</th>
                                         <th>Observaciones</th>
-                                        <th style="width: 40px;"></th>
+                                        <th class="w-40"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbody-produccion"></tbody>
                             </table>
                         </div>
-                        <button class="button button-outline" id="btn-agregar-produccion" style="margin-top: 12px;">+ Agregar tramo / cambio de orden</button>
+                        <button class="button button-outline mt-2" id="btn-agregar-produccion">+ Agregar tramo / cambio de orden</button>
                     </div>
 
                     <!-- 2. CALIDAD ANCHO -->
@@ -225,17 +226,17 @@
                                         <th>Display</th>
                                         <th>Tipo Defecto</th>
                                         <th>Observación</th>
-                                        <th style="width: 40px;"></th>
+                                        <th class="w-40"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbody-visual"></tbody>
                             </table>
                         </div>
-                        <button class="button button-outline" id="btn-agregar-visual" style="margin-top: 12px;">+ Registrar Defecto</button>
+                        <button class="button button-outline mt-2" id="btn-agregar-visual">+ Registrar Defecto</button>
                     </div>
 
                     <!-- 6. PAROS -->
-                    <div class="card form-section" style="grid-column: span 2;">
+                    <div class="card form-section col-span-2">
                         <div class="card-header">6. PAROS DE PRODUCCIÓN</div>
                         <div class="table-container">
                             <table class="table" id="tabla-paros">
@@ -244,17 +245,17 @@
                                         <th>Tipo de Paro</th>
                                         <th>Minutos</th>
                                         <th>Justificación</th>
-                                        <th style="width: 40px;"></th>
+                                        <th class="w-40"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbody-paros"></tbody>
                             </table>
                         </div>
-                        <button class="button button-outline" id="btn-agregar-paro" style="margin-top: 12px;">+ Registrar Paro</button>
+                        <button class="button button-outline mt-2" id="btn-agregar-paro">+ Registrar Paro</button>
                     </div>
 
                     <!-- 7. LOTES CONSUMIDOS -->
-                    <div class="card form-section" style="grid-column: span 2;">
+                    <div class="card form-section col-span-2">
                         <div class="card-header">7. LOTES CONSUMIDOS</div>
                         <p class="text-muted mb-2">
                             Declare los lotes de materia prima utilizados en este turno.
@@ -267,20 +268,20 @@
                                         <th>Lote</th>
                                         <th>Código</th>
                                         <th>Orden</th>
-                                        <th style="width: 40px;"></th>
+                                        <th class="w-40"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbody-lotes-consumidos"></tbody>
                             </table>
                         </div>
-                        <button class="button button-outline" id="btn-agregar-lote" style="margin-top: 12px;">
+                        <button class="button button-outline mt-2" id="btn-agregar-lote">
                             + Agregar Lote Consumido
                         </button>
                     </div>
                 </div>
 
                 <!-- 8. JUSTIFICACION -->
-                <div id="section-justificacion" class="card mt-4" style="border-left: 4px solid var(--danger); display: none;">
+                <div id="section-justificacion" class="card mt-4 border-l-danger d-none">
                     <div class="card-body">
                         <strong>Justificación por omisión de mediciones (obligatoria)</strong>
                         <p class="text-muted">Se requiere explicar por qué no se completaron las 4 mediciones de ancho.</p>

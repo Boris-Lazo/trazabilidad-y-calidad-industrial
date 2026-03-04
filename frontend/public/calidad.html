@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calidad | PROD-SYS</title>
-        <link rel="stylesheet" href="/design-system/index.css">
+    <link rel="stylesheet" href="/design-system/index.css">
+    <link rel="stylesheet" href="/design-system/utilities.css">
+    <link rel="stylesheet" href="/design-system/pages/calidad.css">
     <script src="js/auth.js?v=1.5"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/design-system/index.js" defer></script>
@@ -29,6 +31,7 @@
                         <i data-lucide="chevron-right" class="chevron"></i>
                     </button>
                     <div class="nav-group-items">
+                        <a href="/planificacion.html" class="nav-item ">Planificación Semanal</a>
                         <a href="/bitacora.html" class="nav-item ">Bitácora de Turno</a>
                         <a href="/ordenes.html" class="nav-item ">Órdenes</a>
                         <a href="/ejecucion.html" class="nav-item ">Ejecución</a>
@@ -65,12 +68,12 @@
                     </div>
                 </div>
             </nav>
-            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
-                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+            <div class="sidebar-user-section">
+                <div id="user-display" class="sidebar-user-display">
+                    <i data-lucide="user" class="icon-xs v-middle mr-1"></i>
                     <span id="user-name-label">Usuario: -</span>
                 </div>
-                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
+                <a href="/login.html" id="logout-link" class="btn btn-secondary sidebar-logout-btn">
                     <i data-lucide="log-out" class="nav-icon"></i>
                     <span>Cerrar Sesión</span>
                 </a>
@@ -81,9 +84,9 @@
             <header class="topbar">
                 <h1>Calidad</h1>
                 <div class="topbar-actions">
-                    <button id="theme-toggle" class="btn btn-secondary" style="padding: 4px 8px; min-height: 32px; border: none; background: transparent;" title="Cambiar tema">
-                        <i data-lucide="sun" class="sun-icon" style="width: 18px; height: 18px;"></i>
-                        <i data-lucide="moon" class="moon-icon" style="width: 18px; height: 18px;"></i>
+                    <button id="theme-toggle" class="btn btn-secondary theme-toggle-btn">
+                        <i data-lucide="sun" class="sun-icon icon-md"></i>
+                        <i data-lucide="moon" class="moon-icon icon-md"></i>
                     </button>
                 </div>
             </header>
@@ -92,7 +95,7 @@
                 <div class="card">
                     <div class="card-header">Órdenes Pendientes de Evaluación</div>
                     <div class="table-container">
-                        <table>
+                        <table class="table">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -104,7 +107,7 @@
                                 </tr>
                             </thead>
                             <tbody id="lista-calidad">
-                                <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay lotes pendientes de evaluación en este momento.</td></tr>
+                                <tr><td colspan="6" class="text-center text-muted">No hay lotes pendientes de evaluación en este momento.</td></tr>
                             </tbody>
                         </table>
                     </div>

@@ -69,24 +69,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function mostrarErrorModal(mensaje) {
         mensajeErrorSap.textContent = mensaje;
-        modalErrorSap.style.display = 'flex';
+        modalErrorSap.classList.add('d-flex');
     }
 
     botonesCerrarError.forEach(btn => {
         btn.addEventListener('click', () => {
-            modalErrorSap.style.display = 'none';
+            modalErrorSap.classList.remove('d-flex');
         });
     });
 
     // Abrir modal
     btnImportarSap.addEventListener('click', () => {
         resetearModal();
-        modalImportar.style.display = 'flex';
+        modalImportar.classList.add('d-flex');
     });
 
     // Cerrar modal
     const cerrarYRecargar = () => {
-        modalImportar.style.display = 'none';
+        modalImportar.classList.remove('d-flex');
         // Intentar encontrar cargarOrdenes en el scope global o disparar evento
         const event = new CustomEvent('ordenes-actualizadas');
         document.dispatchEvent(event);
@@ -101,8 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Volver al paso 1
     btnVolverPaso1.addEventListener('click', () => {
-        paso2.style.display = 'none';
-        paso1.style.display = 'block';
+        paso2.classList.add('d-none');
+        paso1.classList.remove('d-none');
     });
 
     // Previsualizar archivo
@@ -131,8 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             if (result.success) {
                 renderizarPrevisualizacion(result.data);
-                paso1.style.display = 'none';
-                paso2.style.display = 'block';
+                paso1.classList.add('d-none');
+                paso2.classList.remove('d-none');
             } else {
                 mostrarError('Error de Procesamiento', result.error || 'No se pudo procesar el archivo SAP.');
             }
@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mostrarError('Error de Conexión', 'Hubo un problema al conectar con el servidor para la previsualización.');
         } finally {
             btnPrevisualizar.disabled = false;
-            btnPrevisualizar.innerHTML = '<i data-lucide="eye" style="width:16px; height:16px; margin-right:8px; vertical-align:middle;"></i> Previsualizar';
+            btnPrevisualizar.innerHTML = '<i data-lucide="eye" class="icon-sm mr-1 v-middle"></i> Previsualizar';
             if (window.lucide) lucide.createIcons();
         }
     });
@@ -167,17 +167,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.success) {
                 const totalGuardadas = result.data.guardadas || 0;
                 resultadoImportacion.innerHTML = `
-                    <div class="alert alert-success" style="display:flex; align-items:center; gap:12px;">
-                        <i data-lucide="check-circle" style="width:24px; height:24px;"></i>
+                    <div class="alert alert-success d-flex align-center gap-2">
+                        <i data-lucide="check-circle" class="icon-lg"></i>
                         <div>
-                            <h4 style="margin:0">Importación Exitosa</h4>
-                            <p style="margin:4px 0 0 0">Se importaron <strong>${totalGuardadas}</strong> órdenes nuevas correctamente.</p>
-                            <p style="font-size:12px; margin:4px 0 0 0; opacity:0.8;">PROD-SYS se mantuvo sin cambios para las órdenes ya existentes.</p>
+                            <h4 class="m-0">Importación Exitosa</h4>
+                            <p class="m-0 mt-1">Se importaron <strong>${totalGuardadas}</strong> órdenes nuevas correctamente.</p>
+                            <p class="font-xs m-0 mt-1 opacity-08">PROD-SYS se mantuvo sin cambios para las órdenes ya existentes.</p>
                         </div>
                     </div>
                 `;
-                paso2.style.display = 'none';
-                paso3.style.display = 'block';
+                paso2.classList.add('d-none');
+                paso3.classList.remove('d-none');
                 if (window.lucide) lucide.createIcons();
             } else {
                 // El backend devuelve 422 (DomainError) para errores de validación de negocio
@@ -189,16 +189,16 @@ document.addEventListener('DOMContentLoaded', () => {
             mostrarError('Error de Importación', 'Hubo un fallo al intentar confirmar e importar las órdenes.');
         } finally {
             btnConfirmarImportacion.disabled = false;
-            btnConfirmarImportacion.innerHTML = '<i data-lucide="check" style="width:14px; height:14px; margin-right:6px; vertical-align:middle;"></i> Confirmar e Importar';
+            btnConfirmarImportacion.innerHTML = '<i data-lucide="check" class="icon-xs mr-1 v-middle"></i> Confirmar e Importar';
             if (window.lucide) lucide.createIcons();
         }
     });
 
     function resetearModal() {
         inputArchivoExcel.value = '';
-        paso1.style.display = 'block';
-        paso2.style.display = 'none';
-        paso3.style.display = 'none';
+        paso1.classList.remove('d-none');
+        paso2.classList.add('d-none');
+        paso3.classList.add('d-none');
         tbodyPreview.innerHTML = '';
         resumenImportacion.innerHTML = '';
         ordenesNuevasCache = [];
@@ -209,24 +209,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Resumen — agregar no_reconocidas al conteo
         resumenImportacion.innerHTML = `
-            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
-                <span style="font-size:11px; color:rgba(255,255,255,0.5)">NUEVAS A IMPORTAR</span>
-                <div style="font-size:20px; font-weight:bold; color:var(--primary-color)">${data.nuevas.length}</div>
+            <div class="stat-card import-stat-card">
+                <span class="import-stat-label">NUEVAS A IMPORTAR</span>
+                <div class="import-stat-value text-primary">${data.nuevas.length}</div>
             </div>
-            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
-                <span style="font-size:11px; color:rgba(255,255,255,0.5)">YA EN PROD-SYS</span>
-                <div style="font-size:20px; font-weight:bold; color:rgba(255,255,255,0.4)">${data.ya_existentes.length}</div>
-                <span style="font-size:10px; color:rgba(255,255,255,0.3)">No se modificarán</span>
+            <div class="stat-card import-stat-card">
+                <span class="import-stat-label">YA EN PROD-SYS</span>
+                <div class="import-stat-value opacity-04">${data.ya_existentes.length}</div>
+                <span class="import-stat-sub">No se modificarán</span>
             </div>
-            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
-                <span style="font-size:11px; color:rgba(255,255,255,0.5)">REQUIEREN VALIDACIÓN</span>
-                <div style="font-size:20px; font-weight:bold; color:var(--warning-color)">${data.requieren_validacion}</div>
+            <div class="stat-card import-stat-card">
+                <span class="import-stat-label">REQUIEREN VALIDACIÓN</span>
+                <div class="import-stat-value text-warning">${data.requieren_validacion}</div>
             </div>
             ${data.no_reconocidas.length > 0 ? `
-            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(239,68,68,0.4)">
-                <span style="font-size:11px; color:rgba(255,255,255,0.5)">SERIES DESCONOCIDAS</span>
-                <div style="font-size:20px; font-weight:bold; color:var(--danger-color, #ef4444)">${data.no_reconocidas.length}</div>
-                <span style="font-size:10px; color:rgba(255,255,255,0.3)">Ver detalle abajo</span>
+            <div class="stat-card import-stat-card border-danger">
+                <span class="import-stat-label">SERIES DESCONOCIDAS</span>
+                <div class="import-stat-value text-error">${data.no_reconocidas.length}</div>
+                <span class="import-stat-sub">Ver detalle abajo</span>
             </div>` : ''}
         `;
 
@@ -235,18 +235,18 @@ document.addEventListener('DOMContentLoaded', () => {
         data.nuevas.forEach((orden, index) => {
             const tr = document.createElement('tr');
             if (orden.requiere_validacion) {
-                tr.style.borderLeft = '4px solid var(--warning-color)';
+                tr.classList.add('border-l-warning');
             }
 
             const fechaVenc = orden.fecha_vencimiento ? new Date(orden.fecha_vencimiento).toLocaleDateString() : '-';
 
             // Generar lista de especificaciones editables
-            let especHtml = '<div class="espec-list" style="font-size:11px; color:rgba(255,255,255,0.7)">';
+            let especHtml = '<div class="espec-list">';
             for (const [key, val] of Object.entries(orden.especificaciones)) {
                 if (key.startsWith('nota_')) continue;
                 especHtml += `<div class="espec-item" data-key="${key}">
-                    <span style="color:var(--primary-color)">${key}:</span>
-                    <span class="editable-val" contenteditable="true" style="border-bottom:1px dashed #666; padding:0 2px">${val}</span>
+                    <span class="text-primary">${key}:</span>
+                    <span class="editable-val" contenteditable="true">${val}</span>
                 </div>`;
             }
             especHtml += '</div>';
@@ -256,9 +256,9 @@ document.addEventListener('DOMContentLoaded', () => {
             orden.campos_pendientes.forEach(campo => {
                 if (campo === 'costura_posicion') {
                     pendientesHtml += `
-                        <div class="form-group" style="margin:0">
-                            <label style="font-size:10px; margin:0">${CAMPOS_PENDIENTES_LABELS[campo]}</label>
-                            <select class="form-control select-pendiente" data-campo="costura_posicion" style="padding:2px 4px; height:24px; font-size:11px;">
+                        <div class="form-group mb-0">
+                            <label class="font-xs m-0">${CAMPOS_PENDIENTES_LABELS[campo]}</label>
+                            <select class="form-control select-pendiente" data-campo="costura_posicion">
                                 <option value="" disabled selected>Elegir...</option>
                                 <option value="arriba">Arriba</option>
                                 <option value="abajo">Abajo</option>
@@ -267,9 +267,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                 } else if (campo === 'con_fuelle') {
                     pendientesHtml += `
-                        <div class="form-group" style="margin:0">
-                            <label style="font-size:10px; margin:0">${CAMPOS_PENDIENTES_LABELS[campo]}</label>
-                            <select class="form-control select-pendiente" data-campo="con_fuelle" style="padding:2px 4px; height:24px; font-size:11px;">
+                        <div class="form-group mb-0">
+                            <label class="font-xs m-0">${CAMPOS_PENDIENTES_LABELS[campo]}</label>
+                            <select class="form-control select-pendiente" data-campo="con_fuelle">
                                 <option value="" disabled selected>Elegir...</option>
                                 <option value="true">Con fuelle</option>
                                 <option value="false">Plano</option>
@@ -277,14 +277,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     `;
                 } else {
-                    pendientesHtml += `<span class="badge badge-warning" style="font-size:10px">${CAMPOS_PENDIENTES_LABELS[campo] || campo}</span>`;
+                    pendientesHtml += `<span class="badge badge-warning font-xs">${CAMPOS_PENDIENTES_LABELS[campo] || campo}</span>`;
                 }
             });
 
             tr.innerHTML = `
                 <td>${orden.codigo_orden}</td>
-                <td style="font-size:11px">${NOMBRES_PROCESO[orden.proceso_id] || 'N/A'}</td>
-                <td style="max-width:200px; font-size:11px; white-space:normal">${orden.descripcion_producto}</td>
+                <td class="font-sm">${NOMBRES_PROCESO[orden.proceso_id] || 'N/A'}</td>
+                <td class="mw-200 font-sm ws-normal">${orden.descripcion_producto}</td>
                 <td>${orden.cantidad_planificada}</td>
                 <td>${fechaVenc}</td>
                 <td>${especHtml}</td>
@@ -298,19 +298,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const seccionExistentes = document.getElementById('seccion-ya-existentes');
         if (seccionExistentes) {
             if (data.ya_existentes.length > 0) {
-                seccionExistentes.style.display = 'block';
+                seccionExistentes.classList.remove('d-none');
                 const tbodyExist = document.getElementById('tbody-ya-existentes');
                 tbodyExist.innerHTML = data.ya_existentes.map(e => `
                     <tr>
                         <td>${e.codigo_orden}</td>
                         <td><span class="badge badge-outline">${e.estado_prodsys}</span></td>
-                        <td style="font-size:11px; color:rgba(255,255,255,0.5)">${e.sap_cantidad_planificada?.toLocaleString() || '-'}</td>
-                        <td style="font-size:11px; color:rgba(255,255,255,0.5)">${e.sap_fecha_vencimiento || '-'}</td>
-                        <td style="font-size:11px; color:var(--success-color, #22c55e)">✓ PROD-SYS actualizado</td>
+                        <td class="font-sm text-muted">${e.sap_cantidad_planificada?.toLocaleString() || '-'}</td>
+                        <td class="font-sm text-muted">${e.sap_fecha_vencimiento || '-'}</td>
+                        <td class="font-sm text-success">✓ PROD-SYS actualizado</td>
                     </tr>
                 `).join('');
             } else {
-                seccionExistentes.style.display = 'none';
+                seccionExistentes.classList.add('d-none');
             }
         }
 
@@ -318,18 +318,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const seccionNoReconocidas = document.getElementById('seccion-no-reconocidas');
         if (seccionNoReconocidas) {
             if (data.no_reconocidas.length > 0) {
-                seccionNoReconocidas.style.display = 'block';
+                seccionNoReconocidas.classList.remove('d-none');
                 const tbodyNR = document.getElementById('tbody-no-reconocidas');
                 tbodyNR.innerHTML = data.no_reconocidas.map(e => `
                     <tr>
                         <td>${e.codigo_orden}</td>
-                        <td style="color:var(--danger-color, #ef4444)">${e.nombre_proceso_sap}</td>
-                        <td style="font-size:11px">${e.descripcion_producto}</td>
-                        <td style="font-size:11px; color:rgba(255,255,255,0.5)">${e.motivo}</td>
+                        <td class="text-error">${e.nombre_proceso_sap}</td>
+                        <td class="font-sm">${e.descripcion_producto}</td>
+                        <td class="font-sm text-muted">${e.motivo}</td>
                     </tr>
                 `).join('');
             } else {
-                seccionNoReconocidas.style.display = 'none';
+                seccionNoReconocidas.classList.add('d-none');
             }
         }
     }
@@ -379,13 +379,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function mostrarErrores(error) {
         resultadoImportacion.innerHTML = `
             <div class="alert alert-danger">
-                <h4 style="margin:0">Errores de Validación</h4>
-                <div style="margin-top:8px; font-size:13px; max-height:200px; overflow-y:auto">
+                <h4 class="m-0">Errores de Validación</h4>
+                <div class="import-results-container">
                     ${error.split(';').map(e => `<div>• ${e.trim()}</div>`).join('')}
                 </div>
             </div>
         `;
-        paso2.style.display = 'none';
-        paso3.style.display = 'block';
+        paso2.classList.add('d-none');
+        paso3.classList.remove('d-none');
     }
 });

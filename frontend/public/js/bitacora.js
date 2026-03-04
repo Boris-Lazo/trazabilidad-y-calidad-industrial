@@ -80,11 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gridProcesos.innerHTML = '';
         data.procesos.forEach(p => {
             const card = document.createElement('div');
-            card.className = 'card process-card';
-            card.style.borderLeft = `8px solid ${getEstadoColor(p.estadoUI)}`;
-            card.style.display = 'flex';
-            card.style.flexDirection = 'column';
-            card.style.justifyContent = 'space-between';
+            card.className = `card process-card d-flex flex-column justify-between ${getBorderClass(p.estadoUI)}`;
 
             const isBlocked = p.bloqueos && p.bloqueos.length > 0;
 
@@ -92,22 +88,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const isMandatory = data.siguienteAccion === 'IR_A_PROCESO' && data.actionPayload?.proceso_id == p.id;
 
             card.innerHTML = `
-                <div style="padding: 1rem;">
-                    <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem;">${p.nombre}</h3>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="process-card-content">
+                    <h3 class="mb-1 font-lg">${p.nombre}</h3>
+                    <div class="d-flex justify-between align-center">
                         <span class="badge ${getBadgeClass(p.estadoUI)}">${p.estadoUI}</span>
-                        <small style="color: var(--text-secondary);">${p.ultimaActualizacion}</small>
+                        <small class="text-secondary">${p.ultimaActualizacion}</small>
                     </div>
                     ${isBlocked ? `
-                        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--danger); font-weight: bold;">
-                            <i data-lucide="lock" style="width: 10px; height: 10px; vertical-align: middle;"></i>
+                        <div class="mt-1 font-xs text-error text-bold">
+                            <i data-lucide="lock" class="icon-xs v-middle"></i>
                             ${p.bloqueos[0]}
                         </div>
                     ` : ''}
                 </div>
-                <div style="background: rgba(0,0,0,0.05); padding: 0.75rem 1rem; text-align: right;">
-                    <button class="btn ${isMandatory ? 'btn-primary' : 'btn-secondary'} btn-registrar"
-                            data-id="${p.id}" data-nombre="${p.nombre}" style="min-width: 120px;"
+                <div class="process-card-footer">
+                    <button class="btn ${isMandatory ? 'btn-primary' : 'btn-secondary'} btn-registrar minw-120"
+                            data-id="${p.id}" data-nombre="${p.nombre}"
                             ${(!canAction || (data.siguienteAccion === 'IR_A_PROCESO' && !isMandatory)) ? 'disabled' : ''}>
                         ${b.estado === 'CERRADA' ? 'Ver Histórico' : (isMandatory ? 'REGISTRO OBLIGATORIO' : p.siguienteAccion)}
                     </button>
@@ -118,27 +114,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Lógica de habilitación de cierre
         btnCerrar.disabled = data.estadoTurno !== 'LISTO_PARA_CIERRE' || b.estado === 'CERRADA';
-        btnCerrar.style.display = b.estado === 'CERRADA' ? 'none' : 'block';
+        if (b.estado === 'CERRADA') btnCerrar.classList.add('d-none');
+        else btnCerrar.classList.remove('d-none');
 
         if (b.estado === 'CERRADA') {
             // Ceremonial histórico: Cambiar visual completa
             document.body.classList.add('historical-mode');
-            const mainContainer = document.querySelector('.main-container');
-            mainContainer.style.filter = 'grayscale(0.5)';
-            mainContainer.style.pointerEvents = 'none';
-            document.querySelector('.sidebar').style.filter = 'grayscale(0.5)';
 
             const alertCerrada = document.createElement('div');
-            alertCerrada.className = 'card';
-            alertCerrada.style.background = '#1f2937'; // Slate 800
-            alertCerrada.style.color = 'white';
-            alertCerrada.style.marginBottom = '2rem';
-            alertCerrada.style.textAlign = 'center';
-            alertCerrada.style.padding = '2rem';
-            alertCerrada.style.border = '4px solid #ef4444';
+            alertCerrada.className = 'card historical-alert';
             alertCerrada.innerHTML = `
-                <i data-lucide="lock" style="width: 48px; height: 48px; margin-bottom: 1rem;"></i>
-                <h1 style="margin:0; font-size: 2rem;">BITÁCORA CERRADA E INMUTABLE</h1>
+                <i data-lucide="lock" class="icon-huge mb-2"></i>
+                <h1 class="m-0 font-2xl">BITÁCORA CERRADA E INMUTABLE</h1>
                 <p>Este turno ha sido finalizado y auditado. No se permiten más cambios.</p>
             `;
             viewAbierta.prepend(alertCerrada);
@@ -160,14 +147,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.lucide) window.lucide.createIcons();
     }
 
-    function getEstadoColor(estado) {
-        if (!estado) return 'var(--border-color)';
-        if (estado.includes('Sin datos')) return 'var(--text-secondary)';
-        if (estado.includes('Esperando')) return 'var(--warning)';
-        if (estado.includes('Parcial')) return 'var(--warning)';
-        if (estado.includes('Completo')) return 'var(--success)';
-        if (estado.includes('Revisión')) return 'var(--danger)';
-        return 'var(--border-color)';
+    function getBorderClass(estado) {
+        if (!estado) return '';
+        if (estado.includes('Sin datos')) return 'border-l-secondary-8';
+        if (estado.includes('Esperando')) return 'border-l-warning-8';
+        if (estado.includes('Parcial')) return 'border-l-warning-8';
+        if (estado.includes('Completo')) return 'border-l-success-8';
+        if (estado.includes('Revisión')) return 'border-l-danger-8';
+        return '';
     }
 
     function getBadgeClass(estado) {
@@ -215,12 +202,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const resumenContainer = document.getElementById('resumen-cierre-container');
         resumenContainer.innerHTML = resumenCierre.map(p => `
-            <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem;">
+            <div class="resumen-item">
                 <span>${p.nombre}:</span>
-                <span style="font-weight: bold;">
+                <span class="text-bold">
                     ${p.produccion} ${p.unidad}
                     <i data-lucide="${p.calidadValidada ? 'shield-check' : 'shield-alert'}"
-                       style="width: 14px; height: 14px; vertical-align: middle; color: ${p.calidadValidada ? 'var(--success)' : 'var(--danger)'};"></i>
+                       class="icon-xs v-middle ${p.calidadValidada ? 'text-success' : 'text-error'}"></i>
                 </span>
             </div>
         `).join('');
@@ -230,19 +217,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         procesosTurno.forEach(p => {
             const item = document.createElement('div');
-            item.style.display = 'flex';
-            item.style.justifyContent = 'space-between';
-            item.style.padding = '0.5rem';
-            item.style.borderBottom = '1px solid var(--border-color)';
+            item.className = 'checklist-item';
 
-            const labelColor = p.estado.includes('Completo') ? 'var(--success)' : 'var(--danger)';
+            const labelClass = p.estado.includes('Completo') ? 'text-success' : 'text-error';
             const icon = p.estado.includes('Completo') ? 'check-circle' : 'alert-circle';
 
             if (p.estado.includes('Revisión')) hasRevision = true;
 
             item.innerHTML = `
-                <span><i data-lucide="${icon}" style="width: 14px; height: 14px; vertical-align: middle; color: ${labelColor}; margin-right: 8px;"></i> ${p.nombre}</span>
-                <span style="font-weight: bold; color: ${labelColor}">${p.estado}</span>
+                <span><i data-lucide="${icon}" class="icon-xs v-middle ${labelClass} mr-1"></i> ${p.nombre}</span>
+                <span class="text-bold ${labelClass}">${p.estado}</span>
             `;
             checklistProcesos.appendChild(item);
         });

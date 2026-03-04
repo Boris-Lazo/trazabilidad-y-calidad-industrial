@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard | PROD-SYS</title>
     <link rel="stylesheet" href="/design-system/index.css">
+    <link rel="stylesheet" href="/design-system/utilities.css">
+    <link rel="stylesheet" href="/design-system/pages/dashboard.css">
     <script src="js/auth.js?v=1.5"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/design-system/index.js" defer></script>
@@ -67,12 +69,12 @@
                     </div>
                 </div>
             </nav>
-            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
-                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+            <div class="sidebar-user-section">
+                <div id="user-display" class="sidebar-user-display">
+                    <i data-lucide="user" class="icon-xs v-middle mr-1"></i>
                     <span id="user-name-label">Usuario: -</span>
                 </div>
-                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
+                <a href="/login.html" id="logout-link" class="btn btn-secondary sidebar-logout-btn">
                     <i data-lucide="log-out" class="nav-icon"></i>
                     <span>Cerrar Sesión</span>
                 </a>
@@ -80,67 +82,67 @@
         </aside>
 
         <div class="main-container" id="main-content">
-            <header class="topbar" style="height: auto; padding: 1rem 1.5rem; flex-direction: column; align-items: flex-start; gap: 0.5rem; border-bottom: 2px solid var(--primary-color);">
-                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                    <h1 style="margin: 0;">Panel de Control Operativo</h1>
+            <header class="topbar dashboard-topbar">
+                <div class="proceso-header-main">
+                    <h1 class="m-0">Panel de Control Operativo</h1>
                     <div class="topbar-actions">
-                        <button id="theme-toggle" class="btn btn-secondary" style="padding: 4px 8px; min-height: 32px; border: none; background: transparent;" title="Cambiar tema">
-                            <i data-lucide="sun" class="sun-icon" style="width: 18px; height: 18px;"></i>
-                            <i data-lucide="moon" class="moon-icon" style="width: 18px; height: 18px;"></i>
+                        <button id="theme-toggle" class="btn btn-secondary theme-toggle-btn" title="Cambiar tema">
+                            <i data-lucide="sun" class="sun-icon icon-md"></i>
+                            <i data-lucide="moon" class="moon-icon icon-md"></i>
                         </button>
                     </div>
                 </div>
 
                 <!-- Contexto Operativo Persistente -->
-                <div id="dash-contexto" style="display: flex; width: 100%; justify-content: space-between; align-items: center; background: rgba(59, 130, 246, 0.1); padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.2);">
-                    <div style="display: flex; gap: 2rem;">
-                        <div><small style="color: var(--text-secondary); display: block;">Turno</small><strong id="dash-turno">-</strong></div>
-                        <div><small style="color: var(--text-secondary); display: block;">Fecha Operativa</small><strong id="dash-fecha">-</strong></div>
-                        <div><small style="color: var(--text-secondary); display: block;">Estado Bitácora</small><span id="dash-estado-bitacora" class="badge badge-outline">SIN BITÁCORA</span></div>
+                <div id="dash-contexto" class="dashboard-contexto">
+                    <div class="d-flex gap-4">
+                        <div><small class="text-secondary block">Turno</small><strong id="dash-turno">-</strong></div>
+                        <div><small class="text-secondary block">Fecha Operativa</small><strong id="dash-fecha">-</strong></div>
+                        <div><small class="text-secondary block">Estado Bitácora</small><span id="dash-estado-bitacora" class="badge badge-outline">SIN BITÁCORA</span></div>
                     </div>
-                    <div id="dash-reloj" style="text-align: right; font-family: monospace;">
-                        <div style="font-size: 1.2rem; font-weight: bold;" id="dash-hora">--:--</div>
-                        <span id="last-updated" style="color: var(--text-secondary); font-size: 11px;">Actualizado: -</span>
+                    <div id="dash-reloj" class="text-right font-mono">
+                        <div class="font-lg text-bold" id="dash-hora">--:--</div>
+                        <span id="last-updated" class="text-secondary font-xs">Actualizado: -</span>
                     </div>
                 </div>
             </header>
 
             <div class="page-content">
                 <!-- ACTION CENTER (The system thinks for the operator) -->
-                <div id="action-center" style="max-width: 800px; margin: 2rem auto;">
-                    <div class="card" style="text-align: center; padding: 3rem 2rem; border-top: 8px solid var(--primary-color);">
-                        <div id="action-icon-container" style="margin-bottom: 1.5rem;">
-                            <i data-lucide="play-circle" style="width: 64px; height: 64px; color: var(--primary-color);"></i>
+                <div id="action-center" class="dashboard-action-center">
+                    <div class="card dashboard-main-card">
+                        <div id="action-icon-container" class="dashboard-action-icon">
+                            <i data-lucide="play-circle"></i>
                         </div>
-                        <h2 id="action-title" style="font-size: 2rem; margin-bottom: 1rem;">Cargando estado...</h2>
-                        <p id="action-description" style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 2.5rem;">
+                        <h2 id="action-title" class="dashboard-action-title">Cargando estado...</h2>
+                        <p id="action-description" class="dashboard-action-description">
                             El sistema está sincronizando el estado operativo actual.
                         </p>
 
-                        <div id="blocking-reasons" style="display: none; background: var(--danger-subtle); padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; text-align: left; border: 1px solid var(--danger);">
-                            <h4 style="color: var(--danger); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;">
-                                <i data-lucide="alert-octagon" style="width: 20px; height: 20px;"></i>
+                        <div id="blocking-reasons" class="dashboard-blocking-alert">
+                            <h4 class="dashboard-blocking-title">
+                                <i data-lucide="alert-octagon" class="icon-md"></i>
                                 No puedes continuar porque:
                             </h4>
-                            <ul id="reasons-list" style="margin: 0; padding-left: 1.5rem; color: var(--danger); font-weight: bold;">
+                            <ul id="reasons-list" class="dashboard-blocking-list">
                                 <!-- Se llena dinámicamente -->
                             </ul>
                         </div>
 
-                        <button id="main-action-btn" class="btn btn-primary" style="font-size: 1.25rem; padding: 1rem 3rem; min-width: 300px; display: none;">
+                        <button id="main-action-btn" class="btn btn-primary dashboard-main-btn d-none">
                             Siguiente Acción
                         </button>
                     </div>
 
                     <!-- Read-Only Context (KPIs reduced) -->
-                    <div class="kpi-grid" style="margin-top: 3rem; opacity: 0.8;">
+                    <div class="kpi-grid dashboard-kpi-grid">
                         <div class="card kpi-card">
                             <span class="kpi-label">Órdenes Activas</span>
-                            <span class="kpi-value" id="count-ordenes-activas" style="font-size: 1.5rem;">-</span>
+                            <span class="kpi-value dashboard-kpi-value" id="count-ordenes-activas">-</span>
                         </div>
                         <div class="card kpi-card">
                             <span class="kpi-label">Producción Turno</span>
-                            <span class="kpi-value" id="count-produccion-turno" style="font-size: 1.5rem;">0 kg</span>
+                            <span class="kpi-value dashboard-kpi-value" id="count-produccion-turno">0 kg</span>
                         </div>
                     </div>
                 </div>

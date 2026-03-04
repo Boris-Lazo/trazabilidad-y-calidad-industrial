@@ -1,0 +1,67 @@
+/* Page-specific styles for Procesos */
+
+.procesos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 24px;
+}
+
+.contract-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    background: inherit;
+}
+
+.contract-section-title {
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 4px;
+    margin-bottom: 12px;
+    font-size: 1rem;
+    text-transform: uppercase;
+}
+
+.contract-highlight-card {
+    background: rgba(var(--primary-rgb), 0.02);
+}
+
+.contract-meta-value {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--success);
+    margin-bottom: 8px;
+}
+
+.contract-personal-box {
+    background: var(--bg-secondary);
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.contract-param-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.contract-param-item {
+    background: var(--bg-secondary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.contract-paros-list {
+    margin: 8px 0;
+    padding-left: 18px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.contract-paro-type-oper { color: var(--error); }
+.contract-paro-type-qual { color: var(--warning); }

@@ -1,0 +1,121 @@
+/* Page-specific styles for Grupos */
+
+.grupos-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 24px;
+}
+
+.grupos-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.grupos-detalle-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: center;
+}
+
+.grupos-icon-box {
+    background: var(--info-bg);
+    color: var(--info);
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.grupos-turno-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.03);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.grupos-turno-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.grupos-turno-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--info);
+}
+
+.grupos-rotate-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    min-height: auto;
+}
+
+.grupos-historial-seccion {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+}
+
+.grupos-no-selected {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    color: var(--text-secondary);
+}
+
+.grupos-remove-icon-box {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+}
+
+.btn-flex {
+    flex: 1;
+}
+
+.list-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.list-group-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.list-group-item:hover {
+    background: var(--bg-alt);
+}
+
+.list-group-item.active {
+    background: var(--info-bg);
+    border-left: 4px solid var(--info);
+}
+
+.grupos-readonly-notice {
+    padding: 10px;
+}
+
+.grupos-history-past {
+    opacity: 0.7;
+    background-color: rgba(0,0,0,0.02);
+}
+
+.dark .grupos-history-past {
+    background-color: rgba(255,255,255,0.02);
+}

@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!result.success) throw new Error(result.error || 'Error al obtener trazabilidad');
             renderTrazabilidad(result.data);
         } catch (error) {
-            flowContainer.innerHTML = `<div class="badge badge-error" style="padding: 1rem; width: 100%; text-align: center;">${error.message}</div>`;
+            flowContainer.innerHTML = `<div class="badge badge-error w-100 text-center p-2">${error.message}</div>`;
         }
     }
 
@@ -31,31 +31,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const { lote, produccion, consumos, muestras, historial_estados } = data;
 
         let html = `
-            <div style="margin-bottom: 2rem; padding: 1rem; background: var(--border-color); border-radius: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div class="trazabilidad-header d-flex justify-between align-center">
                 <div>
-                    <span style="font-weight: bold; font-size: 1.1rem;">LOTE: ${lote.codigo_lote}</span>
-                    <span class="badge badge-info" style="margin-left: 1rem;">Proceso: ${lote.proceso_nombre}</span>
+                    <span class="text-bold font-lg">LOTE: ${lote.codigo_lote}</span>
+                    <span class="badge badge-info ml-2">Proceso: ${lote.proceso_nombre}</span>
                 </div>
                 <span class="badge ${lote.estado === 'cerrado' ? 'badge-info' : (lote.estado === 'activo' ? 'badge-success' : 'badge-warning')}">${lote.estado.toUpperCase()}</span>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+            <div class="trazabilidad-grid">
                 <!-- PRODUCCIÓN -->
-                <div class="card" style="margin: 0;">
-                    <div class="card-header" style="font-size: 0.9rem;">PRODUCCIÓN</div>
-                    <div style="padding: 1rem;">
-                        <div style="margin-bottom: 0.5rem;"><strong>Máquina:</strong> ${produccion.maquina_nombre || 'N/A'}</div>
-                        <div style="margin-bottom: 0.5rem;"><strong>Bitácora:</strong> #${produccion.bitacora_id || 'N/A'}</div>
-                        <div style="margin-bottom: 0.5rem;"><strong>Operador:</strong> ${produccion.operador || 'N/A'}</div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);">Apertura: ${new Date(produccion.fecha_apertura).toLocaleString()}</div>
+                <div class="card m-0">
+                    <div class="card-header font-md">PRODUCCIÓN</div>
+                    <div class="p-2">
+                        <div class="mb-1"><strong>Máquina:</strong> ${produccion.maquina_nombre || 'N/A'}</div>
+                        <div class="mb-1"><strong>Bitácora:</strong> #${produccion.bitacora_id || 'N/A'}</div>
+                        <div class="mb-1"><strong>Operador:</strong> ${produccion.operador || 'N/A'}</div>
+                        <div class="font-sm text-muted">Apertura: ${new Date(produccion.fecha_apertura).toLocaleString()}</div>
                     </div>
                 </div>
 
                 <!-- CONSUMOS -->
-                <div class="card" style="margin: 0;">
-                    <div class="card-header" style="font-size: 0.9rem;">CONSUMOS (INSUMOS)</div>
-                    <div class="table-container" style="max-height: 200px; overflow-y: auto;">
-                        <table style="font-size: 0.8rem;">
+                <div class="card m-0">
+                    <div class="card-header font-md">CONSUMOS (INSUMOS)</div>
+                    <div class="table-container max-h-200">
+                        <table class="table font-sm">
                             <thead><tr><th>Máquina</th><th>Fecha</th><th>Cant (kg)</th></tr></thead>
                             <tbody>
                                 ${consumos.length > 0 ? consumos.map(c => `
@@ -64,36 +64,36 @@ document.addEventListener('DOMContentLoaded', () => {
                                         <td>${new Date(c.fecha).toLocaleDateString()}</td>
                                         <td>${c.cantidad_kg}</td>
                                     </tr>
-                                `).join('') : '<tr><td colspan="3" style="text-align: center;">Sin consumos registrados</td></tr>'}
+                                `).join('') : '<tr><td colspan="3" class="text-center">Sin consumos registrados</td></tr>'}
                             </tbody>
                         </table>
                     </div>
                 </div>
 
                 <!-- MUESTRAS -->
-                <div class="card" style="margin: 0;">
-                    <div class="card-header" style="font-size: 0.9rem;">CONTROL DE CALIDAD</div>
-                    <div class="table-container" style="max-height: 200px; overflow-y: auto;">
-                        <table style="font-size: 0.8rem;">
+                <div class="card m-0">
+                    <div class="card-header font-md">CONTROL DE CALIDAD</div>
+                    <div class="table-container max-h-200">
+                        <table class="table font-sm">
                             <thead><tr><th>Parámetro</th><th>Valor</th><th>Res</th></tr></thead>
                             <tbody>
                                 ${muestras.length > 0 ? muestras.map(m => `
                                     <tr>
                                         <td>${m.parametro}</td>
                                         <td>${m.valor}</td>
-                                        <td><span class="badge ${m.resultado === 'Cumple' ? 'badge-success' : 'badge-error'}" style="padding: 2px 4px; font-size: 0.7rem;">${m.resultado}</span></td>
+                                        <td><span class="badge ${m.resultado === 'Cumple' ? 'badge-success' : 'badge-error'} badge-xs">${m.resultado}</span></td>
                                     </tr>
-                                `).join('') : '<tr><td colspan="3" style="text-align: center;">Sin muestras</td></tr>'}
+                                `).join('') : '<tr><td colspan="3" class="text-center">Sin muestras</td></tr>'}
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <div class="card" style="margin: 0;">
+            <div class="card m-0">
                 <div class="card-header">HISTORIAL DE ESTADOS</div>
                 <div class="table-container">
-                    <table>
+                    <table class="table">
                         <thead>
                             <tr>
                                 <th>Fecha</th>
@@ -105,16 +105,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         <tbody>
                             ${historial_estados.length > 0 ? historial_estados.map(h => `
                                 <tr>
-                                    <td style="font-size: 0.8rem; color: var(--text-muted);">${new Date(h.fecha).toLocaleString()}</td>
+                                    <td class="font-sm text-muted">${new Date(h.fecha).toLocaleString()}</td>
                                     <td>${h.usuario}</td>
                                     <td>
                                         <span class="badge badge-outline">${h.estado_anterior}</span>
-                                        <i data-lucide="arrow-right" style="width: 12px; height: 12px; vertical-align: middle;"></i>
+                                        <i data-lucide="arrow-right" class="icon-xs v-middle"></i>
                                         <span class="badge badge-info">${h.estado_nuevo}</span>
                                     </td>
-                                    <td style="font-size: 0.85rem;">${h.comentario || '-'}</td>
+                                    <td class="font-md">${h.comentario || '-'}</td>
                                 </tr>
-                            `).join('') : '<tr><td colspan="4" style="text-align: center;">No hay cambios de estado registrados</td></tr>'}
+                            `).join('') : '<tr><td colspan="4" class="text-center">No hay cambios de estado registrados</td></tr>'}
                         </tbody>
                     </table>
                 </div>
@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const val = searchInput.value.trim();
         if (!val) return;
 
-        flowContainer.innerHTML = '<div style="text-align: center; padding: 3rem;">Buscando...</div>';
+        flowContainer.innerHTML = '<div class="text-center p-4">Buscando...</div>';
 
         try {
             let id;
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             await buscarTrazabilidad(id);
         } catch (error) {
-            flowContainer.innerHTML = `<div class="badge badge-error" style="padding: 1rem; width: 100%; text-align: center;">${error.message}</div>`;
+            flowContainer.innerHTML = `<div class="badge badge-error w-100 text-center p-2">${error.message}</div>`;
         }
     });
 

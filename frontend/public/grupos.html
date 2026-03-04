@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Grupos | PROD-SYS</title>
     <link rel="stylesheet" href="/design-system/index.css">
+    <link rel="stylesheet" href="/design-system/utilities.css">
+    <link rel="stylesheet" href="/design-system/pages/grupos.css">
     <script src="js/auth.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/design-system/index.js" defer></script>
@@ -63,12 +65,12 @@
                     </div>
                 </div>
             </nav>
-            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
-                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+            <div class="sidebar-user-section">
+                <div id="user-display" class="sidebar-user-display">
+                    <i data-lucide="user" class="icon-xs v-middle mr-1"></i>
                     <span id="user-name-label">Usuario: -</span>
                 </div>
-                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
+                <a href="/login.html" id="logout-link" class="btn btn-secondary sidebar-logout-btn">
                     <i data-lucide="log-out" class="nav-icon"></i>
                     <span>Cerrar Sesión</span>
                 </a>
@@ -79,18 +81,18 @@
             <header class="topbar">
                 <h1>Gestión de Grupos de Colaboradores</h1>
                 <div class="topbar-actions">
-                    <button id="theme-toggle" class="btn btn-secondary">
-                        <i data-lucide="sun" class="sun-icon"></i>
-                        <i data-lucide="moon" class="moon-icon"></i>
+                    <button id="theme-toggle" class="btn btn-secondary theme-toggle-btn">
+                        <i data-lucide="sun" class="sun-icon icon-md"></i>
+                        <i data-lucide="moon" class="moon-icon icon-md"></i>
                     </button>
                 </div>
             </header>
 
             <div class="page-content">
-                <div class="dashboard-grid" style="grid-template-columns: 1fr 2fr; gap: 24px;">
+                <div class="grupos-grid">
                     <!-- Listado de Grupos -->
                     <div class="card">
-                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="card-header grupos-card-header">
                             <h2 class="card-title">Grupos Registrados</h2>
                             <button id="btn-nuevo-grupo" class="btn btn-primary btn-sm">
                                 <i data-lucide="plus"></i> Nuevo
@@ -105,35 +107,35 @@
                     </div>
 
                     <!-- Detalle del Grupo Seleccionado -->
-                    <div id="detalle-grupo-container" class="card" style="display: none;">
-                        <div class="card-header" style="display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div style="background: var(--primary-bg); color: var(--primary); padding: 8px; border-radius: 8px;">
-                                    <i data-lucide="users" style="width: 24px; height: 24px;"></i>
+                    <div id="detalle-grupo-container" class="card d-none">
+                        <div class="card-header grupos-detalle-header">
+                            <div class="d-flex align-center gap-2">
+                                <div class="grupos-icon-box">
+                                    <i data-lucide="users" class="icon-md"></i>
                                 </div>
                                 <div>
-                                    <h2 id="grupo-nombre-titulo" class="card-title" style="margin-bottom: 2px;">Seleccione un grupo</h2>
-                                    <p id="grupo-tipo-badge" class="text-secondary" style="font-size: 12px; margin: 0;"></p>
+                                    <h2 id="grupo-nombre-titulo" class="card-title mb-0">Seleccione un grupo</h2>
+                                    <p id="grupo-tipo-badge" class="text-secondary font-sm m-0"></p>
                                 </div>
                             </div>
-                            <div id="turno-control" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-                                <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                                    <span style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Turno Actual</span>
-                                    <span id="grupo-turno-actual" style="font-size: 16px; font-weight: 700; color: var(--info);">—</span>
+                            <div id="turno-control" class="grupos-turno-control">
+                                <div class="d-flex flex-column align-end">
+                                    <span class="grupos-turno-label">Turno Actual</span>
+                                    <span id="grupo-turno-actual" class="grupos-turno-value">—</span>
                                 </div>
-                                <button id="btn-rotar-turno" class="btn btn-secondary btn-sm" title="Rotar Turno" style="width: 32px; height: 32px; padding: 0; min-height: auto;">
-                                    <i data-lucide="rotate-cw" style="width:16px; height:16px;"></i>
+                                <button id="btn-rotar-turno" class="btn btn-secondary btn-sm grupos-rotate-btn" title="Rotar Turno">
+                                    <i data-lucide="rotate-cw" class="icon-sm"></i>
                                 </button>
                             </div>
                         </div>
                         <div class="card-body">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                                <h3 style="font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                                    <i data-lucide="user-check" style="width:18px; height:18px; color: var(--success);"></i>
+                            <div class="d-flex justify-between align-center mb-3">
+                                <h3 class="font-md text-bold d-flex align-center gap-2">
+                                    <i data-lucide="user-check" class="icon-md text-success"></i>
                                     Integrantes Activos
                                 </h3>
-                                <button id="btn-add-integrante" class="btn btn-primary btn-sm" style="padding: 6px 12px;">
-                                    <i data-lucide="user-plus" style="width:14px; height:14px; margin-right:6px;"></i> Añadir Integrante
+                                <button id="btn-add-integrante" class="btn btn-primary btn-sm p-2">
+                                    <i data-lucide="user-plus" class="icon-xs mr-1"></i> Añadir Integrante
                                 </button>
                             </div>
                             <div class="table-container">
@@ -153,9 +155,9 @@
                             </div>
 
                             <!-- Historial de Membresía (Solo Lectura/Trazabilidad) -->
-                            <div id="historial-seccion" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border-color);">
-                                <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                                    <i data-lucide="history" style="width: 16px; height: 16px;"></i>
+                            <div id="historial-seccion" class="grupos-historial-seccion">
+                                <h3 class="font-md text-bold mb-3 d-flex align-center gap-2">
+                                    <i data-lucide="history" class="icon-sm"></i>
                                     Historial de Membresía (Trazabilidad)
                                 </h3>
                                 <div class="table-container">
@@ -177,9 +179,9 @@
                         </div>
                     </div>
 
-                    <div id="no-grupo-selected" class="card" style="display: flex; align-items: center; justify-content: center; min-height: 400px; color: var(--text-secondary);">
+                    <div id="no-grupo-selected" class="card grupos-no-selected">
                         <div class="text-center">
-                            <i data-lucide="users" style="width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                            <i data-lucide="users" class="icon-huge mb-3 text-muted"></i>
                             <p>Seleccione un grupo de la lista para ver sus detalles e integrantes.</p>
                         </div>
                     </div>
@@ -189,8 +191,8 @@
     </div>
 
     <!-- Modal Añadir Integrante -->
-    <div id="modal-integrante" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
+    <div id="modal-integrante" class="modal d-none">
+        <div class="modal-content mw-400">
             <div class="modal-header">
                 <h2>Añadir Integrante al Grupo</h2>
                 <button class="btn-close" data-close="modal-integrante">&times;</button>
@@ -203,8 +205,8 @@
                             <!-- Colaboradores cargados dinámicamente -->
                         </select>
                     </div>
-                    <p class="text-secondary" style="font-size: 13px; margin-top: 16px;">
-                        <i data-lucide="info" style="width:14px; height:14px; vertical-align:middle; margin-right:4px;"></i>
+                    <p class="text-secondary font-md mt-3">
+                        <i data-lucide="info" class="icon-xs v-middle mr-1"></i>
                         El sistema registrará automáticamente esta asignación para trazabilidad.
                     </p>
                 </form>
@@ -217,8 +219,8 @@
     </div>
 
     <!-- Modal Rotar Turno -->
-    <div id="modal-turno" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
+    <div id="modal-turno" class="modal d-none">
+        <div class="modal-content mw-400">
             <div class="modal-header">
                 <h2>Rotar Turno de Grupo</h2>
                 <button class="btn-close" data-close="modal-turno">&times;</button>
@@ -226,10 +228,10 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">Turno siguiente (automático)</label>
-                    <div id="turno-siguiente-display" style="font-size: 1.1rem; font-weight: 600; padding: 10px 12px; background: var(--bg-secondary); border-radius: 6px; border: 1px solid var(--border);">—</div>
+                    <div id="turno-siguiente-display" class="font-lg text-bold p-2 bg-light border">—</div>
                     <input type="hidden" id="turno-siguiente-value" value="">
                 </div>
-                <p class="text-secondary" style="font-size: 13px; margin-top: 8px;">La rotación sigue el ciclo fijo T3 → T2 → T1 → T3. Esta acción cambiará el turno operativo para todos los integrantes del grupo.</p>
+                <p class="text-secondary font-md mt-2">La rotación sigue el ciclo fijo T3 → T2 → T1 → T3. Esta acción cambiará el turno operativo para todos los integrantes del grupo.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-close="modal-turno">Cancelar</button>
@@ -239,14 +241,14 @@
     </div>
 
     <!-- Modal Rol Operativo -->
-    <div id="modal-rol" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
+    <div id="modal-rol" class="modal d-none">
+        <div class="modal-content mw-400">
             <div class="modal-header">
                 <h2>Cambiar Rol Operativo</h2>
                 <button class="btn-close" data-close="modal-rol">&times;</button>
             </div>
             <div class="modal-body">
-                <p id="rol-colaborador-nombre" style="font-weight: 600; margin-bottom: 16px; color: var(--primary);"></p>
+                <p id="rol-colaborador-nombre" class="text-bold mb-3 text-primary"></p>
                 <form id="form-rol">
                     <div class="form-group">
                         <label class="form-label">Nuevo Rol Operativo</label>
@@ -255,7 +257,7 @@
                         </select>
                     </div>
                 </form>
-                <p class="text-secondary" style="font-size: 13px; margin-top: 16px;">
+                <p class="text-secondary font-md mt-3">
                     Se guardará el cambio de rol en el historial de trazabilidad del colaborador.
                 </p>
             </div>
@@ -267,29 +269,29 @@
     </div>
 
     <!-- Modal Remoción -->
-    <div id="modal-remove" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
+    <div id="modal-remove" class="modal d-none">
+        <div class="modal-content mw-400">
             <div class="modal-header">
                 <h2>Remover del Grupo</h2>
                 <button class="btn-close" data-close="modal-remove">&times;</button>
             </div>
-            <div class="modal-body text-center" style="padding-top: 24px;">
-                <div style="background: rgba(239, 68, 68, 0.1); color: var(--error); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-                    <i data-lucide="user-x" style="width: 32px; height: 32px;"></i>
+            <div class="modal-body text-center pt-3">
+                <div class="grupos-remove-icon-box">
+                    <i data-lucide="user-x" class="icon-md"></i>
                 </div>
-                <p id="remove-text" style="font-weight: 500; font-size: 15px;"></p>
-                <p class="text-secondary" style="font-size: 13px; margin-top: 8px;">Esta acción liberará al colaborador para ser asignado a otro grupo.</p>
+                <p id="remove-text" class="font-md text-bold"></p>
+                <p class="text-secondary font-md mt-2">Esta acción liberará al colaborador para ser asignado a otro grupo.</p>
             </div>
-            <div class="modal-footer" style="background: transparent;">
-                <button type="button" class="btn btn-secondary" data-close="modal-remove" style="flex: 1;">Cancelar</button>
-                <button type="button" id="btn-confirm-remove" class="btn btn-danger" style="flex: 1;">Confirmar Salida</button>
+            <div class="modal-footer bg-none">
+                <button type="button" class="btn btn-secondary btn-flex" data-close="modal-remove">Cancelar</button>
+                <button type="button" id="btn-confirm-remove" class="btn btn-danger btn-flex">Confirmar Salida</button>
             </div>
         </div>
     </div>
 
     <!-- Modal Nuevo Grupo -->
-    <div id="modal-nuevo-grupo" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
+    <div id="modal-nuevo-grupo" class="modal d-none">
+        <div class="modal-content mw-400">
             <div class="modal-header">
                 <h2>Crear Nuevo Grupo</h2>
                 <button class="btn-close" data-close="modal-nuevo-grupo">&times;</button>

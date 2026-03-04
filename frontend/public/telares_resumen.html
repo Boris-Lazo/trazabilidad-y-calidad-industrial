@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resumen de Telares - Sistema de Control Industrial</title>
     <link rel="stylesheet" href="/design-system/index.css">
+    <link rel="stylesheet" href="/design-system/utilities.css">
     <link rel="stylesheet" href="/css/telares.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -29,7 +30,7 @@
                         <i data-lucide="chevron-right" class="chevron"></i>
                     </button>
                     <div class="nav-group-items">
-                        <a href="/bitacora.html" class="nav-item active">Bitácora de Turno</a>
+                        <a href="/planificacion.html" class="nav-item active">Bitácora de Turno</a>
                         <a href="/ordenes.html" class="nav-item ">Órdenes</a>
                         <a href="/ejecucion.html" class="nav-item ">Ejecución</a>
                         <a href="/incidentes.html" class="nav-item ">Incidentes</a>
@@ -65,12 +66,12 @@
                     </div>
                 </div>
             </nav>
-            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
-                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+            <div class="sidebar-user-section">
+                <div id="user-display" class="sidebar-user-display">
+                    <i data-lucide="user" class="icon-xs v-middle mr-1"></i>
                     <span id="user-name-label">Usuario: -</span>
                 </div>
-                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
+                <a href="/login.html" id="logout-link" class="btn btn-secondary sidebar-logout-btn">
                     <i data-lucide="log-out" class="nav-icon"></i>
                     <span>Cerrar Sesión</span>
                 </a>
@@ -94,7 +95,7 @@
                         <h1>Panel de Control de Telares</h1>
                         <p class="text-muted">Resumen operativo de los 13 telares para el turno actual.</p>
                     </div>
-                    <div id="resumen-global" class="dashboard-summary" style="display: flex; gap: 24px;">
+                    <div id="resumen-global" class="dashboard-summary d-flex gap-3">
                     </div>
                 </div>
 

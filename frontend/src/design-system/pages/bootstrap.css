@@ -1,0 +1,61 @@
+/* Page-specific styles for Bootstrap initialization */
+
+.bootstrap-page {
+    background: var(--bg-main);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.bootstrap-container {
+    width: 100%;
+    max-width: 600px;
+}
+
+.bootstrap-box {
+    padding: 2.5rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.bootstrap-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.bootstrap-title {
+    font-size: 2.5rem;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+}
+
+.bootstrap-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+.alert-info {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid var(--primary);
+    padding: 1rem;
+    margin-bottom: 2rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.error-message {
+    color: var(--error);
+    background: var(--error-bg);
+    padding: 0.75rem;
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    text-align: center;
+}

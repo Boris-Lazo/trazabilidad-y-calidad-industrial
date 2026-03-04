@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Máquinas | PROD-SYS</title>
     <link rel="stylesheet" href="/design-system/index.css">
+    <link rel="stylesheet" href="/design-system/utilities.css">
     <script src="js/auth.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/design-system/index.js" defer></script>
@@ -63,12 +64,12 @@
                     </div>
                 </div>
             </nav>
-            <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <div id="user-display" style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">
-                    <i data-lucide="user" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i>
+            <div class="sidebar-user-section">
+                <div id="user-display" class="sidebar-user-display">
+                    <i data-lucide="user" class="icon-xs v-middle mr-1"></i>
                     <span id="user-name-label">Usuario: -</span>
                 </div>
-                <a href="/login.html" id="logout-link" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: rgba(255,255,255,0.1); border: none; color: white;">
+                <a href="/login.html" id="logout-link" class="btn btn-secondary sidebar-logout-btn">
                     <i data-lucide="log-out" class="nav-icon"></i>
                     <span>Cerrar Sesión</span>
                 </a>
@@ -79,9 +80,9 @@
             <header class="topbar">
                 <h1>Gestión de Máquinas</h1>
                 <div class="topbar-actions">
-                    <button id="theme-toggle" class="btn btn-secondary">
-                        <i data-lucide="sun" class="sun-icon"></i>
-                        <i data-lucide="moon" class="moon-icon"></i>
+                    <button id="theme-toggle" class="btn btn-secondary theme-toggle-btn">
+                        <i data-lucide="sun" class="sun-icon icon-md"></i>
+                        <i data-lucide="moon" class="moon-icon icon-md"></i>
                     </button>
                 </div>
             </header>
@@ -89,18 +90,18 @@
             <div class="page-content">
                 <!-- Filtros -->
                 <div class="card mb-4">
-                    <div class="card-body" style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
-                        <div class="form-group mb-0" style="flex: 1; min-width: 200px;">
+                    <div class="card-body d-flex gap-2 align-end flex-wrap">
+                        <div class="form-group mb-0 flex-1 minw-200">
                             <label class="form-label">Buscar máquina</label>
                             <input type="text" id="search-machine" class="form-control" placeholder="Ej: EXT-01 o T-05">
                         </div>
-                        <div class="form-group mb-0" style="width: 200px;">
+                        <div class="form-group mb-0 w-200">
                             <label class="form-label">Proceso</label>
                             <select id="filter-proceso" class="form-control">
                                 <option value="">Todos</option>
                             </select>
                         </div>
-                        <div class="form-group mb-0" style="width: 200px;">
+                        <div class="form-group mb-0 w-200">
                             <label class="form-label">Estado</label>
                             <select id="filter-estado" class="form-control">
                                 <option value="">Todos</option>
@@ -141,14 +142,14 @@
     </div>
 
     <!-- Modal Cambio de Estado -->
-    <div id="modal-estado-maquina" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 450px;">
+    <div id="modal-estado-maquina" class="modal d-none">
+        <div class="modal-content mw-450">
             <div class="modal-header">
                 <h2>Actualizar Estado de Máquina</h2>
                 <button class="btn-close" onclick="MaquinaModule.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p id="machine-target-name" style="font-weight: 600; margin-bottom: 12px;"></p>
+                <p id="machine-target-name" class="text-bold mb-3"></p>
                 <div class="form-group">
                     <label class="form-label">Nuevo Estado</label>
                     <select id="m-estado" class="form-control">
@@ -174,7 +175,7 @@
                     <label class="form-label">Motivo Descriptivo (Obligatorio)</label>
                     <textarea id="m-motivo" class="form-control" rows="3" placeholder="Justificación técnica del cambio..."></textarea>
                 </div>
-                <div id="active-orders-warning" class="badge badge-danger w-100 mb-3" style="display: none; white-space: normal; text-align: left; padding: 10px;">
+                <div id="active-orders-warning" class="badge badge-error w-100 mb-3 d-none ws-normal text-left p-2">
                     <strong>Atención:</strong> Esta máquina tiene órdenes de producción activas. No se recomienda cambiar a un estado no operativo.
                 </div>
             </div>
@@ -186,8 +187,8 @@
     </div>
 
     <!-- Modal Historial -->
-    <div id="modal-historial" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 800px;">
+    <div id="modal-historial" class="modal d-none">
+        <div class="modal-content mw-800">
             <div class="modal-header">
                 <h2 id="historial-title">Historial de Estados</h2>
                 <button class="btn-close" onclick="document.getElementById('modal-historial').style.display='none'">&times;</button>

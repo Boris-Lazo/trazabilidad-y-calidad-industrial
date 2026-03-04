@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tablaOrdenesBody.innerHTML = ''; // Limpiar la tabla antes de llenarla
 
             if (ordenes.length === 0) {
-                tablaOrdenesBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No hay órdenes registradas.</td></tr>';
+                tablaOrdenesBody.innerHTML = '<tr><td colspan="8" class="text-center">No hay órdenes registradas.</td></tr>';
                 return;
             }
 
@@ -89,20 +89,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${orden.producto || 'N/A'}</td>
                         <td>${orden.cantidad_objetivo || 0} ${orden.unidad || ''}</td>
                         <td>
-                            <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="d-flex align-center gap-1">
                                 <span>${orden.cantidad_producida || 0}</span>
-                                <small style="color: var(--text-muted);">(${progreso}%)</small>
+                                <small class="text-muted">(${progreso}%)</small>
                             </div>
                         </td>
                         <td>${orden.merma_total || 0} kg</td>
                         <td><span class="badge ${badgeClass}">${orden.estado}</span></td>
                         <td><span class="badge ${progreso >= 100 ? 'badge-success' : 'badge-info'}">${progreso >= 100 ? 'OK' : 'Pend.'}</span></td>
                         <td>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <a href="/detalles_orden.html?id=${orden.id}" class="button button-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Ver</a>
-                                ${orden.estado === 'Creada' ? `<button class="button button-primary btn-liberar" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Liberar</button>` : ''}
+                            <div class="d-flex gap-1">
+                                <a href="/detalles_orden.html?id=${orden.id}" class="button button-outline font-sm p-1">Ver</a>
+                                ${orden.estado === 'Creada' ? `<button class="button button-primary btn-liberar font-sm p-1">Liberar</button>` : ''}
                                 ${['Liberada', 'En producción', 'Pausada', 'Creada'].includes(orden.estado) ?
-                                    `<button class="button button-outline btn-abrir-cierre" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--danger);">Cerrar</button>` : ''}
+                                    `<button class="button button-outline btn-abrir-cierre font-sm p-1 text-error">Cerrar</button>` : ''}
                             </div>
                         </td>
                     </tr>
@@ -126,13 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         codigo: tr.querySelector('strong').textContent
                     };
                     cierreOrdenInfo.textContent = `Vas a cerrar la orden ${ordenSeleccionadaParaCierre.codigo}`;
-                    modalCierre.style.display = 'flex';
+                    modalCierre.classList.add('d-flex');
                 });
             });
 
         } catch (error) {
             console.error('Error:', error);
-            tablaOrdenesBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger);">Error al cargar los datos.</td></tr>';
+            tablaOrdenesBody.innerHTML = '<tr><td colspan="8" class="text-center text-error">Error al cargar los datos.</td></tr>';
         }
     }
 
@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
     filtroEstado.addEventListener('change', cargarOrdenes);
 
     cancelarCierre.addEventListener('click', () => {
-        modalCierre.style.display = 'none';
+        modalCierre.classList.remove('d-flex');
         motivoCierreInput.value = '';
     });
 
@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         cambiarEstado(ordenSeleccionadaParaCierre.id, 'Cerrada', motivo);
-        modalCierre.style.display = 'none';
+        modalCierre.classList.remove('d-flex');
         motivoCierreInput.value = '';
     });
 
@@ -203,13 +203,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const resultado = result.data;
-            mensajeCreacion.innerHTML = `<span style="color: var(--success); font-weight: 500;">¡Orden #${resultado.codigo_orden || resultado.id} creada con éxito!</span>`;
+            mensajeCreacion.innerHTML = `<span class="text-success text-bold">¡Orden #${resultado.codigo_orden || resultado.id} creada con éxito!</span>`;
             formCrearOrden.reset(); // Limpiar el formulario
             cargarOrdenes(); // Recargar la lista de órdenes
 
         } catch (error) {
             console.error('Error al crear la orden:', error);
-            mensajeCreacion.innerHTML = `<span style="color: var(--danger); font-weight: 500;">Error: ${error.message}</span>`;
+            mensajeCreacion.innerHTML = `<span class="text-error text-bold">Error: ${error.message}</span>`;
         }
     });
 

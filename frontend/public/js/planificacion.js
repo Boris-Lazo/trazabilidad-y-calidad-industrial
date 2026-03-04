@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function cargarKPIs() {
         if (!currentPlan || currentPlan.id === undefined) {
-            document.getElementById('kpi-indicator').style.display = 'none';
+            document.getElementById('kpi-indicator').classList.add('d-none');
             return;
         }
 
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const kpis = await res.json();
 
         if (kpis) {
-            document.getElementById('kpi-indicator').style.display = 'block';
+            document.getElementById('kpi-indicator').classList.remove('d-none');
             document.getElementById('kpi-value').textContent = `${kpis.cumplimiento_global}%`;
         }
     }
@@ -79,19 +79,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (data && data.id) {
             currentPlan = data;
-            document.getElementById('no-plan-alert').style.display = 'none';
-            document.getElementById('planning-container').style.display = 'block';
-            document.getElementById('planning-filters').style.display = 'block';
-            document.getElementById('plan-status-bar').style.display = 'block';
+            document.getElementById('no-plan-alert').classList.add('d-none');
+            document.getElementById('planning-container').classList.remove('d-none');
+            document.getElementById('planning-filters').classList.remove('d-none');
+            document.getElementById('plan-status-bar').classList.remove('d-none');
             renderPlan();
             cargarKPIs();
             renderFiltros();
         } else {
             currentPlan = null;
-            document.getElementById('no-plan-alert').style.display = 'block';
-            document.getElementById('planning-container').style.display = 'none';
-            document.getElementById('planning-filters').style.display = 'none';
-            document.getElementById('plan-status-bar').style.display = 'none';
+            document.getElementById('no-plan-alert').classList.remove('d-none');
+            document.getElementById('planning-container').classList.add('d-none');
+            document.getElementById('planning-filters').classList.add('d-none');
+            document.getElementById('plan-status-bar').classList.add('d-none');
         }
     }
 
@@ -105,14 +105,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         badge.className = `badge badge-${currentPlan.estado.toLowerCase()}`;
 
         document.getElementById('plan-fechas-rango').textContent = `${currentPlan.fecha_inicio} al ${currentPlan.fecha_fin}`;
-        document.getElementById('btn-publicar').style.display = currentPlan.estado === 'BORRADOR' || currentPlan.estado === 'AJUSTADO' ? 'block' : 'none';
+        if (currentPlan.estado === 'BORRADOR' || currentPlan.estado === 'AJUSTADO') {
+            document.getElementById('btn-publicar').classList.remove('d-none');
+        } else {
+            document.getElementById('btn-publicar').classList.add('d-none');
+        }
 
         procesos.forEach(proc => {
             // Celda Proceso
             const cellProc = document.createElement('div');
-            cellProc.className = 'grid-cell';
-            cellProc.style.fontWeight = 'bold';
-            cellProc.style.background = 'rgba(0,0,0,0.02)';
+            cellProc.className = 'grid-cell text-bold bg-black-002';
             cellProc.textContent = proc.nombre;
             grid.appendChild(cellProc);
 
@@ -136,10 +138,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         item.setAttribute('data-maquina-id', o.maquina_id || '');
                         item.setAttribute('data-texto', `${o.codigo_orden} ${o.producto}`.toLowerCase());
                         item.setAttribute('title', 'Clic para editar');
-                        item.style.cursor = 'pointer';
+                        item.classList.add('cursor-pointer');
 
                         item.innerHTML = `
-                            <span onclick='abrirEditar(${JSON.stringify(o).replace(/'/g, "&#39;")}, "ORDEN")' style="flex:1;">📦 ${o.codigo_orden}</span>
+                            <span onclick='abrirEditar(${JSON.stringify(o).replace(/'/g, "&#39;")}, "ORDEN")' class="flex-1">📦 ${o.codigo_orden}</span>
                             <div class="item-actions">
                                 <button class="btn-icon" onclick="eliminarAsig(${o.id}, 'ORDEN')">×</button>
                             </div>
@@ -151,18 +153,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const pers = (currentPlan.personal || []).filter(p => p.proceso_id == proc.processId && p.dia_semana == dia && p.turno == turno);
                     pers.forEach(p => {
                         const item = document.createElement('div');
-                        item.className = 'planned-item';
-                        item.style.borderLeftColor = 'var(--success)';
+                        item.className = 'planned-item planned-item-personal';
                         item.setAttribute('data-id', p.id);
                         item.setAttribute('data-personal-id', p.persona_id);
                         item.setAttribute('data-rol-id', p.rol_operativo_id || '');
                         item.setAttribute('data-maquina-id', p.maquina_id || '');
                         item.setAttribute('data-texto', `${p.nombre} ${p.apellido} ${p.rol_nombre || ''}`.toLowerCase());
                         item.setAttribute('title', 'Clic para editar');
-                        item.style.cursor = 'pointer';
+                        item.classList.add('cursor-pointer');
 
                         item.innerHTML = `
-                            <span onclick='abrirEditar(${JSON.stringify(p).replace(/'/g, "&#39;")}, "PERSONAL")' style="flex:1;">👤 ${p.nombre}</span>
+                            <span onclick='abrirEditar(${JSON.stringify(p).replace(/'/g, "&#39;")}, "PERSONAL")' class="flex-1">👤 ${p.nombre}</span>
                             <div class="item-actions">
                                 <button class="btn-icon" onclick="eliminarAsig(${p.id}, 'PERSONAL')">×</button>
                             </div>
@@ -176,10 +177,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     if (currentPlan.estado !== 'CERRADO') {
                         const btnAdd = document.createElement('button');
-                        btnAdd.className = 'btn btn-secondary';
-                        btnAdd.style.width = '100%';
-                        btnAdd.style.fontSize = '0.6rem';
-                        btnAdd.style.padding = '2px';
+                        btnAdd.className = 'btn btn-secondary w-100 font-xs p-0';
                         btnAdd.textContent = '+ Asignar';
                         btnAdd.onclick = () => abrirModal(proc.processId, dia, turno);
                         block.appendChild(btnAdd);
@@ -274,7 +272,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('form-turno').value = turno;
 
         const isPublicado = currentPlan.estado === 'PUBLICADO' || currentPlan.estado === 'AJUSTADO';
-        document.getElementById('group-desviacion-plan').style.display = isPublicado ? 'block' : 'none';
+        if (isPublicado) {
+            document.getElementById('group-desviacion-plan').classList.remove('d-none');
+        } else {
+            document.getElementById('group-desviacion-plan').classList.add('d-none');
+        }
+        if (isPublicado) {
+            document.getElementById('group-desviacion-plan').classList.remove('d-none');
+        } else {
+            document.getElementById('group-desviacion-plan').classList.add('d-none');
+        }
 
         // Cargar máquinas del proceso
         const selMaq = document.getElementById('select-maquina');
@@ -342,13 +349,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     document.getElementById('select-tipo-asig').onchange = (e) => {
-        document.getElementById('group-orden').style.display = e.target.value === 'ORDEN' ? 'block' : 'none';
-        document.getElementById('group-personal').style.display = e.target.value === 'PERSONAL' ? 'block' : 'none';
-        document.getElementById('modal-asignar').style.display = 'none';
+        if (e.target.value === 'ORDEN') {
+            document.getElementById('group-orden').classList.remove('d-none');
+            document.getElementById('group-personal').classList.add('d-none');
+        } else {
+            document.getElementById('group-orden').classList.add('d-none');
+            document.getElementById('group-personal').classList.remove('d-none');
+        }
     };
 
     document.getElementById('btn-cancelar-modal').onclick = () => {
-        document.getElementById('modal-asignar').style.display = 'none';
+        document.getElementById('modal-asignar').classList.add('d-none');
     };
 
     document.getElementById('btn-guardar-asig').onclick = async () => {
@@ -396,7 +407,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-        document.getElementById('modal-asignar').style.display = 'none';
+        document.getElementById('modal-asignar').classList.add('d-none');
         document.getElementById('modal-asignar').removeAttribute('data-edit-id');
         document.getElementById('modal-title').textContent = 'Asignar a Plan';
         await cargarPlan();
@@ -455,14 +466,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             const mostrarProceso = selProceso === '' || proc.processId == selProceso;
 
             // Si el proceso no coincide, ocultamos toda su fila (header + 7 dias)
-            rowHeader.style.display = mostrarProceso ? 'block' : 'none';
+            if (mostrarProceso) rowHeader.classList.remove('d-none');
+            else rowHeader.classList.add('d-none');
+
             // Las siguientes 7 celdas pertenecen a este proceso
-            const gridCells = document.querySelectorAll('#grid-main > .grid-cell:not([style*="font-weight: bold"])');
+            const gridCells = document.querySelectorAll('#grid-main > .grid-cell:not(.text-bold)');
 
             for (let d = 0; d < 7; d++) {
                 const dayCell = gridCells[i * 7 + d];
                 if (dayCell) {
-                    dayCell.style.display = mostrarProceso ? 'block' : 'none';
+                    if (mostrarProceso) dayCell.classList.remove('d-none');
+                    else dayCell.classList.add('d-none');
 
                     if (mostrarProceso) {
                         // Filtrar contenido interno de la celda (turnos y items)
@@ -470,7 +484,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         turnosBlocks.forEach(tb => {
                             const tName = tb.getAttribute('data-turno');
                             const mostrarTurno = selTurno === '' || selTurno === tName;
-                            tb.style.display = mostrarTurno ? 'block' : 'none';
+                            if (mostrarTurno) tb.classList.remove('d-none');
+                            else tb.classList.add('d-none');
 
                             if (mostrarTurno) {
                                 // Filtrar items
@@ -478,9 +493,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 items.forEach(item => {
                                     const textoItem = item.getAttribute('data-texto') || '';
                                     if (txtValue === '' || textoItem.includes(txtValue)) {
-                                        item.style.display = 'flex';
+                                        item.classList.add('d-flex');
+                                        item.classList.remove('d-none');
                                     } else {
-                                        item.style.display = 'none';
+                                        item.classList.remove('d-flex');
+                                        item.classList.add('d-none');
                                     }
                                 });
                             }
@@ -494,10 +511,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     function mostrarModalDesviacionDD(params) {
         document.getElementById('comentario-desviacion-dd').value = '';
         const modal = document.getElementById('modal-desviacion');
-        modal.style.display = 'flex';
+        modal.classList.add('d-flex');
+        modal.classList.remove('d-none');
 
         document.getElementById('btn-cancelar-desviacion').onclick = () => {
-            modal.style.display = 'none';
+            modal.classList.add('d-none');
+            modal.classList.remove('d-flex');
             dragulaInst.cancel(true);
         };
 
@@ -523,13 +542,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!res.ok) {
                     throw new Error('Error guardando posición');
                 }
-                modal.style.display = 'none';
+                modal.classList.add('d-none');
+                modal.classList.remove('d-flex');
                 await cargarPlan();
             } catch (err) {
                 console.error(err);
                 dragulaInst.cancel(true);
                 DesignSystem.showErrorModal('Error', 'No se pudo actualizar la posición de la asignación.');
-                modal.style.display = 'none';
+                modal.classList.add('d-none');
+                modal.classList.remove('d-flex');
             }
         };
     }

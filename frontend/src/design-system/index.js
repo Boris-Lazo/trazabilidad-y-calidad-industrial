@@ -87,16 +87,16 @@ const DesignSystem = {
         }
 
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 450px;">
-                <div class="modal-header" style="background: var(--error-bg); border-bottom: 1px solid var(--error);">
-                    <h2 style="color: var(--error); display: flex; align-items: center; gap: 8px;">
-                        <i data-lucide="alert-circle" style="width: 20px; height: 20px;"></i>
+            <div class="modal-content mw-450">
+                <div class="modal-header bg-error-subtle border-bottom-error">
+                    <h2 class="text-error d-flex align-center gap-1">
+                        <i data-lucide="alert-circle" class="icon-md"></i>
                         <span id="ds-modal-title"></span>
                     </h2>
                     <button class="btn-close" id="ds-modal-close-x">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p id="ds-modal-message" style="margin-bottom: 0; line-height: 1.6;"></p>
+                    <p id="ds-modal-message" class="mb-0 lh-1-6"></p>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" id="ds-modal-close-btn">Cerrar</button>
@@ -146,16 +146,16 @@ const DesignSystem = {
         }
 
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-content mw-450">
                 <div class="modal-header">
-                    <h2 style="display: flex; align-items: center; gap: 8px;">
-                        <i data-lucide="help-circle" style="width: 20px; height: 20px; color: var(--primary);"></i>
+                    <h2 class="d-flex align-center gap-1">
+                        <i data-lucide="help-circle" class="icon-md text-primary"></i>
                         <span id="ds-confirm-title"></span>
                     </h2>
                     <button class="btn-close" id="ds-confirm-close-x">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p id="ds-confirm-message" style="margin-bottom: 0; line-height: 1.6;"></p>
+                    <p id="ds-confirm-message" class="mb-0 lh-1-6"></p>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" id="ds-confirm-cancel-btn">Cancelar</button>
@@ -197,7 +197,7 @@ const DesignSystem = {
         toast.className = `toast toast-${type}`;
         toast.innerHTML = `
             <span>${message}</span>
-            <button style="background:none; border:none; color:inherit; cursor:pointer; margin-left:10px;">&times;</button>
+            <button class="bg-none border-none cursor-pointer ml-1 color-inherit">&times;</button>
         `;
 
         container.appendChild(toast);
