@@ -964,7 +964,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('form-desv-tipo').value = tipo;
         document.getElementById('form-desv-plan').value = plan;
         document.getElementById('form-desv-actual').value = actual;
-        document.getElementById('desviacion-mensaje').textContent = `Se detectó un cambio de ${tipo.replace('_', ' ')} respecto a lo planificado.`;
+        document.getElementById('desviacion-mensaje').textContent =
+            `Se detectó un cambio de ${tipo.replace('_', ' ')} respecto a lo planificado.`;
         document.getElementById('modal-desviacion').style.display = 'flex';
 
         document.getElementById('btn-cerrar-desv').onclick = cerrarModalDesviacion;
