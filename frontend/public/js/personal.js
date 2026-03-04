@@ -30,6 +30,7 @@ const PersonalModule = {
     machines: [],
     currentStaffId: null,
     currentView: 'lista',
+    sortState: { key: 'codigo', order: 'asc' },
 
     async init() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -58,7 +59,7 @@ const PersonalModule = {
                 // Filtrar áreas permitidas por el dominio
                 const allowedAreaNames = Object.keys(this.mappingAreaRoles);
                 this.areas = result.data.areas.filter(a => allowedAreaNames.includes(a.nombre));
-                this.roles = result.data.roles;
+                this.roles = [...new Set(Object.values(this.mappingAreaRoles).flat())];
                 this.renderCatalogSelects();
             }
 
@@ -80,6 +81,7 @@ const PersonalModule = {
     renderCatalogSelects() {
         const areaSelect = document.getElementById('p-area');
         const filterAreaSelect = document.getElementById('filter-area');
+        const filterRolSelect = document.getElementById('filter-rol');
 
         if (areaSelect) {
             areaSelect.innerHTML = '<option value="">Seleccione área...</option>' +
@@ -89,6 +91,11 @@ const PersonalModule = {
         if (filterAreaSelect) {
             filterAreaSelect.innerHTML = '<option value="">Todas</option>' +
                 this.areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
+        }
+        
+        if (filterRolSelect) {
+            filterRolSelect.innerHTML = '<option value="">Todos</option>' +
+                this.roles.map(r => `<option value="${r}">${r}</option>`).join('');
         }
     },
 
@@ -127,6 +134,9 @@ const PersonalModule = {
         const tbody = document.getElementById('lista-personal');
         const searchTerm = document.getElementById('search-staff').value.toLowerCase();
         const areaFilter = document.getElementById('filter-area').value;
+        const rolFilter = document.getElementById('filter-rol').value;
+        const estadoLaboralFilter = document.getElementById('filter-estado-laboral').value;
+        const estadoUsuarioFilter = document.getElementById('filter-estado-usuario').value;
         const user = Auth.getUser();
 
         // Reglas de permisos estrictas: Solo Admin y Jefe de Operaciones pueden editar/gestionar acceso
@@ -147,13 +157,36 @@ const PersonalModule = {
             }
         }
 
-        const filtered = this.staff.filter(p => {
+        let filtered = this.staff.filter(p => {
             const matchesSearch = p.nombre.toLowerCase().includes(searchTerm) ||
                                  p.apellido.toLowerCase().includes(searchTerm) ||
                                  p.codigo_interno.toLowerCase().includes(searchTerm);
             const matchesArea = !areaFilter || p.area_id == areaFilter;
-            return matchesSearch && matchesArea;
+            const matchesRol = !rolFilter || p.rol_organizacional === rolFilter;
+            const matchesEstadoLaboral = !estadoLaboralFilter || p.estado_laboral === estadoLaboralFilter;
+            const matchesEstadoUsuario = !estadoUsuarioFilter || p.estado_usuario === estadoUsuarioFilter;
+            return matchesSearch && matchesArea && matchesRol && matchesEstadoLaboral && matchesEstadoUsuario;
         });
+
+        // Sorting logic
+        filtered.sort((a, b) => {
+            let valA, valB;
+            if (this.sortState.key === 'codigo') {
+                valA = a.codigo_interno;
+                valB = b.codigo_interno;
+            } else if (this.sortState.key === 'nombre') {
+                valA = `${a.nombre} ${a.apellido}`.toLowerCase();
+                valB = `${b.nombre} ${b.apellido}`.toLowerCase();
+            } else {
+                valA = a[this.sortState.key];
+                valB = b[this.sortState.key];
+            }
+
+            if (valA < valB) return this.sortState.order === 'asc' ? -1 : 1;
+            if (valA > valB) return this.sortState.order === 'asc' ? 1 : -1;
+            return 0;
+        });
+
 
         if (filtered.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-secondary">No se encontró personal</td></tr>';
@@ -165,7 +198,7 @@ const PersonalModule = {
             const rowStyle = isAuxActive ? 'background-color: rgba(30, 64, 175, 0.05); border-left: 4px solid var(--primary-base);' : '';
 
             return `
-            <tr style="${rowStyle}">
+            <tr style="${rowStyle}" data-staff-id="${p.id}">
                 <td>
                     <strong>${p.codigo_interno}</strong>
                     ${isAuxActive ? '<br><small class="text-primary" style="font-weight:600;">Auxiliar con Acceso</small>' : ''}
@@ -184,7 +217,7 @@ const PersonalModule = {
                             ${(p.estado_usuario || 'S/U').toUpperCase()}
                         </span>
                         ${canManage && p.estado_usuario !== 'Baja lógica' ? `
-                        <button class="btn btn-secondary btn-sm" onclick="PersonalModule.openStatusModal(${p.id}, '${p.nombre} ${p.apellido}', '${p.estado_usuario || 'Inactivo'}')" title="Estado / Acceso">
+                        <button class="btn btn-secondary btn-sm btn-status" title="Estado / Acceso">
                             <i data-lucide="shield" style="width:14px; height:14px;"></i>
                         </button>` : ''}
                     </div>
@@ -192,10 +225,10 @@ const PersonalModule = {
                 <td>
                     <div style="display: flex; gap: 8px;">
                         ${canManage && p.estado_usuario !== 'Baja lógica' ? `
-                        <button class="btn btn-secondary btn-sm" onclick="PersonalModule.openModal(${p.id})" title="Editar">
+                        <button class="btn btn-secondary btn-sm btn-edit" title="Editar">
                             <i data-lucide="pencil" style="width:14px; height:14px;"></i>
                         </button>` : ''}
-                        <button class="btn btn-secondary btn-sm" onclick="PersonalModule.viewDetails(${p.id})" title="Ver Detalle">
+                        <button class="btn btn-secondary btn-sm btn-view" title="Ver Detalle">
                             <i data-lucide="eye" style="width:14px; height:14px;"></i>
                         </button>
                     </div>
@@ -203,6 +236,35 @@ const PersonalModule = {
             </tr>
         `}).join('');
         DesignSystem.initLucide();
+        this.setupRowEventListeners();
+    },
+
+    setupRowEventListeners() {
+        document.querySelectorAll('#lista-personal tr[data-staff-id]').forEach(row => {
+            const staffId = parseInt(row.dataset.staffId);
+            const staffMember = this.staff.find(p => p.id === staffId);
+
+            const statusBtn = row.querySelector('.btn-status');
+            if (statusBtn) {
+                statusBtn.addEventListener('click', () => {
+                    this.openStatusModal(staffId, `${staffMember.nombre} ${staffMember.apellido}`, staffMember.estado_usuario || 'Inactivo');
+                });
+            }
+
+            const editBtn = row.querySelector('.btn-edit');
+            if (editBtn) {
+                editBtn.addEventListener('click', () => {
+                    this.openModal(staffId);
+                });
+            }
+
+            const viewBtn = row.querySelector('.btn-view');
+            if (viewBtn) {
+                viewBtn.addEventListener('click', () => {
+                    this.viewDetails(staffId);
+                });
+            }
+        });
     },
 
     setupEventListeners() {
@@ -211,7 +273,24 @@ const PersonalModule = {
 
         document.getElementById('search-staff').addEventListener('input', () => this.renderStaffList());
         document.getElementById('filter-area').addEventListener('change', () => this.renderStaffList());
+        document.getElementById('filter-rol').addEventListener('change', () => this.renderStaffList());
+        document.getElementById('filter-estado-laboral').addEventListener('change', () => this.renderStaffList());
+        document.getElementById('filter-estado-usuario').addEventListener('change', () => this.renderStaffList());
         document.getElementById('btn-save-personal').addEventListener('click', () => this.saveStaff());
+
+        document.querySelectorAll('#tabla-personal .sortable').forEach(header => {
+            header.addEventListener('click', () => {
+                const sortKey = header.dataset.sortKey;
+                if (this.sortState.key === sortKey) {
+                    this.sortState.order = this.sortState.order === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sortState.key = sortKey;
+                    this.sortState.order = 'asc';
+                }
+                this.renderStaffList();
+            });
+        });
+
 
         const pArea = document.getElementById('p-area');
         if (pArea) {
@@ -269,6 +348,16 @@ const PersonalModule = {
                 }
             });
         }
+
+        // Event listeners for modal close buttons
+        document.getElementById('btn-close-personal').addEventListener('click', () => this.closeModal());
+        document.getElementById('btn-cancel-personal').addEventListener('click', () => this.closeModal());
+        document.getElementById('btn-close-status').addEventListener('click', () => this.closeStatusModal());
+        document.getElementById('btn-cancel-status').addEventListener('click', () => this.closeStatusModal());
+        document.getElementById('btn-close-detail').addEventListener('click', () => this.closeDetailModal());
+        document.getElementById('btn-cancel-detail').addEventListener('click', () => this.closeDetailModal());
+        document.getElementById('btn-close-assignment').addEventListener('click', () => this.closeAssignmentModal());
+        document.getElementById('btn-cancel-assignment').addEventListener('click', () => this.closeAssignmentModal());
     },
 
     openModal(id = null) {
@@ -310,6 +399,10 @@ const PersonalModule = {
         document.getElementById('modal-personal').style.display = 'flex';
     },
 
+    closeModal() {
+        document.getElementById('modal-personal').style.display = 'none';
+    },
+
     async saveStaff() {
         const id = this.currentStaffId;
         const data = {
@@ -349,7 +442,7 @@ const PersonalModule = {
                 const result = await res.json();
                 if (result.success) {
                     DesignSystem.showToast('Personal actualizado con éxito');
-                    closeModal();
+                    this.closeModal();
                     this.loadStaff();
                 } else {
                     DesignSystem.showToast(result.error, 'error');
@@ -365,7 +458,7 @@ const PersonalModule = {
                 const result = await res.json();
                 if (result.success) {
                     DesignSystem.showToast('Personal registrado con éxito. Psw temp: ' + result.data.tempPassword, 'info', 10000);
-                    closeModal();
+                    this.closeModal();
                     this.loadStaff();
                 } else {
                     DesignSystem.showToast(result.error, 'error');
@@ -454,6 +547,10 @@ const PersonalModule = {
         }
     },
 
+    closeDetailModal() {
+        document.getElementById('modal-detalle').style.display = 'none';
+    },
+
     openStatusModal(id, name, currentStatus) {
         this.currentStaffId = id;
         const p = this.staff.find(s => s.id === id);
@@ -521,6 +618,10 @@ const PersonalModule = {
         }
     },
 
+    closeAssignmentModal() {
+        document.getElementById('modal-asignacion').style.display = 'none';
+    },
+
     async saveAssignment() {
         const data = {
             proceso_id: parseInt(document.getElementById('a-proceso').value),
@@ -544,7 +645,7 @@ const PersonalModule = {
             const result = await res.json();
             if (result.success) {
                 DesignSystem.showToast('Asignación registrada correctamente');
-                document.getElementById('modal-asignacion').style.display = 'none';
+                this.closeAssignmentModal();
                 this.loadStaff();
             } else {
                 DesignSystem.showToast(result.error, 'error');
@@ -552,14 +653,6 @@ const PersonalModule = {
         } catch (e) { DesignSystem.showToast('Error de red', 'error'); }
     }
 };
-
-function closeModal() {
-    document.getElementById('modal-personal').style.display = 'none';
-}
-
-function closeDetailModal() {
-    document.getElementById('modal-detalle').style.display = 'none';
-}
 
 window.PersonalModule = PersonalModule;
 document.addEventListener('DOMContentLoaded', () => PersonalModule.init());

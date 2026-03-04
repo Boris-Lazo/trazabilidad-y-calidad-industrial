@@ -9,6 +9,19 @@
     <script src="js/auth.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/design-system/index.js" defer></script>
+    <style>
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .sortable {
+            cursor: pointer;
+        }
+        .sortable:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
 </head>
 <body>
     <div class="app-layout">
@@ -77,14 +90,15 @@
 
         <div class="main-container">
             <header class="topbar">
-                <h1 id="page-title">Gestión de Colaboradores</h1>
-                <div class="topbar-actions">
+                 <h1 id="page-title">Gestión de Colaboradores</h1>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <input type="text" id="search-staff" class="form-control" placeholder="Buscar..." style="width: 280px;">
+                    <button id="btn-nuevo-personal" class="btn btn-primary">
+                        <i data-lucide="user-plus"></i> Nuevo Colaborador
+                    </button>
                     <button id="theme-toggle" class="btn btn-secondary">
                         <i data-lucide="sun" class="sun-icon"></i>
                         <i data-lucide="moon" class="moon-icon"></i>
-                    </button>
-                    <button id="btn-nuevo-personal" class="btn btn-primary">
-                        <i data-lucide="user-plus"></i> Nuevo Colaborador
                     </button>
                 </div>
             </header>
@@ -94,13 +108,34 @@
                 <div class="card mb-4">
                     <div class="card-body" style="display: flex; gap: 16px; align-items: flex-end;">
                         <div class="form-group mb-0" style="flex: 1;">
-                            <label class="form-label">Buscar colaborador</label>
-                            <input type="text" id="search-staff" class="form-control" placeholder="Ej: Juan Perez o 12345">
-                        </div>
-                        <div class="form-group mb-0" style="width: 200px;">
-                            <label class="form-label">Área</label>
+                            <label class="form-label">Filtrar por Área</label>
                             <select id="filter-area" class="form-control">
                                 <option value="">Todas</option>
+                            </select>
+                        </div>
+                        <div class="form-group mb-0" style="flex: 1;">
+                            <label class="form-label">Filtrar por Rol</label>
+                            <select id="filter-rol" class="form-control">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="form-group mb-0" style="flex: 1;">
+                            <label class="form-label">Estado Laboral</label>
+                            <select id="filter-estado-laboral" class="form-control">
+                                <option value="">Todos</option>
+                                <option value="Activo">Activo</option>
+                                <option value="Inactivo">Inactivo</option>
+                                <option value="Baja">Baja</option>
+                            </select>
+                        </div>
+                        <div class="form-group mb-0" style="flex: 1;">
+                            <label class="form-label">Estado Usuario</label>
+                            <select id="filter-estado-usuario" class="form-control">
+                                <option value="">Todos</option>
+                                <option value="Activo">Activo</option>
+                                <option value="Suspendido">Suspendido</option>
+                                <option value="Bloqueado">Bloqueado</option>
+                                <option value="Baja lógica">Baja lógica</option>
                             </select>
                         </div>
                     </div>
@@ -112,8 +147,8 @@
                         <table class="table" id="tabla-personal">
                             <thead>
                                 <tr>
-                                    <th>Código</th>
-                                    <th>Nombre Completo</th>
+                                    <th class="sortable" data-sort-key="codigo">Código</th>
+                                    <th class="sortable" data-sort-key="nombre">Nombre Completo</th>
                                     <th>Área</th>
                                     <th>Rol</th>
                                     <th>Estado Laboral</th>
@@ -138,7 +173,7 @@
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
                 <h2 id="modal-title">Registrar Nuevo Colaborador</h2>
-                <button class="btn-close" onclick="closeModal()">&times;</button>
+                <button id="btn-close-personal" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="form-personal">
@@ -212,7 +247,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                <button type="button" id="btn-cancel-personal" class="btn btn-secondary">Cancelar</button>
                 <button type="button" id="btn-save-personal" class="btn btn-primary">Guardar</button>
             </div>
         </div>
@@ -223,7 +258,7 @@
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
                 <h2>Cambiar Estado de Acceso</h2>
-                <button class="btn-close" onclick="PersonalModule.closeStatusModal()">&times;</button>
+                <button id="btn-close-status" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
                 <p id="status-target-name" style="font-weight: 600; margin-bottom: 12px;"></p>
@@ -255,7 +290,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="PersonalModule.closeStatusModal()">Cancelar</button>
+                <button type="button" id="btn-cancel-status" class="btn btn-secondary">Cancelar</button>
                 <button type="button" id="btn-confirm-status" class="btn btn-primary">Confirmar Cambio</button>
             </div>
         </div>
@@ -266,7 +301,7 @@
         <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header">
                 <h2 id="detail-title">Detalle de Colaborador</h2>
-                <button class="btn-close" onclick="closeDetailModal()">&times;</button>
+                <button id="btn-close-detail" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="detail-indicator" class="mb-3"></div>
@@ -326,7 +361,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeDetailModal()">Cerrar</button>
+                <button type="button" id="btn-cancel-detail" class="btn btn-secondary">Cerrar</button>
             </div>
         </div>
     </div>
@@ -336,7 +371,7 @@
         <div class="modal-content" style="max-width: 450px;">
             <div class="modal-header">
                 <h2>Registrar Nueva Asignación</h2>
-                <button class="btn-close" onclick="document.getElementById('modal-asignacion').style.display='none'">&times;</button>
+                <button id="btn-close-assignment" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="form-asignacion">
@@ -368,7 +403,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-asignacion').style.display='none'">Cancelar</button>
+                <button type="button" id="btn-cancel-assignment" class="btn btn-secondary">Cancelar</button>
                 <button type="button" id="btn-save-assignment" class="btn btn-primary">Registrar Asignación</button>
             </div>
         </div>
