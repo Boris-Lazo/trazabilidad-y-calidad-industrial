@@ -2,41 +2,37 @@
 const XLSX = require('xlsx');
 const { parsearFila } = require('./ordenProduccion.parser');
 const ValidationError = require('../../shared/errors/ValidationError');
-const DomainError = require('../../shared/errors/DomainError');
 const NotFoundError = require('../../shared/errors/NotFoundError');
 
 const MAPEO_SAP = {
   'ExtruPP': 1,
-  'Extrusión PP': 1,
   'Telar': 2,
   'Laminado': 3,
   'Imprenta': 4,
   'ConverSA': 5,
-  'Conversión SA': 5,
   'ExtruPE': 6,
-  'Extrusión PE': 6,
   'ConverLI': 7,
-  'Conversión Liner PE': 7,
   'Peletiza': 8,
-  'VestidoM': 9,
-  'Sacos Vestidos': 9
+  'VestidoM': 9
 };
 
-const UNIDADES_PROCESO = {
-  1: 'kg',        // ExtruPP
-  2: 'metros',    // Telar
-  3: 'metros',    // Laminado
-  4: 'impresiones', // Imprenta
-  5: 'unidades',  // ConverSA
-  6: 'kg',        // ExtruPE
-  7: 'unidades',  // ConverLI
-  8: 'kg',        // Peletiza
-  9: 'unidades'   // VestidoM
+// Mapeo inverso: proceso_id → unidad de medida por defecto
+const UNIDAD_POR_PROCESO = {
+  1: 'KG',   // ExtruPP
+  2: 'M2',   // Telar
+  3: 'M2',   // Laminado
+  4: 'MIL',  // Imprenta
+  5: 'UND',  // ConverSA
+  6: 'KG',   // ExtruPE
+  7: 'UND',  // ConverLI
+  8: 'KG',   // Peletiza
+  9: 'UND'   // VestidoM
 };
 
 function obtenerUnidadPorProceso(procesoId) {
-  return UNIDADES_PROCESO[procesoId] || 'Unidades';
+  return UNIDAD_POR_PROCESO[parseInt(procesoId)] || 'UND';
 }
+
 
 class OrdenProduccionService {
   /**
@@ -107,66 +103,23 @@ class OrdenProduccionService {
     return await this.ordenProduccionRepository.remove(id);
   }
 
-  /**
-   * Detecta dinámicamente la fila de encabezados y mapea las columnas necesarias.
-   * @param {Array[]} filas - Matriz de datos de Excel.
-   * @returns {Object|null} Mapeo de campos a índices de columna o null si no se detecta.
-   */
-  _detectarEncabezados(filas) {
-    const KEYWORDS = {
-      nombreSap:       ['centro', 'proceso', 'nombre sap', 'operación', 'fase'],
-      codigoDoc:      ['nº documento', 'orden', 'doc', 'código', 'número'],
-      descripcion:    ['texto breve material', 'descripción', 'producto', 'material'],
-      cantPlanificada: ['cantidad planificada', 'ctd.planificada', 'objetivo', 'planificada'],
-      cantCompletada:  ['cantidad confirmada', 'ctd.confirmada', 'completada', 'confirmada'],
-      cantPendiente:   ['cantidad pendiente', 'ctd.pendiente', 'pendiente'],
-      fechaPedido:     ['fecha de pedido', 'pedido', 'creación'],
-      fechaInicio:     ['fecha de inicio', 'inicio', 'programada'],
-      fechaVencimiento:['fecha de vencimiento', 'vencimiento', 'entrega', 'fin']
-    };
-
-    for (let i = 0; i < Math.min(filas.length, 20); i++) {
-      const fila = filas[i];
-      if (!Array.isArray(fila)) continue;
-
-      const mapeo = {};
-      let coincidencias = 0;
-
-      for (const [campo, sinonimos] of Object.entries(KEYWORDS)) {
-        const index = fila.findIndex(celda => {
-          if (!celda) return false;
-          const normalizada = String(celda).toLowerCase().trim();
-          return sinonimos.some(s => normalizada.includes(s.toLowerCase()));
-        });
-
-        if (index !== -1) {
-          mapeo[campo] = index;
-          coincidencias++;
-        }
-      }
-
-      // Si encontramos al menos 4 columnas clave (incluyendo Nº documento), asumimos que es el encabezado
-      if (coincidencias >= 4 && mapeo.codigoDoc !== undefined) {
-        return { indexHeader: i, mapeo };
-      }
-    }
-    return null;
-  }
-
   async procesarImportacionExcel(buffer, usuario) {
     const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const filas = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
 
-    // Validar estructura del archivo
-    if (filas.length < 4) {
+    // El rango del sheet SAP es B3:L114 — XLSX.js lee desde la primera celda del rango.
+    // filas[0] = encabezados ('Series de documentos', 'Nº documento', ...)
+    // filas[1..N] = datos de órdenes
+    // filaArr[0] = Serie SAP, filaArr[1] = Nº documento (sin columna A vacía)
+    if (filas.length < 2) {
       throw new ValidationError(
         'El archivo no contiene datos. Verifique que sea el reporte de Órdenes de SAP.'
       );
     }
 
-    // Validar encabezados en fila índice 2
-    const headers = filas[2] || [];
+    // Validar encabezados en fila índice 0
+    const headers = filas[0] || [];
     if (!headers.includes('Series de documentos') || !headers.includes('Nº documento')) {
       throw new ValidationError(
         'El archivo no tiene el formato esperado de SAP. ' +
@@ -175,14 +128,14 @@ class OrdenProduccionService {
       );
     }
 
-    // Datos desde fila índice 3 (fila 4 del Excel)
-    const datos = filas.slice(3);
+    // Datos desde fila índice 1
+    const datos = filas.slice(1);
 
     const resultado = {
       total_filas_excel: 0,
-      nuevas: [],           // órdenes que NO existen en PROD-SYS → se pueden importar
-      ya_existentes: [],    // órdenes que YA existen en PROD-SYS → NO tocar
-      no_reconocidas: [],   // series SAP desconocidas → mostrar al usuario
+      nuevas: [],
+      ya_existentes: [],
+      no_reconocidas: [],
       requieren_validacion: 0
     };
 
@@ -190,39 +143,33 @@ class OrdenProduccionService {
       // Ignorar filas completamente vacías
       if (!filaArr || filaArr.every(c => c === null || c === '')) continue;
 
-      // col[2] = Nº documento (7 dígitos numéricos)
-      const codigoDoc = filaArr[2];
+      // filaArr[1] = Nº documento (7 dígitos numéricos)
+      const codigoDoc = filaArr[1];
       if (!codigoDoc || !/^\d{7}$/.test(String(codigoDoc).trim())) continue;
 
       resultado.total_filas_excel++;
 
-      // slice(1) elimina la columna vacía (col[0])
-      // parsearFila recibe: [Serie, Nº doc, Descripción, CantPlan, ...]
-      const ordenParseada = parsearFila(filaArr.slice(1), MAPEO_SAP);
+      // filaArr[0]=Serie SAP, filaArr[1]=Nº doc — parsearFila espera este orden
+      const ordenParseada = parsearFila(filaArr, MAPEO_SAP);
 
-      // Serie SAP no reconocida → registrar para feedback al usuario
       if (!ordenParseada.proceso_id) {
         resultado.no_reconocidas.push({
           codigo_orden: ordenParseada.codigo_orden,
           nombre_proceso_sap: ordenParseada.nombre_proceso_sap,
           descripcion_producto: ordenParseada.descripcion_producto,
-          motivo: `Serie SAP desconocida: "${ordenParseada.nombre_proceso_sap}". ` +
-                  `Agregar al MAPEO_SAP si es un proceso válido.`
+          motivo: `Serie SAP desconocida: "${ordenParseada.nombre_proceso_sap}".`
         });
         continue;
       }
 
-      // Verificar si ya existe en PROD-SYS
       const existente = await this.ordenProduccionRepository.findByCodigoOrden(
         ordenParseada.codigo_orden
       );
 
       if (existente) {
-        // PROD-SYS tiene prioridad: guardar datos de PROD-SYS para mostrar al usuario
         resultado.ya_existentes.push({
           codigo_orden: existente.codigo_orden,
           estado_prodsys: existente.estado,
-          // Datos de SAP (solo informativos, NO se usarán para actualizar)
           sap_cantidad_planificada: ordenParseada.cantidad_planificada,
           sap_fecha_vencimiento: ordenParseada.fecha_vencimiento,
           motivo: 'Ya existe en PROD-SYS. Sus datos están actualizados en tiempo real.'
@@ -243,87 +190,72 @@ class OrdenProduccionService {
       throw new ValidationError('No se recibieron órdenes para importar.');
     }
 
-    const errores = [];
+    const omitidas = [];
     const validadas = [];
 
     for (const orden of ordenes) {
-      const { codigo_orden, proceso_id, cantidad_planificada, especificaciones } = orden;
+      const { codigo_orden, proceso_id, cantidad_planificada } = orden;
 
       // Validar código de orden
       if (!/^\d{7}$/.test(String(codigo_orden))) {
-        errores.push({ codigo_orden, error: 'Código de orden debe tener 7 dígitos' });
+        omitidas.push({ codigo_orden, motivo: 'Código de orden inválido (debe tener 7 dígitos)' });
         continue;
       }
 
       // Validar proceso_id
       const pId = parseInt(proceso_id);
       if (isNaN(pId) || pId < 1 || pId > 9) {
-        errores.push({ codigo_orden, error: 'Proceso ID debe estar entre 1 y 9' });
+        omitidas.push({ codigo_orden, motivo: `Proceso ID inválido: ${proceso_id}` });
         continue;
       }
 
-      // Validar cantidad: debe ser número válido (acepta decimales y negativos)
-      // Negativo = sobreproducción en SAP, es válido
+      // Validar cantidad: acepta negativos (sobreproducción SAP) y cero
       const cantNum = parseFloat(cantidad_planificada);
       if (isNaN(cantNum)) {
-        errores.push({ codigo_orden, error: 'La cantidad planificada no es un número válido' });
+        omitidas.push({ codigo_orden, motivo: 'Cantidad planificada no es un número válido' });
         continue;
       }
 
-      // Verificar una vez más que no exista en PROD-SYS
-      // (puede haber sido creada entre previsualizar y confirmar)
+      // Verificar que no exista ya en PROD-SYS (puede haberse creado entre previsualizar y confirmar)
       const existente = await this.ordenProduccionRepository.findByCodigoOrden(codigo_orden);
       if (existente) {
-        // No es error, simplemente omitir silenciosamente
-        continue;
-      }
-
-      // Validaciones específicas por proceso (campos que requieren input del usuario)
-      if (pId === 4 && especificaciones &&
-          especificaciones.costura_posicion !== 'arriba' &&
-          especificaciones.costura_posicion !== 'abajo') {
-        errores.push({ codigo_orden, error: 'Debe definir posición de costura (arriba/abajo)' });
-        continue;
-      }
-
-      if (pId === 5 && especificaciones &&
-          typeof especificaciones.con_fuelle !== 'boolean') {
-        errores.push({ codigo_orden, error: 'Debe definir si el saco lleva fuelle o es plano' });
+        omitidas.push({ codigo_orden, motivo: 'Ya existe en PROD-SYS (creada entre previsualizar y confirmar)' });
         continue;
       }
 
       validadas.push(orden);
     }
 
-    if (errores.length > 0) {
-      const errorMsg = errores.map(e => `Orden ${e.codigo_orden}: ${e.error}`).join('; ');
-      throw new ValidationError(`Errores de validación: ${errorMsg}`);
+    // Si no hay nada válido para guardar, informar
+    if (validadas.length === 0) {
+      throw new ValidationError(
+        `No hay órdenes válidas para importar. ` +
+        `Omitidas: ${omitidas.map(o => o.codigo_orden).join(', ')}`
+      );
     }
 
-    // Insertar en lotes de 50 para evitar timeout en SQLite con archivos grandes
+    // Insertar en lotes de 50
     const BATCH_SIZE = 50;
     let guardadas = 0;
 
     for (let i = 0; i < validadas.length; i += BATCH_SIZE) {
       const lote = validadas.slice(i, i + BATCH_SIZE);
-
       await this.ordenProduccionRepository.db.withTransaction(async () => {
         for (const orden of lote) {
           await this.ordenProduccionRepository.create({
-            codigo_orden:        orden.codigo_orden,
-            producto:            orden.descripcion_producto,
-            cantidad_objetivo:   orden.cantidad_planificada,
-            fecha_planificada:   orden.fecha_vencimiento,
-            unidad:              obtenerUnidadPorProceso(orden.proceso_id),
-            prioridad:           orden.dias_atrasados > 0 ? 'Alta' : 'Media',
-            observaciones:       orden.pedido_cliente
-                                   ? `Pedido cliente: ${orden.pedido_cliente}`
-                                   : '',
-            estado:              'Creada',
+            codigo_orden:      orden.codigo_orden,
+            producto:          orden.descripcion_producto,
+            cantidad_objetivo: orden.cantidad_planificada,
+            fecha_planificada: orden.fecha_vencimiento,
+            unidad:            obtenerUnidadPorProceso(orden.proceso_id),
+            prioridad:         (orden.dias_atrasados > 0) ? 'Alta' : 'Media',
+            observaciones:     orden.pedido_cliente
+                                 ? `Pedido cliente: ${orden.pedido_cliente}`
+                                 : '',
+            estado:            'Creada',
             especificaciones: {
               ...orden.especificaciones,
-              // Campos SAP adicionales para trazabilidad
-              sap_serie:              orden.nombre_proceso_sap,
+              sap_serie:               orden.nombre_proceso_sap,
               sap_cantidad_completada: orden.cantidad_completada,
               sap_cantidad_pendiente:  orden.cantidad_pendiente,
               sap_dias_atrasados:      orden.dias_atrasados,
@@ -332,15 +264,14 @@ class OrdenProduccionService {
               sap_fecha_inicio:        orden.fecha_inicio,
               importado_por:           usuario,
               importado_en:            new Date().toISOString()
-            },
-            created_by: usuario
+            }
           });
           guardadas++;
         }
       });
     }
 
-    return { guardadas, errores: [] };
+    return { guardadas, omitidas };
   }
 }
 
