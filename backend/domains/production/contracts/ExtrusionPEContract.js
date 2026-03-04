@@ -87,6 +87,11 @@ class ExtrusionPEContract extends ProcessContract {
                 }
             ],
             parametrosInformativos: [
+                // PENDIENTE: parámetros operacionales (temperaturas por zona,
+                // RPM extrusor, velocidad de línea, presión) serán agregados
+                // cuando se disponga del relevamiento de equipos.
+                // El dominio (service/repository/controller/routes) se implementará
+                // en la misma iteración.
                 {
                     nombre: 'materias_primas',
                     etiqueta: 'Materias Primas',

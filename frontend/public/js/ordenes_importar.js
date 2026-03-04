@@ -25,17 +25,18 @@ let ordenesNuevasCache = [];
 function mostrarError(titulo, mensaje) {
     if (window.DesignSystem && typeof DesignSystem.showErrorModal === 'function') {
         DesignSystem.showErrorModal(titulo, mensaje);
-    } else {
-        // Fallback si DesignSystem no está disponible aún
-        const modal = document.getElementById('modal-error-sap');
-        const msg = document.getElementById('mensaje-error-sap');
-        if (modal && msg) {
-            msg.textContent = `${titulo}: ${mensaje}`;
-            modal.style.display = 'flex';
-        } else {
-            alert(`${titulo}: ${mensaje}`);
-        }
+        return;
     }
+    // Fallback DOM: modal estático en la página
+    const modal = document.getElementById('modal-error-sap');
+    const msg = document.getElementById('mensaje-error-sap');
+    if (modal && msg) {
+        msg.textContent = `${titulo}: ${mensaje}`;
+        modal.style.display = 'flex';
+        return;
+    }
+    // Fallback final: consola
+    console.error(`[${titulo}] ${mensaje}`);
 }
 
 function getAuthHeaders() {

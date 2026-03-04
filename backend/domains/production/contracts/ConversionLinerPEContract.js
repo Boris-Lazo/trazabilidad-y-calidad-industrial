@@ -10,7 +10,7 @@ class ConversionLinerPEContract extends ProcessContract {
             descripcionProducto: 'Liners de polietileno: manga tubular cortada a longitud nominal y sellada en un extremo',
             patronCodigoOrden: '7\\d{6}',
             origenesOrden: ['masivo_excel', 'manual'],
-            maquinasPermitidas: ['CONV-LI'],
+            maquinasPermitidas: ['CONVLI'],
             esInicioCadena: false,
             procesosAguasAbajo: [],
             restriccionesInicio: [

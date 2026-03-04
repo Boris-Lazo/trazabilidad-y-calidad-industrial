@@ -24,7 +24,7 @@ class LaminadoContract extends ProcessContract {
                 'Temperatura fuera de rango al arranque',
                 'Cambio de orden en proceso'
             ],
-            maquinasPermitidas: ['LAM-01'],
+            maquinasPermitidas: ['LAM01'],
             // Nuevas secciones obligatorias
             descripcionProceso: {
                 queHace: 'Recubrimiento de tela circular con una capa delgada de polímero fundido para impermeabilización y refuerzo.',

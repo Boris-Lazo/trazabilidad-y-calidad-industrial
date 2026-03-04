@@ -14,26 +14,29 @@ const authorize = (...requirements) => {
 
     if (requirements.length === 0) return next();
 
+    // ─── MODO DESARROLLO ───────────────────────────────────────────────
+    // DISABLE_AUTH_CHECKS=true en .env habilita acceso total.
+    // Cambiar a false (o eliminar la variable) para activar los candados
+    // cuando el sistema esté listo para producción.
+    if (process.env.DISABLE_AUTH_CHECKS === 'true') {
+      return next();
+    }
+
+    // ─── LÓGICA DE PERMISOS (activa cuando DISABLE_AUTH_CHECKS != true) ─
     const userRole = req.user.rol;
 
-    // --- MODO DESARROLLO: ACCESO TOTAL ---
-    // En esta etapa, permitimos el paso a todos los usuarios autenticados.
-    // El control fino de permisos se habilitará en etapas posteriores.
-    return next();
-
-    /*
-    // Lógica de autorización original (Comentada para etapa de desarrollo)
     const isAuthorized = requirements.some(reqmt => {
-        if (reqmt === userRole || (reqmt === 'ADMIN' && userRole === 'Administrador')) return true;
-        if (hasPermission(userRole, reqmt)) return true;
-        return false;
+      if (reqmt === userRole) return true;
+      if (reqmt === 'ADMIN' && userRole === 'Administrador') return true;
+      if (hasPermission(userRole, reqmt)) return true;
+      return false;
     });
 
     if (!isAuthorized) {
       return next(new ForbiddenError('No tiene permisos para realizar esta acción'));
     }
+
     next();
-    */
   };
 };
 

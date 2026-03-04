@@ -1,6 +1,6 @@
 const ValidationError = require('../../shared/errors/ValidationError');
 const NotFoundError = require('../../shared/errors/NotFoundError');
-const logger = require('../../shared/logger/logger');
+const { logger } = require('../../shared/logger/logger');
 
 class LaminadoService {
     constructor(laminadoRepository, lineaEjecucionRepository,
@@ -269,6 +269,31 @@ class LaminadoService {
 
             return { registro_id: registroId, estado };
         });
+    }
+
+    async uploadPdf(tipo, marca, loteMaterial, pdfBase64, pdfNombre, usuario) {
+        if (!pdfBase64 || !pdfNombre) {
+            throw new ValidationError('Se requiere el archivo PDF y su nombre.');
+        }
+
+        const existente = await this.laminadoRepository.getPdfMaterial(
+            tipo, marca, loteMaterial
+        );
+        const estaSobrescribiendo = !!existente;
+
+        const pdfBlob = Buffer.from(pdfBase64, 'base64');
+        await this.laminadoRepository.upsertPdfMaterial(
+            tipo, marca, loteMaterial, pdfBlob, pdfNombre, usuario
+        );
+
+        return {
+            mensaje: estaSobrescribiendo
+                ? `Se actualizó la hoja técnica existente para ${tipo} - ${marca} - ${loteMaterial}. El archivo anterior fue reemplazado.`
+                : `Hoja técnica de ${tipo} - ${marca} - ${loteMaterial} guardada correctamente.`,
+            sobrescrito: estaSobrescribiendo,
+            archivo_anterior: estaSobrescribiendo
+                ? existente.pdf_nombre_archivo : null
+        };
     }
 }
 

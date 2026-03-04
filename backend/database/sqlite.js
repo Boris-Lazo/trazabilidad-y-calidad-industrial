@@ -10,17 +10,22 @@ const actualDbPath = NODE_ENV === 'test' ? ':memory:' : dbPath;
 
 const db = new sqlite3.Database(actualDbPath, (err) => {
   if (err) {
-    logger.error('Error al conectar con SQLite:', err.message);
+    console.error('Error al conectar con SQLite:', err.message);
     throw err;
   }
-  logger.info(`Conectado a la base de datos SQLite [${actualDbPath}].`);
+  // Uso diferido de logger para evitar problemas con dependencias circulares durante la carga inicial
+  setImmediate(() => {
+    logger.info(`Conectado a la base de datos SQLite [${actualDbPath}].`);
+  });
 
   // Optimización para concurrencia y seguridad
   db.serialize(() => {
     db.run("PRAGMA journal_mode = WAL;");
     db.run("PRAGMA synchronous = NORMAL;");
     db.run("PRAGMA foreign_keys = ON;");
-    logger.info('SQLite optimizado: WAL mode, Synchronous NORMAL, Foreign Keys ON.');
+    setImmediate(() => {
+      logger.info('SQLite optimizado: WAL mode, Synchronous NORMAL, Foreign Keys ON.');
+    });
   });
 });
 
