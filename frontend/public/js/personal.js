@@ -218,18 +218,42 @@ const PersonalModule = {
                     </div>
                 </td>
                 <td>
-                    ${p.username ? `
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <button class="btn ${p.estado_usuario === 'Activo' ? 'btn-success' : 'btn-warning'} btn-sm btn-toggle-acceso"
-                                style="font-size: 10px; padding: 2px 8px; min-height: auto;"
-                                ${!canManage || p.estado_laboral === 'Baja' ? 'disabled' : ''}>
-                            ${p.estado_usuario === 'Activo' ? 'ACTIVO' : 'INACTIVO'}
-                        </button>
-                        ${canManage && p.estado_laboral !== 'Baja' ? `
-                        <button class="btn btn-secondary btn-sm btn-reset-psw" title="Reiniciar Contraseña">
-                            <i data-lucide="key" style="width:14px; height:14px;"></i>
-                        </button>` : ''}
-                    </div>` : '<span class="text-secondary" style="font-size:12px;">Sin Acceso</span>'}
+                    ${p.username
+                      ? `<div style="display:flex; align-items:center;
+                                     gap:6px;">
+                           ${p.area_nombre === 'Producción'
+                             ? `<button class="btn btn-sm
+                                  btn-toggle-acceso
+                                  ${p.estado_usuario === 'Activo'
+                                    ? 'badge-success'
+                                    : 'badge-warning'}"
+                                style="font-size:11px; padding:2px 8px;
+                                       font-weight:600; border:none;
+                                       border-radius:4px; cursor:pointer;"
+                                ${!canManage || p.estado_laboral === 'Baja'
+                                  ? 'disabled' : ''}
+                                title="${p.estado_usuario === 'Activo'
+                                  ? 'Desactivar acceso'
+                                  : 'Activar acceso'}">
+                                ${p.estado_usuario === 'Activo'
+                                  ? 'ACTIVO' : 'INACTIVO'}
+                               </button>`
+                             : `<span class="badge badge-success">
+                                  ACTIVO</span>`
+                           }
+                           ${canManage && p.estado_laboral !== 'Baja'
+                             ? `<button class="btn btn-secondary
+                                  btn-sm btn-reset-psw"
+                                  title="Reiniciar Contraseña">
+                                  <i data-lucide="key"
+                                     style="width:14px;height:14px;">
+                                  </i>
+                                </button>` : ''}
+                         </div>`
+                      : '<span class="text-secondary"
+                               style="font-size:12px;">
+                           Sin Acceso</span>'
+                    }
                 </td>
                 <td>
                     <div style="display: flex; gap: 8px;">
@@ -590,11 +614,49 @@ const PersonalModule = {
     },
 
     _renderEstadoBadge(p) {
-        let badgeClass = 'badge-secondary';
-        if (p.estado_efectivo === 'Activo') badgeClass = 'badge-success';
-        if (p.estado_laboral === 'Baja') badgeClass = 'badge-danger';
-        if (p.estado_laboral === 'Incapacitado') badgeClass = 'badge-warning';
-        return `<span class="badge ${badgeClass}">${p.estado_laboral.toUpperCase()}</span>`;
+      const estado = p.estado_laboral;
+      if (estado === 'Activo') {
+        return `<span class="badge badge-success">
+                  ACTIVO</span>`;
+      }
+      if (estado === 'Incapacitado') {
+        return p.ausencia_vencida
+          ? `<span class="badge badge-warning">
+               INCAPACITADO</span><br>
+             <small style="color:var(--warning);">
+               ⚠ Vencida el
+               ${this.formatDate(p.ausencia_hasta)}
+             </small>`
+          : `<span class="badge badge-warning">
+               INCAPACITADO</span><br>
+             <small class="text-secondary">
+               Hasta ${this.formatDate(p.ausencia_hasta)}
+             </small>`;
+      }
+      if (estado === 'Inactivo') {
+        return p.ausencia_vencida
+          ? `<span class="badge badge-secondary">
+               INACTIVO</span><br>
+             <small style="color:var(--warning);">
+               ⚠ Vencida el
+               ${this.formatDate(p.ausencia_hasta)}
+             </small>`
+          : `<span class="badge badge-secondary">
+               INACTIVO</span><br>
+             <small class="text-secondary">
+               Hasta ${this.formatDate(p.ausencia_hasta)}
+             </small>`;
+      }
+      if (estado === 'Baja') {
+        return `<span class="badge badge-danger">
+                  BAJA</span><br>
+                <small class="text-secondary">
+                  Desde ${this.formatDate(p.ausencia_desde)}
+                </small>`;
+      }
+      return `<span class="badge badge-secondary">
+                ${estado ? estado.toUpperCase() : '-'}
+              </span>`;
     },
 
     closeAssignmentModal() {
