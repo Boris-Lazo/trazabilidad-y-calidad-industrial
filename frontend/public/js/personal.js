@@ -189,7 +189,7 @@ const PersonalModule = {
 
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-secondary">No se encontró personal</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-secondary">No se encontró personal</td></tr>';
             return;
         }
 
@@ -207,24 +207,11 @@ const PersonalModule = {
                 <td>${p.area_nombre}</td>
                 <td><span class="badge badge-info">${p.rol_organizacional || 'Sin Rol'}</span></td>
                 <td>
-                    <span class="badge ${p.estado_laboral.toLowerCase() === 'activo' ? 'badge-success' : 'badge-danger'}">
-                        ${p.estado_laboral.toUpperCase()}
-                    </span>
-                </td>
-                <td>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span class="badge ${p.estado_usuario && p.estado_usuario.toLowerCase() === 'activo' ? 'badge-success' : 'badge-warning'}">
-                            ${(p.estado_usuario || 'S/U').toUpperCase()}
-                        </span>
-                        ${canManage && p.estado_usuario !== 'Baja lógica' ? `
-                        <button class="btn btn-secondary btn-sm btn-status" title="Estado / Acceso">
-                            <i data-lucide="shield" style="width:14px; height:14px;"></i>
-                        </button>` : ''}
-                    </div>
+                    ${this._renderEstadoBadge(p)}
                 </td>
                 <td>
                     <div style="display: flex; gap: 8px;">
-                        ${canManage && p.estado_usuario !== 'Baja lógica' ? `
+                        ${canManage && p.estado_laboral !== 'Baja' ? `
                         <button class="btn btn-secondary btn-sm btn-edit" title="Editar">
                             <i data-lucide="pencil" style="width:14px; height:14px;"></i>
                         </button>` : ''}
@@ -242,14 +229,6 @@ const PersonalModule = {
     setupRowEventListeners() {
         document.querySelectorAll('#lista-personal tr[data-staff-id]').forEach(row => {
             const staffId = parseInt(row.dataset.staffId);
-            const staffMember = this.staff.find(p => p.id === staffId);
-
-            const statusBtn = row.querySelector('.btn-status');
-            if (statusBtn) {
-                statusBtn.addEventListener('click', () => {
-                    this.openStatusModal(staffId, `${staffMember.nombre} ${staffMember.apellido}`, staffMember.estado_usuario || 'Inactivo');
-                });
-            }
 
             const editBtn = row.querySelector('.btn-edit');
             if (editBtn) {
@@ -300,24 +279,14 @@ const PersonalModule = {
         const btnSaveAsig = document.getElementById('btn-save-assignment');
         if (btnSaveAsig) btnSaveAsig.addEventListener('click', () => this.saveAssignment());
 
-        document.getElementById('btn-confirm-status').addEventListener('click', () => this.saveStatusChange());
+        document.getElementById('p-estado').addEventListener('change', (e) => this._toggleAusenciaFields(e.target.value));
 
-        const uEstado = document.getElementById('u-estado');
-        if (uEstado) {
-            uEstado.addEventListener('change', (e) => {
-                const p = this.staff.find(s => s.id === this.currentStaffId);
-                const warning = document.getElementById('status-warning');
-                if (e.target.value === 'Baja lógica') {
-                    warning.style.display = 'block';
-                    warning.innerHTML = '<strong>Atención:</strong> El estado \'Baja lógica\' es irreversible e impedirá cualquier acceso futuro.';
-                } else if (p && p.es_auxiliar_activo) {
-                    warning.style.display = 'block';
-                    warning.innerHTML = '<strong>Atención:</strong> Este colaborador es un Auxiliar con acceso activo. Desactivar su acceso revocará sus permisos de inmediato.';
-                } else {
-                    warning.style.display = 'none';
-                }
-            });
+        const btnResetDetalle = document.getElementById('btn-reset-desde-detalle');
+        if (btnResetDetalle) {
+            btnResetDetalle.addEventListener('click', () => this.openResetModal(this.currentStaffId));
         }
+
+        document.getElementById('btn-confirm-reset').addEventListener('click', () => this.confirmReset());
 
         const aProceso = document.getElementById('a-proceso');
         if (aProceso) {
@@ -352,8 +321,6 @@ const PersonalModule = {
         // Event listeners for modal close buttons
         document.getElementById('btn-close-personal').addEventListener('click', () => this.closeModal());
         document.getElementById('btn-cancel-personal').addEventListener('click', () => this.closeModal());
-        document.getElementById('btn-close-status').addEventListener('click', () => this.closeStatusModal());
-        document.getElementById('btn-cancel-status').addEventListener('click', () => this.closeStatusModal());
         document.getElementById('btn-close-detail').addEventListener('click', () => this.closeDetailModal());
         document.getElementById('btn-cancel-detail').addEventListener('click', () => this.closeDetailModal());
         document.getElementById('btn-close-assignment').addEventListener('click', () => this.closeAssignmentModal());
@@ -385,6 +352,15 @@ const PersonalModule = {
             document.getElementById('p-fecha-ingreso').value = p.fecha_ingreso;
             document.getElementById('p-telefono').value = p.telefono || '';
             document.getElementById('p-estado').value = p.estado_laboral;
+            this._toggleAusenciaFields(p.estado_laboral);
+
+            if (p.ausencia_desde) {
+                document.getElementById('p-ausencia-desde').value = p.ausencia_desde || '';
+                document.getElementById('p-ausencia-hasta').value = p.ausencia_hasta || '';
+                document.getElementById('p-tipo-ausencia').value = p.tipo_ausencia || 'Incapacidad';
+                document.getElementById('p-ausencia-desde-baja').value = p.ausencia_desde || '';
+            }
+
             document.getElementById('p-categoria').value = '';
 
             codigoInput.disabled = true;
@@ -417,14 +393,46 @@ const PersonalModule = {
         };
 
         if (id) {
+            const estadoNuevo = document.getElementById('p-estado').value;
             const updateData = {
                 email: data.email,
                 telefono: data.telefono,
                 rol_organizacional: document.getElementById('p-rol-org').value,
-                estado_laboral: document.getElementById('p-estado').value,
+                estado_laboral: estadoNuevo,
                 motivo_cambio: document.getElementById('p-motivo').value,
                 categoria_motivo: document.getElementById('p-categoria').value
             };
+
+            if (['Incapacitado', 'Inactivo'].includes(estadoNuevo)) {
+                updateData.ausencia_desde = document.getElementById('p-ausencia-desde').value;
+                updateData.ausencia_hasta = document.getElementById('p-ausencia-hasta').value;
+                updateData.tipo_ausencia = document.getElementById('p-tipo-ausencia').value;
+                updateData.motivo_ausencia = document.getElementById('p-motivo').value;
+
+                if (!updateData.ausencia_desde || !updateData.ausencia_hasta) {
+                    DesignSystem.showToast('Las fechas de ausencia son obligatorias', 'warning');
+                    return;
+                }
+            } else if (estadoNuevo === 'Baja') {
+                updateData.ausencia_desde = document.getElementById('p-ausencia-desde-baja').value;
+                updateData.motivo_ausencia = document.getElementById('p-motivo').value;
+
+                if (!updateData.ausencia_desde) {
+                    DesignSystem.showToast('La fecha de salida es obligatoria', 'warning');
+                    return;
+                }
+            } else {
+                // Activo — limpiar campos de ausencia
+                updateData.ausencia_desde = null;
+                updateData.ausencia_hasta = null;
+                updateData.tipo_ausencia = null;
+                updateData.motivo_ausencia = null;
+            }
+
+            if (!updateData.motivo_ausencia) {
+                updateData.motivo_ausencia = document.getElementById('p-motivo').value;
+            }
+
             if (!updateData.categoria_motivo) {
                 DesignSystem.showToast('La categoría de motivo es obligatoria', 'warning');
                 return;
@@ -489,6 +497,23 @@ const PersonalModule = {
                     indicator.innerHTML = '';
                 }
 
+                const estadoBadge = this._renderEstadoBadge(p);
+                let ausenciaInfo = '';
+                if (['Incapacitado', 'Inactivo'].includes(p.estado_laboral)) {
+                    ausenciaInfo = `
+                        <div><strong>Tipo:</strong> ${p.tipo_ausencia || '-'}</div>
+                        <div><strong>Desde:</strong> ${this.formatDate(p.ausencia_desde)}</div>
+                        <div><strong>Hasta:</strong> ${this.formatDate(p.ausencia_hasta)}</div>
+                        <div><strong>Motivo:</strong> ${p.motivo_ausencia || '-'}</div>
+                        ${p.ausencia_vencida ? '<div class="badge badge-warning" style="white-space:normal;">⚠ Ausencia vencida — pendiente de confirmar retorno</div>' : ''}
+                    `;
+                } else if (p.estado_laboral === 'Baja') {
+                    ausenciaInfo = `
+                        <div><strong>Fecha de salida:</strong> ${this.formatDate(p.ausencia_desde)}</div>
+                        <div><strong>Motivo:</strong> ${p.motivo_ausencia || '-'}</div>
+                    `;
+                }
+
                 document.getElementById('staff-info-details').innerHTML = `
                     <div><strong>Código:</strong> ${p.codigo_interno}</div>
                     <div><strong>Email:</strong> ${p.email}</div>
@@ -496,8 +521,8 @@ const PersonalModule = {
                     <div><strong>Área:</strong> ${p.area_nombre}</div>
                     <div><strong>Rol Organizacional:</strong> ${p.rol_organizacional || '-'}</div>
                     <div><strong>Ingreso:</strong> ${p.fecha_ingreso}</div>
-                    <div><strong>Estado Laboral:</strong> <span class="badge ${p.estado_laboral === 'Activo' ? 'badge-success' : 'badge-danger'}">${p.estado_laboral}</span></div>
-                    <div><strong>Estado Usuario:</strong> <span class="badge ${p.estado_usuario === 'Activo' ? 'badge-success' : 'badge-warning'}">${p.estado_usuario || 'SIN USUARIO'}</span></div>
+                    <div><strong>Estado:</strong> ${estadoBadge}</div>
+                    ${ausenciaInfo}
                 `;
 
                 document.getElementById('current-op-role').innerHTML = p.rol_operativo_actual
@@ -538,6 +563,13 @@ const PersonalModule = {
                     </tr>
                 `).join('');
 
+                const btnReset = document.getElementById('btn-reset-desde-detalle');
+                if (btnReset) {
+                    const user = Auth.getUser();
+                    const esAdmin = user && (user.rol === 'Administrador' || user.rol === 'Jefe de Operaciones');
+                    btnReset.style.display = esAdmin && p.estado_laboral !== 'Baja' ? 'inline-flex' : 'none';
+                }
+
                 DesignSystem.initLucide();
                 document.getElementById('modal-detalle').style.display = 'flex';
             }
@@ -551,71 +583,110 @@ const PersonalModule = {
         document.getElementById('modal-detalle').style.display = 'none';
     },
 
-    openStatusModal(id, name, currentStatus) {
+    _renderEstadoBadge(p) {
+        const estado = p.estado_laboral;
+        if (estado === 'Activo') {
+            return `<span class="badge badge-success">ACTIVO</span>`;
+        }
+
+        if (estado === 'Incapacitado') {
+            if (p.ausencia_vencida === true) {
+                return `
+                    <span class="badge badge-warning">INCAPACITADO</span>
+                    <br>
+                    <small style="color:var(--warning);">⚠ Vencida el ${this.formatDate(p.ausencia_hasta)}</small>
+                `;
+            } else {
+                return `
+                    <span class="badge badge-warning">INCAPACITADO</span>
+                    <br>
+                    <small class="text-secondary">Hasta ${this.formatDate(p.ausencia_hasta)}</small>
+                `;
+            }
+        }
+
+        if (estado === 'Inactivo') {
+            if (p.ausencia_vencida === true) {
+                return `
+                    <span class="badge badge-secondary">INACTIVO</span>
+                    <br>
+                    <small style="color:var(--warning);">⚠ Vencida el ${this.formatDate(p.ausencia_hasta)}</small>
+                `;
+            } else {
+                return `
+                    <span class="badge badge-secondary">INACTIVO</span>
+                    <br>
+                    <small class="text-secondary">Hasta ${this.formatDate(p.ausencia_hasta)}</small>
+                `;
+            }
+        }
+
+        if (estado === 'Baja') {
+            return `
+                <span class="badge badge-danger">BAJA</span>
+                <br>
+                <small class="text-secondary">Desde ${this.formatDate(p.ausencia_desde)}</small>
+            `;
+        }
+        return `<span class="badge badge-secondary">${estado ? estado.toUpperCase() : '-'}</span>`;
+    },
+
+    _toggleAusenciaFields(estado) {
+        const bloqueAusencia = document.getElementById('bloque-ausencia');
+        const bloqueBaja = document.getElementById('bloque-baja');
+        const bajaWarning = document.getElementById('baja-warning');
+
+        if (bloqueAusencia) bloqueAusencia.style.display = ['Incapacitado', 'Inactivo'].includes(estado) ? 'block' : 'none';
+        if (bloqueBaja) bloqueBaja.style.display = estado === 'Baja' ? 'block' : 'none';
+        if (bajaWarning) bajaWarning.style.display = estado === 'Baja' ? 'block' : 'none';
+
+        // Ajustar tipo_ausencia según estado
+        const tipoSelect = document.getElementById('p-tipo-ausencia');
+        if (tipoSelect) {
+            if (estado === 'Incapacitado') tipoSelect.value = 'Incapacidad';
+            else if (estado === 'Inactivo') tipoSelect.value = 'Permiso';
+        }
+    },
+
+    openResetModal(id) {
         this.currentStaffId = id;
         const p = this.staff.find(s => s.id === id);
-
-        const btnConfirm = document.getElementById('btn-confirm-status');
-        if (btnConfirm) DesignSystem.setBtnLoading(btnConfirm, false);
-
-        document.getElementById('status-target-name').textContent = `Colaborador: ${name}`;
-        document.getElementById('u-estado').value = currentStatus === 'S/U' ? 'Suspendido' : currentStatus;
-        document.getElementById('u-motivo').value = '';
-
-        const warning = document.getElementById('status-warning');
-        if (p && p.es_auxiliar_activo) {
-            warning.style.display = 'block';
-            warning.innerHTML = '<strong>Atención:</strong> Este colaborador es un Auxiliar con acceso activo. Desactivar su acceso revocará sus permisos de inmediato.';
-        } else {
-            warning.style.display = 'none';
-        }
-
-        document.getElementById('modal-estado-usuario').style.display = 'flex';
+        document.getElementById('reset-target-name').textContent = p ? `Colaborador: ${p.nombre} ${p.apellido}` : '';
+        document.getElementById('reset-result').style.display = 'none';
+        document.getElementById('reset-modal-footer').style.display = 'flex';
+        document.getElementById('modal-reset-password').style.display = 'flex';
     },
 
-    closeStatusModal() {
-        document.getElementById('modal-estado-usuario').style.display = 'none';
+    closeResetModal() {
+        document.getElementById('modal-reset-password').style.display = 'none';
     },
 
-    async saveStatusChange() {
-        const id = this.currentStaffId;
-        const estado_usuario = document.getElementById('u-estado').value;
-        const motivo_cambio = document.getElementById('u-motivo').value;
-        const categoria_motivo = document.getElementById('u-categoria').value;
-
-        if (!categoria_motivo) {
-            DesignSystem.showToast('Debe seleccionar una categoría de motivo', 'warning');
-            return;
-        }
-
-        console.log('Saving status change:', { id, estado_usuario, motivo_cambio });
-
-        if (!motivo_cambio || motivo_cambio.length < 5) {
-            DesignSystem.showToast('Debe proporcionar un motivo descriptivo (mín. 5 caracteres)', 'warning');
-            return;
-        }
-
+    async confirmReset() {
         try {
-            DesignSystem.setBtnLoading(document.getElementById('btn-confirm-status'), true);
-            console.log(`Calling PUT /api/personal/${id}/estado`);
-            const res = await fetch(`/api/personal/${id}/estado`, {
+            DesignSystem.setBtnLoading(document.getElementById('btn-confirm-reset'), true);
+            const res = await fetch(`/api/personal/${this.currentStaffId}/reset-password`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ estado_usuario, motivo_cambio, categoria_motivo })
+                headers: { 'Content-Type': 'application/json' }
             });
             const result = await res.json();
             if (result.success) {
-                DesignSystem.showToast('Estado de acceso actualizado correctamente');
-                this.closeStatusModal();
-                this.loadStaff();
+                document.getElementById('reset-temp-password').textContent = result.data.tempPassword;
+                document.getElementById('reset-result').style.display = 'block';
+                document.getElementById('reset-modal-footer').style.display = 'none';
             } else {
                 DesignSystem.showToast(result.error, 'error');
             }
         } catch (e) {
             DesignSystem.showToast('Error de red', 'error');
         } finally {
-            DesignSystem.setBtnLoading('btn-confirm-status', false);
+            DesignSystem.setBtnLoading(document.getElementById('btn-confirm-reset'), false);
         }
+    },
+
+    formatDate(dateStr) {
+        if (!dateStr) return '-';
+        const [y, m, d] = dateStr.split('-');
+        return `${d}/${m}/${y}`;
     },
 
     closeAssignmentModal() {
