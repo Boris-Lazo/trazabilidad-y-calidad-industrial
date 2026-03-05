@@ -19,22 +19,13 @@ const personalValidation = {
     telefono: z.string().optional(),
     area_id: z.number().int().positive().optional(),
     rol_organizacional: z.string().min(1).optional(),
-    estado_laboral: z.enum(['Activo', 'Inactivo', 'Baja']).optional(),
+    estado_laboral: z.enum(['Activo', 'Incapacitado', 'Inactivo', 'Baja']).optional(),
+    ausencia_desde: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+    ausencia_hasta: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+    tipo_ausencia: z.enum(['Incapacidad', 'Permiso']).nullable().optional(),
+    motivo_ausencia: z.string().nullable().optional(),
     motivo_cambio: z.string().min(5, 'El motivo del cambio debe tener al menos 5 caracteres'),
     categoria_motivo: z.string().optional(),
-  }),
-
-  updateStatus: z.object({
-    estado_usuario: z.enum(['Activo', 'Suspendido', 'Bloqueado', 'Baja lógica'], {
-        error_map: () => ({ message: 'Estado de usuario inválido' })
-    }),
-    motivo_cambio: z.string({ required_error: 'El motivo del cambio es obligatorio' }).min(5, 'El motivo del cambio debe ser descriptivo (min 5 caracteres)'),
-    categoria_motivo: z.string({ required_error: 'La categoría del motivo es obligatoria' }),
-  }),
-
-  reactivateUser: z.object({
-    motivo_cambio: z.string({ required_error: 'El motivo de reactivación es obligatorio' }).min(5, 'El motivo de reactivación es obligatorio'),
-    categoria_motivo: z.string().optional(), // Puede ser auto-clasificada
   }),
 
   assignRole: z.object({

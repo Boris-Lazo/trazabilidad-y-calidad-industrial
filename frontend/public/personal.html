@@ -124,18 +124,9 @@
                             <select id="filter-estado-laboral" class="form-control">
                                 <option value="">Todos</option>
                                 <option value="Activo">Activo</option>
+                                <option value="Incapacitado">Incapacitado</option>
                                 <option value="Inactivo">Inactivo</option>
                                 <option value="Baja">Baja</option>
-                            </select>
-                        </div>
-                        <div class="form-group mb-0" style="flex: 1;">
-                            <label class="form-label">Estado Usuario</label>
-                            <select id="filter-estado-usuario" class="form-control">
-                                <option value="">Todos</option>
-                                <option value="Activo">Activo</option>
-                                <option value="Suspendido">Suspendido</option>
-                                <option value="Bloqueado">Bloqueado</option>
-                                <option value="Baja lógica">Baja lógica</option>
                             </select>
                         </div>
                     </div>
@@ -152,7 +143,7 @@
                                     <th>Área</th>
                                     <th>Rol</th>
                                     <th>Estado Laboral</th>
-                                    <th class="col-usuario">Estado Usuario</th>
+                                    <th class="col-usuario">Acceso (Psw)</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -226,21 +217,42 @@
                             <label class="form-label">Estado Laboral</label>
                             <select id="p-estado" class="form-control">
                                 <option value="Activo">Activo</option>
-                                <option value="Inactivo">Inactivo</option>
+                                <option value="Incapacitado">Incapacitado</option>
+                                <option value="Inactivo">Inactivo (Permiso)</option>
                                 <option value="Baja">Baja</option>
                             </select>
                         </div>
+
+                        <div id="absence-fields" style="display: none; border: 1px dashed var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div class="form-group">
+                                    <label class="form-label">Desde</label>
+                                    <input type="date" id="p-abs-desde" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Hasta</label>
+                                    <input type="date" id="p-abs-hasta" class="form-control">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Tipo / Motivo Ausencia</label>
+                                <input type="text" id="p-abs-motivo" class="form-control" placeholder="Especifique el motivo de la ausencia...">
+                                <input type="hidden" id="p-abs-tipo">
+                            </div>
+                        </div>
+
                         <div class="form-group">
-                            <label class="form-label">Categoría de Motivo</label>
+                            <label class="form-label">Categoría de Cambio (Auditoría)</label>
                             <select id="p-categoria" class="form-control">
                                 <option value="">Seleccione categoría...</option>
                                 <option value="CORRECCION_HISTORICA">Corrección Histórica</option>
                                 <option value="AJUSTE_OPERATIVO">Ajuste Operativo</option>
+                                <option value="LICENCIA_O_PERMISO">Licencia o Permiso</option>
                                 <option value="ERROR_CAPTURA">Error de Captura</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Motivo del Cambio (Obligatorio)</label>
+                            <label class="form-label">Observaciones del Cambio (Obligatorio)</label>
                             <textarea id="p-motivo" class="form-control" rows="2"></textarea>
                         </div>
                     </div>
@@ -253,45 +265,30 @@
         </div>
     </div>
 
-    <!-- Modal Cambio de Estado de Usuario -->
-    <div id="modal-estado-usuario" class="modal" style="display: none;">
+    <!-- Modal Reset de Password -->
+    <div id="modal-reset-password" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
-                <h2>Cambiar Estado de Acceso</h2>
-                <button id="btn-close-status" class="btn-close">&times;</button>
+                <h2>Reiniciar Contraseña</h2>
+                <button id="btn-close-reset" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
-                <p id="status-target-name" style="font-weight: 600; margin-bottom: 12px;"></p>
-                <div class="form-group">
-                    <label class="form-label">Nuevo Estado</label>
-                    <select id="u-estado" class="form-control">
-                        <option value="Activo">Activo</option>
-                        <option value="Suspendido">Suspendido</option>
-                        <option value="Bloqueado">Bloqueado</option>
-                        <option value="Baja lógica">Baja lógica (Permanente)</option>
-                    </select>
+                <p id="reset-target-name" style="font-weight: 600; margin-bottom: 12px;"></p>
+                <p>Esta acción generará una nueva contraseña temporal para el colaborador.</p>
+
+                <div id="reset-result" class="card p-3 mb-3 text-center" style="display: none; background: var(--primary-light); border: 2px dashed var(--primary-base);">
+                    <small>Nueva contraseña temporal:</small>
+                    <div id="temp-password-display" style="font-size: 1.5rem; font-weight: 700; color: var(--primary-base); margin: 8px 0;"></div>
+                    <small class="text-secondary">Visible una sola vez. Favor de entregarla al colaborador.</small>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Categoría de Motivo</label>
-                    <select id="u-categoria" class="form-control" required>
-                        <option value="">Seleccione una categoría...</option>
-                        <option value="AJUSTE_OPERATIVO">Ajuste Operativo</option>
-                        <option value="DESACTIVACION_SEGURIDAD">Desactivación por Seguridad</option>
-                        <option value="REACTIVACION_AUTORIZADA">Reactivación Autorizada</option>
-                        <option value="ERROR_CAPTURA">Error de Captura</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Motivo Descriptivo (Obligatorio)</label>
-                    <textarea id="u-motivo" class="form-control" rows="3" placeholder="Ej: Ausencia injustificada, fin de contrato, etc."></textarea>
-                </div>
-                <div id="status-warning" class="badge badge-danger w-100 mb-3" style="display: none; white-space: normal; text-align: left; padding: 10px;">
-                    <strong>Atención:</strong> El estado 'Baja lógica' es irreversible e impedirá cualquier acceso futuro.
+
+                <div id="reset-warning" class="badge badge-warning w-100" style="white-space: normal; text-align: left; padding: 10px;">
+                    <i data-lucide="alert-triangle" class="inline-icon"></i> Se le solicitará al colaborador cambiarla en su próximo ingreso.
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" id="btn-cancel-status" class="btn btn-secondary">Cancelar</button>
-                <button type="button" id="btn-confirm-status" class="btn btn-primary">Confirmar Cambio</button>
+                <button type="button" id="btn-cancel-reset" class="btn btn-secondary">Cerrar</button>
+                <button type="button" id="btn-confirm-reset" class="btn btn-primary">Generar Nueva Contraseña</button>
             </div>
         </div>
     </div>
