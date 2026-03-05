@@ -6,9 +6,9 @@ const personalValidation = {
     apellido: z.string().min(1, 'El apellido es obligatorio'),
     codigo_interno: z.string().min(1, 'El código interno es obligatorio'),
     area_id: z.number().int().positive('El área es obligatoria'),
-    email: z.string().email('Email inválido'),
+    email: z.string().email('Email inválido').optional(),
     telefono: z.string().optional(),
-    fecha_ingreso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)'),
+    fecha_ingreso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)').optional(),
     rol_organizacional: z.string().min(1, 'El rol organizacional es obligatorio'),
   }),
 
@@ -43,6 +43,12 @@ const personalValidation = {
     permanente: z.boolean().default(false),
     motivo_cambio: z.string().min(5).optional(),
     categoria_motivo: z.string().optional(),
+  }),
+
+  toggleAcceso: z.object({
+    acceso_activo: z.boolean({
+      required_error: 'acceso_activo es obligatorio'
+    })
   })
 };
 
