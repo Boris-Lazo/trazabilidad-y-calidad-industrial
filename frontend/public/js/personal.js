@@ -187,7 +187,7 @@ const PersonalModule = {
 
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-secondary">No se encontró personal</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-secondary">No se encontró personal</td></tr>';
             return;
         }
 
@@ -323,6 +323,8 @@ const PersonalModule = {
             });
         }
 
+        document.getElementById('btn-confirm-reset').addEventListener('click', () => this.confirmReset());
+
         const aProceso = document.getElementById('a-proceso');
         if (aProceso) {
             aProceso.addEventListener('change', async (e) => {
@@ -436,6 +438,7 @@ const PersonalModule = {
         };
 
         if (id) {
+            const estadoNuevo = document.getElementById('p-estado').value;
             const updateData = {
                 email: data.email,
                 telefono: data.telefono,
@@ -448,6 +451,37 @@ const PersonalModule = {
                 motivo_cambio: document.getElementById('p-motivo').value,
                 categoria_motivo: document.getElementById('p-categoria').value
             };
+
+            if (['Incapacitado', 'Inactivo'].includes(estadoNuevo)) {
+                updateData.ausencia_desde = document.getElementById('p-ausencia-desde').value;
+                updateData.ausencia_hasta = document.getElementById('p-ausencia-hasta').value;
+                updateData.tipo_ausencia = document.getElementById('p-tipo-ausencia').value;
+                updateData.motivo_ausencia = document.getElementById('p-motivo').value;
+
+                if (!updateData.ausencia_desde || !updateData.ausencia_hasta) {
+                    DesignSystem.showToast('Las fechas de ausencia son obligatorias', 'warning');
+                    return;
+                }
+            } else if (estadoNuevo === 'Baja') {
+                updateData.ausencia_desde = document.getElementById('p-ausencia-desde-baja').value;
+                updateData.motivo_ausencia = document.getElementById('p-motivo').value;
+
+                if (!updateData.ausencia_desde) {
+                    DesignSystem.showToast('La fecha de salida es obligatoria', 'warning');
+                    return;
+                }
+            } else {
+                // Activo — limpiar campos de ausencia
+                updateData.ausencia_desde = null;
+                updateData.ausencia_hasta = null;
+                updateData.tipo_ausencia = null;
+                updateData.motivo_ausencia = null;
+            }
+
+            if (!updateData.motivo_ausencia) {
+                updateData.motivo_ausencia = document.getElementById('p-motivo').value;
+            }
+
             if (!updateData.categoria_motivo) {
                 DesignSystem.showToast('La categoría de motivo es obligatoria', 'warning');
                 return;
@@ -512,6 +546,23 @@ const PersonalModule = {
                     indicator.innerHTML = '';
                 }
 
+                const estadoBadge = this._renderEstadoBadge(p);
+                let ausenciaInfo = '';
+                if (['Incapacitado', 'Inactivo'].includes(p.estado_laboral)) {
+                    ausenciaInfo = `
+                        <div><strong>Tipo:</strong> ${p.tipo_ausencia || '-'}</div>
+                        <div><strong>Desde:</strong> ${this.formatDate(p.ausencia_desde)}</div>
+                        <div><strong>Hasta:</strong> ${this.formatDate(p.ausencia_hasta)}</div>
+                        <div><strong>Motivo:</strong> ${p.motivo_ausencia || '-'}</div>
+                        ${p.ausencia_vencida ? '<div class="badge badge-warning" style="white-space:normal;">⚠ Ausencia vencida — pendiente de confirmar retorno</div>' : ''}
+                    `;
+                } else if (p.estado_laboral === 'Baja') {
+                    ausenciaInfo = `
+                        <div><strong>Fecha de salida:</strong> ${this.formatDate(p.ausencia_desde)}</div>
+                        <div><strong>Motivo:</strong> ${p.motivo_ausencia || '-'}</div>
+                    `;
+                }
+
                 document.getElementById('staff-info-details').innerHTML = `
                     <div><strong>Código:</strong> ${p.codigo_interno}</div>
                     <div><strong>Email:</strong> ${p.email}</div>
@@ -519,8 +570,8 @@ const PersonalModule = {
                     <div><strong>Área:</strong> ${p.area_nombre}</div>
                     <div><strong>Rol Organizacional:</strong> ${p.rol_organizacional || '-'}</div>
                     <div><strong>Ingreso:</strong> ${p.fecha_ingreso}</div>
-                    <div><strong>Estado Laboral:</strong> <span class="badge ${p.estado_laboral === 'Activo' ? 'badge-success' : 'badge-danger'}">${p.estado_laboral}</span></div>
-                    <div><strong>Estado Usuario:</strong> <span class="badge ${p.estado_usuario === 'Activo' ? 'badge-success' : 'badge-warning'}">${p.estado_usuario || 'SIN USUARIO'}</span></div>
+                    <div><strong>Estado:</strong> ${estadoBadge}</div>
+                    ${ausenciaInfo}
                 `;
 
                 document.getElementById('current-op-role').innerHTML = p.rol_operativo_actual
@@ -560,6 +611,13 @@ const PersonalModule = {
                         <td><span class="badge ${h.activo ? 'badge-success' : 'badge-secondary'}">${h.activo ? 'Actual' : 'Anterior'}</span></td>
                     </tr>
                 `).join('');
+
+                const btnReset = document.getElementById('btn-reset-desde-detalle');
+                if (btnReset) {
+                    const user = Auth.getUser();
+                    const esAdmin = user && (user.rol === 'Administrador' || user.rol === 'Jefe de Operaciones');
+                    btnReset.style.display = esAdmin && p.estado_laboral !== 'Baja' ? 'inline-flex' : 'none';
+                }
 
                 DesignSystem.initLucide();
                 document.getElementById('modal-detalle').style.display = 'flex';
@@ -608,6 +666,12 @@ const PersonalModule = {
         } finally {
             DesignSystem.setBtnLoading(document.getElementById('btn-confirm-reset'), false);
         }
+    },
+
+    formatDate(dateStr) {
+        if (!dateStr) return '-';
+        const [y, m, d] = dateStr.split('-');
+        return `${d}/${m}/${y}`;
     },
 
     closeAssignmentModal() {

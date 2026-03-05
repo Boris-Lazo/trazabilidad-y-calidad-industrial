@@ -149,7 +149,7 @@
                             </thead>
                             <tbody id="lista-personal">
                                 <tr>
-                                    <td colspan="7" class="text-center py-4">Cargando colaboradores...</td>
+                                    <td colspan="6" class="text-center py-4">Cargando colaboradores...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -255,6 +255,10 @@
                             <label class="form-label">Observaciones del Cambio (Obligatorio)</label>
                             <textarea id="p-motivo" class="form-control" rows="2"></textarea>
                         </div>
+
+                        <div id="baja-warning" class="badge badge-danger w-100 mb-3" style="display:none; white-space:normal; text-align:left; padding:10px;">
+                            <strong>Atención:</strong> La Baja es definitiva e irreversible. El colaborador no podrá ser reactivado.
+                        </div>
                     </div>
                 </form>
             </div>
@@ -358,6 +362,10 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <button type="button" id="btn-reset-desde-detalle" class="btn btn-secondary" style="display:none;">
+                    <i data-lucide="key" style="width:14px;height:14px;"></i>
+                    Restablecer Contraseña
+                </button>
                 <button type="button" id="btn-cancel-detail" class="btn btn-secondary">Cerrar</button>
             </div>
         </div>
@@ -402,6 +410,40 @@
             <div class="modal-footer">
                 <button type="button" id="btn-cancel-assignment" class="btn btn-secondary">Cancelar</button>
                 <button type="button" id="btn-save-assignment" class="btn btn-primary">Registrar Asignación</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Reset de Contraseña -->
+    <div id="modal-reset-password" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:400px;">
+            <div class="modal-header">
+                <h2>Restablecer Contraseña</h2>
+                <button class="btn-close" onclick="PersonalModule.closeResetModal()">
+                    &times;
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="reset-target-name" style="font-weight:600; margin-bottom:12px;"></p>
+                <p class="text-secondary" style="font-size:13px;">
+                    Se generará una contraseña temporal. El colaborador deberá cambiarla en su próximo ingreso. Anote la contraseña — no se mostrará de nuevo.
+                </p>
+                <div id="reset-result" style="display:none;">
+                    <div class="badge badge-success w-100" style="padding:12px; font-size:1.1rem; letter-spacing:2px; text-align:center;">
+                        <span id="reset-temp-password"></span>
+                    </div>
+                    <p class="text-secondary mt-2" style="font-size:12px; text-align:center;">
+                        Contraseña temporal generada. Comuníquela al colaborador de forma segura.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer" id="reset-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="PersonalModule.closeResetModal()">
+                    Cancelar
+                </button>
+                <button type="button" id="btn-confirm-reset" class="btn btn-primary">
+                    Generar Contraseña
+                </button>
             </div>
         </div>
     </div>
