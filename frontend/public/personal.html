@@ -12,8 +12,7 @@
     <style>
         .topbar-actions {
             display: flex;
-            align-items: center;
-            gap: 16px;
+            align-items: center; gap: 16px;
         }
         .sortable {
             cursor: pointer;
@@ -32,7 +31,6 @@
                     <i data-lucide="layout-dashboard" class="nav-icon"></i>
                     <span>Dashboard</span>
                 </a>
-
                 <div class="nav-group">
                     <button class="nav-group-toggle">
                         <i data-lucide="clipboard-list" class="nav-icon"></i>
@@ -46,7 +44,6 @@
                         <a href="/incidentes.html" class="nav-item">Incidentes</a>
                     </div>
                 </div>
-
                 <div class="nav-group">
                     <button class="nav-group-toggle">
                         <i data-lucide="shield-check" class="nav-icon"></i>
@@ -58,8 +55,7 @@
                         <a href="/trazabilidad.html" class="nav-item">Trazabilidad</a>
                     </div>
                 </div>
-
-                                <div class="nav-group open" id="nav-group-admin">
+                <div class="nav-group open" id="nav-group-admin">
                     <button class="nav-group-toggle">
                         <i data-lucide="settings" class="nav-icon"></i>
                         <span>Administración</span>
@@ -104,7 +100,6 @@
             </header>
 
             <div class="page-content">
-                <!-- Filtros -->
                 <div class="card mb-4">
                     <div class="card-body" style="display: flex; gap: 16px; align-items: flex-end;">
                         <div class="form-group mb-0" style="flex: 1;">
@@ -132,7 +127,6 @@
                     </div>
                 </div>
 
-                <!-- Tabla de Colaboradores -->
                 <div class="card" id="card-tabla-colaboradores">
                     <div class="table-container">
                         <table class="table" id="tabla-personal">
@@ -149,7 +143,7 @@
                             </thead>
                             <tbody id="lista-personal">
                                 <tr>
-                                    <td colspan="6" class="text-center py-4">Cargando colaboradores...</td>
+                                    <td colspan="7" class="text-center py-4">Cargando colaboradores...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -184,81 +178,20 @@
                             <input type="text" id="p-codigo" class="form-control" required>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Email</label>
-                            <input type="email" id="p-email" class="form-control" required>
-                        </div>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                        <div class="form-group">
                             <label class="form-label">Área Organizacional</label>
                             <select id="p-area" class="form-control" required>
                                 <option value="">Seleccione área...</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Rol / Tipo de Contrato</label>
-                            <select id="p-rol-org" class="form-control" required disabled>
-                                <option value="">Seleccione área primero...</option>
-                            </select>
-                        </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                        <div class="form-group">
-                            <label class="form-label">Fecha Ingreso</label>
-                            <input type="date" id="p-fecha-ingreso" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Teléfono (Opcional)</label>
-                            <input type="text" id="p-telefono" class="form-control">
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label">Rol / Tipo de Contrato</label>
+                        <select id="p-rol-org" class="form-control" required disabled>
+                            <option value="">Seleccione área primero...</option>
+                        </select>
                     </div>
                     <div id="edit-audit-fields" style="display: none;">
-                        <div class="form-group">
-                            <label class="form-label">Estado Laboral</label>
-                            <select id="p-estado" class="form-control">
-                                <option value="Activo">Activo</option>
-                                <option value="Incapacitado">Incapacitado</option>
-                                <option value="Inactivo">Inactivo (Permiso)</option>
-                                <option value="Baja">Baja</option>
-                            </select>
-                        </div>
-
-                        <div id="absence-fields" style="display: none; border: 1px dashed var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                                <div class="form-group">
-                                    <label class="form-label">Desde</label>
-                                    <input type="date" id="p-abs-desde" class="form-control">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Hasta</label>
-                                    <input type="date" id="p-abs-hasta" class="form-control">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Tipo / Motivo Ausencia</label>
-                                <input type="text" id="p-abs-motivo" class="form-control" placeholder="Especifique el motivo de la ausencia...">
-                                <input type="hidden" id="p-abs-tipo">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Categoría de Cambio (Auditoría)</label>
-                            <select id="p-categoria" class="form-control">
-                                <option value="">Seleccione categoría...</option>
-                                <option value="CORRECCION_HISTORICA">Corrección Histórica</option>
-                                <option value="AJUSTE_OPERATIVO">Ajuste Operativo</option>
-                                <option value="LICENCIA_O_PERMISO">Licencia o Permiso</option>
-                                <option value="ERROR_CAPTURA">Error de Captura</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Observaciones del Cambio (Obligatorio)</label>
-                            <textarea id="p-motivo" class="form-control" rows="2"></textarea>
-                        </div>
-
-                        <div id="baja-warning" class="badge badge-danger w-100 mb-3" style="display:none; white-space:normal; text-align:left; padding:10px;">
-                            <strong>Atención:</strong> La Baja es definitiva e irreversible. El colaborador no podrá ser reactivado.
-                        </div>
+                        <!-- Bloque para edición histórica (si se necesitara en el futuro) -->
                     </div>
                 </form>
             </div>
@@ -269,30 +202,92 @@
         </div>
     </div>
 
-    <!-- Modal Reset de Password -->
-    <div id="modal-reset-password" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
+    <!-- Modal Reportar Ausencia -->
+    <div id="modal-ausencia" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 480px;">
             <div class="modal-header">
-                <h2>Reiniciar Contraseña</h2>
-                <button id="btn-close-reset" class="btn-close">&times;</button>
+                <h2 id="ausencia-modal-title">Reportar Ausencia</h2>
+                <button id="btn-close-ausencia" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
-                <p id="reset-target-name" style="font-weight: 600; margin-bottom: 12px;"></p>
-                <p>Esta acción generará una nueva contraseña temporal para el colaborador.</p>
-
-                <div id="reset-result" class="card p-3 mb-3 text-center" style="display: none; background: var(--primary-light); border: 2px dashed var(--primary-base);">
-                    <small>Nueva contraseña temporal:</small>
-                    <div id="temp-password-display" style="font-size: 1.5rem; font-weight: 700; color: var(--primary-base); margin: 8px 0;"></div>
-                    <small class="text-secondary">Visible una sola vez. Favor de entregarla al colaborador.</small>
+                <p id="ausencia-nombre-colaborador" style="font-weight:600; margin-bottom:16px;"></p>
+                <div id="ausencia-estado-actual" class="mb-3"></div>
+                <div class="form-group">
+                    <label class="form-label">Nuevo Estado</label>
+                    <select id="aus-estado" class="form-control">
+                        <option value="Activo">Activo (sin ausencia)</option>
+                        <option value="Incapacitado">Incapacitado</option>
+                        <option value="Inactivo">Inactivo (Permiso)</option>
+                        <option value="Baja">Baja (salida definitiva)</option>
+                    </select>
                 </div>
-
-                <div id="reset-warning" class="badge badge-warning w-100" style="white-space: normal; text-align: left; padding: 10px;">
-                    <i data-lucide="alert-triangle" class="inline-icon"></i> Se le solicitará al colaborador cambiarla en su próximo ingreso.
+                <div id="aus-campos-ausencia" style="display: none;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Desde</label>
+                            <input type="date" id="aus-desde" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Hasta</label>
+                            <input type="date" id="aus-hasta" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Motivo</label>
+                        <textarea id="aus-motivo" class="form-control" rows="2" placeholder="Describa el motivo de la ausencia..."></textarea>
+                    </div>
+                </div>
+                <div id="aus-baja-warning" class="badge badge-danger w-100 mb-3" style="display:none; white-space:normal; text-align:left; padding:10px;">
+                    La Baja es definitiva e irreversible.
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" id="btn-cancel-reset" class="btn btn-secondary">Cerrar</button>
-                <button type="button" id="btn-confirm-reset" class="btn btn-primary">Generar Nueva Contraseña</button>
+                <button type="button" id="btn-cancel-ausencia" class="btn btn-secondary">Cancelar</button>
+                <button type="button" id="btn-save-ausencia" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Asignación Operativa -->
+    <div id="modal-asignacion" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Asignación Operativa</h2>
+                <button id="btn-close-assignment" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Proceso</label>
+                    <select id="a-proceso" class="form-control">
+                        <option value="">Seleccione proceso...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Máquina (Opcional)</label>
+                    <select id="a-maquina" class="form-control">
+                        <option value="">Cualquier máquina</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Turno</label>
+                    <select id="a-turno" class="form-control">
+                        <option value="Día">Día</option>
+                        <option value="Noche">Noche</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="a-permanente"> Asignación Permanente
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Motivo del Cambio / Observación</label>
+                    <textarea id="a-motivo" class="form-control" rows="2" placeholder="Ej: Cubrir vacaciones, cambio de línea..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btn-cancel-assignment" class="btn btn-secondary">Cancelar</button>
+                <button type="button" id="btn-save-assignment" class="btn btn-primary">Guardar Asignación</button>
             </div>
         </div>
     </div>
@@ -306,46 +301,33 @@
             </div>
             <div class="modal-body">
                 <div id="detail-indicator" class="mb-3"></div>
-
                 <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; gap: 24px;">
-                    <!-- Columna Izquierda: Info General -->
                     <div>
                         <h3 class="mb-3">Información del Personal</h3>
-                        <div id="staff-info-details" class="card p-3 mb-4" style="background: rgba(0,0,0,0.02); line-height: 1.8;">
-                            <!-- Se llena dinámicamente -->
-                        </div>
-
+                        <div id="staff-info-details" class="card p-3 mb-4" style="background: rgba(0,0,0,0.02); line-height: 1.8;"></div>
                         <h3 class="mb-3">Rol Operativo Actual</h3>
-                        <div id="current-op-role" class="text-center py-2 mb-4">
-                            <!-- Se llena dinámicamente -->
-                        </div>
+                        <div id="current-op-role" class="text-center py-2 mb-4"></div>
                     </div>
-
-                    <!-- Columna Derecha: Asignaciones y Grupos -->
                     <div>
                         <h3 class="mb-3">Asignaciones Operativas Activas</h3>
-                        <div id="active-assignments-details" class="mb-4">
-                            <!-- Se llena dinámicamente -->
-                        </div>
-
-                        <h3 class="mb-3">Historial de Grupos</h3>
-                        <div class="table-container shadow-sm" style="max-height: 200px; overflow-y: auto; margin-bottom: 20px;">
+                        <div id="active-assignments-details" class="mb-4"></div>
+                        <h3 class="mb-3">Historial de Ausencias</h3>
+                        <div class="table-container shadow-sm" style="max-height:200px; overflow-y:auto; margin-bottom:20px;">
                             <table class="table table-sm">
                                 <thead>
                                     <tr>
-                                        <th>Grupo</th>
+                                        <th>Tipo</th>
                                         <th>Desde</th>
                                         <th>Hasta</th>
+                                        <th>Motivo</th>
                                     </tr>
                                 </thead>
-                                <tbody id="group-history-list"></tbody>
+                                <tbody id="ausencias-history-list"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-
                 <hr class="my-4">
-
                 <h3 class="mb-3">Historial de Roles del Sistema</h3>
                 <div class="table-container shadow-sm">
                     <table class="table table-sm">
@@ -371,79 +353,30 @@
         </div>
     </div>
 
-    <!-- Modal Asignación (Separado) -->
-    <div id="modal-asignacion" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 450px;">
-            <div class="modal-header">
-                <h2>Registrar Nueva Asignación</h2>
-                <button id="btn-close-assignment" class="btn-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="form-asignacion">
-                    <div class="form-group">
-                        <label class="form-label">Proceso</label>
-                        <select id="a-proceso" class="form-control" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Máquina (Opcional)</label>
-                        <select id="a-maquina" class="form-control">
-                            <option value="">Cualquier máquina</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Turno</label>
-                        <select id="a-turno" class="form-control" required>
-                            <option value="Mañana">Mañana</option>
-                            <option value="Tarde">Tarde</option>
-                            <option value="Noche">Noche</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Motivo del Cambio</label>
-                        <textarea id="a-motivo" class="form-control" rows="2" placeholder="Ej: Refuerzo por alta producción"></textarea>
-                    </div>
-                    <label class="form-check-label mb-3">
-                        <input type="checkbox" id="a-permanente"> Es asignación permanente
-                    </label>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" id="btn-cancel-assignment" class="btn btn-secondary">Cancelar</button>
-                <button type="button" id="btn-save-assignment" class="btn btn-primary">Registrar Asignación</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal Reset de Contraseña -->
     <div id="modal-reset-password" class="modal" style="display:none;">
         <div class="modal-content" style="max-width:400px;">
             <div class="modal-header">
                 <h2>Restablecer Contraseña</h2>
-                <button class="btn-close" onclick="PersonalModule.closeResetModal()">
-                    &times;
-                </button>
+                <button id="btn-close-reset" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
                 <p id="reset-target-name" style="font-weight:600; margin-bottom:12px;"></p>
                 <p class="text-secondary" style="font-size:13px;">
-                    Se generará una contraseña temporal. El colaborador deberá cambiarla en su próximo ingreso. Anote la contraseña — no se mostrará de nuevo.
+                    Se generará una contraseña temporal de 8 caracteres. El colaborador deberá cambiarla en su próximo ingreso. Anote la contraseña — no se mostrará de nuevo.
                 </p>
-                <div id="reset-result" style="display:none;">
-                    <div class="badge badge-success w-100" style="padding:12px; font-size:1.1rem; letter-spacing:2px; text-align:center;">
-                        <span id="reset-temp-password"></span>
+                <div id="reset-result" style="display:none; margin-top:20px;">
+                    <div class="badge badge-success w-100" style="padding:15px; font-size:1.2rem; letter-spacing:2px; text-align:center;">
+                        <span id="temp-password-display"></span>
                     </div>
                     <p class="text-secondary mt-2" style="font-size:12px; text-align:center;">
-                        Contraseña temporal generada. Comuníquela al colaborador de forma segura.
+                        Comuníquela al colaborador de forma segura.
                     </p>
                 </div>
             </div>
             <div class="modal-footer" id="reset-modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="PersonalModule.closeResetModal()">
-                    Cancelar
-                </button>
-                <button type="button" id="btn-confirm-reset" class="btn btn-primary">
-                    Generar Contraseña
-                </button>
+                <button type="button" id="btn-cancel-reset" class="btn btn-secondary">Cancelar</button>
+                <button type="button" id="btn-confirm-reset" class="btn btn-primary">Generar Contraseña</button>
             </div>
         </div>
     </div>

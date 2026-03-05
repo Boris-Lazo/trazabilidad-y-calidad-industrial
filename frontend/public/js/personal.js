@@ -218,14 +218,42 @@ const PersonalModule = {
                     </div>
                 </td>
                 <td>
-                    ${p.username ? `
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span class="badge badge-success">ACTIVO</span>
-                        ${canManage && p.estado_laboral !== 'Baja' ? `
-                        <button class="btn btn-secondary btn-sm btn-reset-psw" title="Reiniciar Contraseña">
-                            <i data-lucide="key" style="width:14px; height:14px;"></i>
-                        </button>` : ''}
-                    </div>` : '<span class="text-secondary" style="font-size:12px;">Sin Acceso</span>'}
+                    ${p.username
+                      ? `<div style="display:flex; align-items:center;
+                                     gap:6px;">
+                           ${p.area_nombre === 'Producción'
+                             ? `<button class="btn btn-sm
+                                  btn-toggle-acceso
+                                  ${p.estado_usuario === 'Activo'
+                                    ? 'badge-success'
+                                    : 'badge-warning'}"
+                                style="font-size:11px; padding:2px 8px;
+                                       font-weight:600; border:none;
+                                       border-radius:4px; cursor:pointer;"
+                                ${!canManage || p.estado_laboral === 'Baja'
+                                  ? 'disabled' : ''}
+                                title="${p.estado_usuario === 'Activo'
+                                  ? 'Desactivar acceso'
+                                  : 'Activar acceso'}">
+                                ${p.estado_usuario === 'Activo'
+                                  ? 'ACTIVO' : 'INACTIVO'}
+                               </button>`
+                             : `<span class="badge badge-success">
+                                  ACTIVO</span>`
+                           }
+                           ${canManage && p.estado_laboral !== 'Baja'
+                             ? `<button class="btn btn-secondary
+                                  btn-sm btn-reset-psw"
+                                  title="Reiniciar Contraseña">
+                                  <i data-lucide="key"
+                                     style="width:14px;height:14px;">
+                                  </i>
+                                </button>` : ''}
+                         </div>`
+                      : '<span class="text-secondary"
+                               style="font-size:12px;">
+                           Sin Acceso</span>'
+                    }
                 </td>
                 <td>
                     <div style="display: flex; gap: 8px;">
@@ -259,7 +287,14 @@ const PersonalModule = {
             const editBtn = row.querySelector('.btn-edit');
             if (editBtn) {
                 editBtn.addEventListener('click', () => {
-                    this.openModal(staffId);
+                    this.openAusenciaModal(staffId);
+                });
+            }
+
+            const toggleAccesoBtn = row.querySelector('.btn-toggle-acceso');
+            if (toggleAccesoBtn) {
+                toggleAccesoBtn.addEventListener('click', () => {
+                    this.toggleAcceso(staffId, staffMember);
                 });
             }
 
@@ -281,6 +316,10 @@ const PersonalModule = {
         document.getElementById('filter-rol').addEventListener('change', () => this.renderStaffList());
         document.getElementById('filter-estado-laboral').addEventListener('change', () => this.renderStaffList());
         document.getElementById('btn-save-personal').addEventListener('click', () => this.saveStaff());
+        document.getElementById('btn-save-ausencia').addEventListener('click', () => this.saveAusencia());
+        document.getElementById('btn-cancel-ausencia').addEventListener('click', () => this.closeAusenciaModal());
+        document.getElementById('btn-close-ausencia').addEventListener('click', () => this.closeAusenciaModal());
+        document.getElementById('aus-estado').addEventListener('change', (e) => this._toggleAusenciaCampos(e.target.value));
 
         document.querySelectorAll('#tabla-personal .sortable').forEach(header => {
             header.addEventListener('click', () => {
@@ -366,56 +405,20 @@ const PersonalModule = {
         document.getElementById('btn-cancel-assignment').addEventListener('click', () => this.closeAssignmentModal());
     },
 
-    openModal(id = null) {
-        this.currentStaffId = id;
+    openModal() {
+        this.currentStaffId = null;
         const form = document.getElementById('form-personal');
-        form.reset();
+        if (form) form.reset();
 
         const editFields = document.getElementById('edit-audit-fields');
         const modalTitle = document.getElementById('modal-title');
         const codigoInput = document.getElementById('p-codigo');
+        const rolSelect = document.getElementById('p-rol-org');
 
-        if (id) {
-            const p = this.staff.find(x => x.id === id);
-            modalTitle.textContent = 'Editar Personal';
-            document.getElementById('p-nombre').value = p.nombre;
-            document.getElementById('p-apellido').value = p.apellido;
-            document.getElementById('p-codigo').value = p.codigo_interno;
-            document.getElementById('p-email').value = p.email;
-            document.getElementById('p-area').value = p.area_id;
-
-            this.updateOrganizationalRoles(p.area_id);
-            document.getElementById('p-rol-org').disabled = false;
-            document.getElementById('p-rol-org').value = p.rol_organizacional;
-
-            document.getElementById('p-fecha-ingreso').value = p.fecha_ingreso;
-            document.getElementById('p-telefono').value = p.telefono || '';
-            document.getElementById('p-estado').value = p.estado_laboral;
-
-            // Cargar datos de ausencia si existen
-            document.getElementById('p-abs-desde').value = p.ausencia_desde || '';
-            document.getElementById('p-abs-hasta').value = p.ausencia_hasta || '';
-            document.getElementById('p-abs-motivo').value = p.motivo_ausencia || '';
-            document.getElementById('p-abs-tipo').value = p.tipo_ausencia || '';
-
-            if (['Incapacitado', 'Inactivo', 'Baja'].includes(p.estado_laboral)) {
-                document.getElementById('absence-fields').style.display = 'block';
-                document.getElementById('p-abs-hasta').disabled = (p.estado_laboral === 'Baja');
-            } else {
-                document.getElementById('absence-fields').style.display = 'none';
-            }
-
-            document.getElementById('p-categoria').value = '';
-            document.getElementById('p-motivo').value = '';
-
-            codigoInput.disabled = true;
-            editFields.style.display = 'block';
-        } else {
-            modalTitle.textContent = 'Registrar Nuevo Personal';
-            codigoInput.disabled = false;
-            editFields.style.display = 'none';
-            document.getElementById('p-rol-org').disabled = true;
-        }
+        if (modalTitle) modalTitle.textContent = 'Registrar Nuevo Colaborador';
+        if (codigoInput) codigoInput.disabled = false;
+        if (editFields) editFields.style.display = 'none';
+        if (rolSelect) rolSelect.disabled = true;
 
         document.getElementById('modal-personal').style.display = 'flex';
     },
@@ -425,102 +428,30 @@ const PersonalModule = {
     },
 
     async saveStaff() {
-        const id = this.currentStaffId;
         const data = {
             nombre: document.getElementById('p-nombre').value,
             apellido: document.getElementById('p-apellido').value,
             codigo_interno: document.getElementById('p-codigo').value,
-            email: document.getElementById('p-email').value,
             area_id: parseInt(document.getElementById('p-area').value),
-            rol_organizacional: document.getElementById('p-rol-org').value,
-            fecha_ingreso: document.getElementById('p-fecha-ingreso').value,
-            telefono: document.getElementById('p-telefono').value,
+            rol_organizacional: document.getElementById('p-rol-org').value
         };
 
-        if (id) {
-            const estadoNuevo = document.getElementById('p-estado').value;
-            const updateData = {
-                email: data.email,
-                telefono: data.telefono,
-                rol_organizacional: document.getElementById('p-rol-org').value,
-                estado_laboral: document.getElementById('p-estado').value,
-                ausencia_desde: document.getElementById('p-abs-desde').value || null,
-                ausencia_hasta: document.getElementById('p-abs-hasta').value || null,
-                tipo_ausencia: document.getElementById('p-abs-tipo').value || null,
-                motivo_ausencia: document.getElementById('p-abs-motivo').value || null,
-                motivo_cambio: document.getElementById('p-motivo').value,
-                categoria_motivo: document.getElementById('p-categoria').value
-            };
-
-            if (['Incapacitado', 'Inactivo'].includes(estadoNuevo)) {
-                updateData.ausencia_desde = document.getElementById('p-ausencia-desde').value;
-                updateData.ausencia_hasta = document.getElementById('p-ausencia-hasta').value;
-                updateData.tipo_ausencia = document.getElementById('p-tipo-ausencia').value;
-                updateData.motivo_ausencia = document.getElementById('p-motivo').value;
-
-                if (!updateData.ausencia_desde || !updateData.ausencia_hasta) {
-                    DesignSystem.showToast('Las fechas de ausencia son obligatorias', 'warning');
-                    return;
-                }
-            } else if (estadoNuevo === 'Baja') {
-                updateData.ausencia_desde = document.getElementById('p-ausencia-desde-baja').value;
-                updateData.motivo_ausencia = document.getElementById('p-motivo').value;
-
-                if (!updateData.ausencia_desde) {
-                    DesignSystem.showToast('La fecha de salida es obligatoria', 'warning');
-                    return;
-                }
+        try {
+            const res = await fetch('/api/personal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (result.success) {
+                DesignSystem.showToast('Colaborador registrado con éxito. Psw temp: ' + result.data.tempPassword, 'info', 10000);
+                this.closeModal();
+                this.loadStaff();
             } else {
-                // Activo — limpiar campos de ausencia
-                updateData.ausencia_desde = null;
-                updateData.ausencia_hasta = null;
-                updateData.tipo_ausencia = null;
-                updateData.motivo_ausencia = null;
+                DesignSystem.showToast(result.error, 'error');
             }
-
-            if (!updateData.motivo_ausencia) {
-                updateData.motivo_ausencia = document.getElementById('p-motivo').value;
-            }
-
-            if (!updateData.categoria_motivo) {
-                DesignSystem.showToast('La categoría de motivo es obligatoria', 'warning');
-                return;
-            }
-            if (!updateData.motivo_cambio) {
-                DesignSystem.showToast('El motivo del cambio es obligatorio para editar', 'warning');
-                return;
-            }
-            try {
-                const res = await fetch(`/api/personal/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updateData)
-                });
-                const result = await res.json();
-                if (result.success) {
-                    DesignSystem.showToast('Personal actualizado con éxito');
-                    this.closeModal();
-                    this.loadStaff();
-                } else {
-                    DesignSystem.showToast(result.error, 'error');
-                }
-            } catch (e) { DesignSystem.showToast('Error de red', 'error'); }
-        } else {
-            try {
-                const res = await fetch('/api/personal', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await res.json();
-                if (result.success) {
-                    DesignSystem.showToast('Personal registrado con éxito. Psw temp: ' + result.data.tempPassword, 'info', 10000);
-                    this.closeModal();
-                    this.loadStaff();
-                } else {
-                    DesignSystem.showToast(result.error, 'error');
-                }
-            } catch (e) { DesignSystem.showToast('Error de red', 'error'); }
+        } catch (e) {
+            DesignSystem.showToast('Error de red', 'error');
         }
     },
 
@@ -590,17 +521,25 @@ const PersonalModule = {
                     assignmentsList.innerHTML = '<div class="text-secondary italic p-2">Sin asignaciones operativas activas</div>';
                 }
 
-                const groupList = document.getElementById('group-history-list');
-                if (p.historial_grupos && p.historial_grupos.length > 0) {
-                    groupList.innerHTML = p.historial_grupos.map(g => `
+                const ausenciasList = document.getElementById('ausencias-history-list');
+                if (p.historial_ausencias && p.historial_ausencias.length > 0) {
+                    ausenciasList.innerHTML = p.historial_ausencias.map(a => `
                         <tr>
-                            <td><strong>${g.grupo_nombre}</strong></td>
-                            <td>${new Date(g.fecha_desde).toLocaleDateString()}</td>
-                            <td>${g.fecha_hasta ? new Date(g.fecha_hasta).toLocaleDateString() : '<span class="badge badge-success">Actual</span>'}</td>
+                            <td>
+                                <span class="badge ${
+                                    a.estado_laboral === 'Incapacitado' ? 'badge-warning' :
+                                    a.estado_laboral === 'Baja' ? 'badge-danger' : 'badge-secondary'
+                                }">
+                                    ${a.tipo_ausencia || a.estado_laboral}
+                                </span>
+                            </td>
+                            <td>${this.formatDate(a.ausencia_desde)}</td>
+                            <td>${a.ausencia_hasta ? this.formatDate(a.ausencia_hasta) : '—'}</td>
+                            <td style="font-size:12px;">${a.motivo_ausencia || '—'}</td>
                         </tr>
                     `).join('');
                 } else {
-                    groupList.innerHTML = '<tr><td colspan="3" class="text-center text-secondary italic">Sin historial de grupos</td></tr>';
+                    ausenciasList.innerHTML = '<tr><td colspan="4" class="text-center text-secondary italic">Sin ausencias registradas</td></tr>';
                 }
 
                 document.getElementById('role-history-list').innerHTML = p.historial_roles.map(h => `
@@ -674,8 +613,170 @@ const PersonalModule = {
         return `${d}/${m}/${y}`;
     },
 
+    _renderEstadoBadge(p) {
+      const estado = p.estado_laboral;
+      if (estado === 'Activo') {
+        return `<span class="badge badge-success">
+                  ACTIVO</span>`;
+      }
+      if (estado === 'Incapacitado') {
+        return p.ausencia_vencida
+          ? `<span class="badge badge-warning">
+               INCAPACITADO</span><br>
+             <small style="color:var(--warning);">
+               ⚠ Vencida el
+               ${this.formatDate(p.ausencia_hasta)}
+             </small>`
+          : `<span class="badge badge-warning">
+               INCAPACITADO</span><br>
+             <small class="text-secondary">
+               Hasta ${this.formatDate(p.ausencia_hasta)}
+             </small>`;
+      }
+      if (estado === 'Inactivo') {
+        return p.ausencia_vencida
+          ? `<span class="badge badge-secondary">
+               INACTIVO</span><br>
+             <small style="color:var(--warning);">
+               ⚠ Vencida el
+               ${this.formatDate(p.ausencia_hasta)}
+             </small>`
+          : `<span class="badge badge-secondary">
+               INACTIVO</span><br>
+             <small class="text-secondary">
+               Hasta ${this.formatDate(p.ausencia_hasta)}
+             </small>`;
+      }
+      if (estado === 'Baja') {
+        return `<span class="badge badge-danger">
+                  BAJA</span><br>
+                <small class="text-secondary">
+                  Desde ${this.formatDate(p.ausencia_desde)}
+                </small>`;
+      }
+      return `<span class="badge badge-secondary">
+                ${estado ? estado.toUpperCase() : '-'}
+              </span>`;
+    },
+
     closeAssignmentModal() {
         document.getElementById('modal-asignacion').style.display = 'none';
+    },
+
+    openAusenciaModal(id) {
+        this.currentStaffId = id;
+        const p = this.staff.find(s => s.id === id);
+
+        document.getElementById('ausencia-modal-title').textContent = `Reportar Ausencia — ${p.nombre} ${p.apellido}`;
+        document.getElementById('ausencia-nombre-colaborador').textContent = `${p.nombre} ${p.apellido}`;
+
+        const estadoActualBadge = this._renderEstadoBadge(p);
+        document.getElementById('ausencia-estado-actual').innerHTML = estadoActualBadge;
+
+        document.getElementById('aus-estado').value = p.estado_laboral;
+        document.getElementById('aus-desde').value = p.ausencia_desde || '';
+        document.getElementById('aus-hasta').value = p.ausencia_hasta || '';
+        document.getElementById('aus-motivo').value = p.motivo_ausencia || '';
+
+        this._toggleAusenciaCampos(p.estado_laboral);
+
+        document.getElementById('modal-ausencia').style.display = 'flex';
+    },
+
+    _toggleAusenciaCampos(estado) {
+        const campos = document.getElementById('aus-campos-ausencia');
+        const warning = document.getElementById('aus-baja-warning');
+        const hasta = document.getElementById('aus-hasta');
+
+        if (estado === 'Activo') {
+            campos.style.display = 'none';
+            warning.style.display = 'none';
+        } else {
+            campos.style.display = 'block';
+            warning.style.display = estado === 'Baja' ? 'block' : 'none';
+            hasta.disabled = estado === 'Baja';
+            if (estado === 'Baja') hasta.value = '';
+        }
+    },
+
+    async saveAusencia() {
+        const id = this.currentStaffId;
+        const estadoNuevo = document.getElementById('aus-estado').value;
+        const desde = document.getElementById('aus-desde').value;
+        const hasta = document.getElementById('aus-hasta').value;
+        const motivo = document.getElementById('aus-motivo').value;
+
+        const data = {
+            estado_laboral: estadoNuevo,
+            ausencia_desde: desde || null,
+            ausencia_hasta: hasta || null,
+            tipo_ausencia: estadoNuevo === 'Incapacitado' ? 'Incapacidad' : (estadoNuevo === 'Inactivo' ? 'Permiso' : null),
+            motivo_ausencia: motivo || null,
+            motivo_cambio: motivo || 'Actualización de estado laboral',
+            categoria_motivo: 'AJUSTE_OPERATIVO'
+        };
+
+        // Validaciones
+        if (estadoNuevo !== 'Activo') {
+            if (!desde) {
+                DesignSystem.showToast('La fecha de inicio es obligatoria', 'warning');
+                return;
+            }
+            if (['Incapacitado', 'Inactivo'].includes(estadoNuevo) && !hasta) {
+                DesignSystem.showToast('La fecha de fin es obligatoria', 'warning');
+                return;
+            }
+            if (!motivo || motivo.length < 5) {
+                DesignSystem.showToast('El motivo es obligatorio (mín. 5 caracteres)', 'warning');
+                return;
+            }
+        } else {
+            data.ausencia_desde = null;
+            data.ausencia_hasta = null;
+            data.tipo_ausencia = null;
+            data.motivo_ausencia = null;
+        }
+
+        try {
+            const res = await fetch(`/api/personal/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (result.success) {
+                DesignSystem.showToast('Estado actualizado correctamente');
+                this.closeAusenciaModal();
+                this.loadStaff();
+            } else {
+                DesignSystem.showToast(result.error, 'error');
+            }
+        } catch (e) {
+            DesignSystem.showToast('Error de red', 'error');
+        }
+    },
+
+    closeAusenciaModal() {
+        document.getElementById('modal-ausencia').style.display = 'none';
+    },
+
+    async toggleAcceso(id, persona) {
+        try {
+            const res = await fetch(`/api/personal/${id}/acceso`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ acceso_activo: persona.estado_usuario !== 'Activo' })
+            });
+            const result = await res.json();
+            if (result.success) {
+                DesignSystem.showToast('Acceso actualizado correctamente');
+                this.loadStaff();
+            } else {
+                DesignSystem.showToast(result.error, 'error');
+            }
+        } catch (e) {
+            DesignSystem.showToast('Error de red', 'error');
+        }
     },
 
     async saveAssignment() {
