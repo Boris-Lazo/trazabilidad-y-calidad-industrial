@@ -115,6 +115,17 @@ class PersonalController {
       next(error);
     }
   }
+
+  async toggleAcceso(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { acceso_activo } = personalValidation.toggleAcceso.parse(req.body);
+      const result = await this.personalService.toggleAcceso(id, acceso_activo, req.user.id);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = PersonalController;

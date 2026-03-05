@@ -30,4 +30,9 @@ router.post('/:id/asignacion', authorize(PERMISSIONS.ASSIGN_OPERATIONS), (req, r
 
 router.get('/roles-operativos', authorize(PERMISSIONS.VIEW_STAFF), (req, res, next) => personalController.getRolesOperativos(req, res, next));
 
+router.put('/:id/acceso',
+  authorize(PERMISSIONS.MANAGE_STAFF),
+  (req, res, next) =>
+    personalController.toggleAcceso(req, res, next));
+
 module.exports = router;

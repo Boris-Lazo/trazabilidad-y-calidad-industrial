@@ -1161,6 +1161,23 @@ const runFullSchema = () => {
         FOREIGN KEY (registrado_por) REFERENCES personas(id)
     );`);
 
+    db.run(`CREATE TABLE IF NOT EXISTS historial_ausencias (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        persona_id       INTEGER NOT NULL,
+        estado_laboral   TEXT NOT NULL
+                         CHECK(estado_laboral IN
+                           ('Incapacitado','Inactivo','Baja')),
+        tipo_ausencia    TEXT
+                         CHECK(tipo_ausencia IN
+                           ('Incapacidad','Permiso')),
+        ausencia_desde   DATE NOT NULL,
+        ausencia_hasta   DATE,
+        motivo_ausencia  TEXT,
+        registrado_en    DATETIME DEFAULT CURRENT_TIMESTAMP,
+        registrado_por   TEXT,
+        FOREIGN KEY (persona_id) REFERENCES personas(id)
+    );`);
+
     db.run(`CREATE TABLE IF NOT EXISTS auditoria (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         usuario TEXT,
@@ -1468,7 +1485,11 @@ const runFullSchema = () => {
       { table: 'auditoria', column: 'motivo_cambio', type: 'TEXT' },
       { table: 'auditoria', column: 'categoria_motivo', type: 'TEXT' },
       { table: 'usuarios', column: 'rol_id', type: 'INTEGER' },
-      { table: 'MAQUINAS', column: 'codigo', type: 'TEXT' }
+      { table: 'MAQUINAS', column: 'codigo', type: 'TEXT' },
+      { table: 'personas', column: 'ausencia_desde', type: 'DATE' },
+      { table: 'personas', column: 'ausencia_hasta', type: 'DATE' },
+      { table: 'personas', column: 'tipo_ausencia', type: 'TEXT' },
+      { table: 'personas', column: 'motivo_ausencia', type: 'TEXT' }
     ];
 
     // Migración de roles desde persona_roles a usuarios (Idempotente)

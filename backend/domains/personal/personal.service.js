@@ -48,6 +48,7 @@ class PersonalService {
     const assignments = await this.personalRepository.getActiveAssignments(id);
     const opRole = await this.personalRepository.getOperationalRole(id);
     const groupHistory = await this.personalRepository.getGroupHistory(id);
+    const historialAusencias = await this.personalRepository.getHistorialAusenciasByPersona(id);
 
     const ProcessRegistry = require('../production/contracts/ProcessRegistry');
     const enrichedAssignments = assignments.map(a => {
@@ -64,7 +65,8 @@ class PersonalService {
       historial_roles: roleHistory,
       asignaciones_activas: enrichedAssignments,
       rol_operativo_actual: opRole,
-      historial_grupos: groupHistory
+      historial_grupos: groupHistory,
+      historial_ausencias: historialAusencias
     };
   }
 
@@ -152,6 +154,18 @@ class PersonalService {
 
     await this.personalRepository.updatePersona(id, updatePayload);
 
+    if (data.estado_laboral && data.estado_laboral !== 'Activo' && data.estado_laboral !== persona.estado_laboral) {
+      await this.personalRepository.saveHistorialAusencia({
+        persona_id:      id,
+        estado_laboral:  data.estado_laboral,
+        tipo_ausencia:   data.tipo_ausencia || null,
+        ausencia_desde:  data.ausencia_desde,
+        ausencia_hasta:  data.ausencia_hasta || null,
+        motivo_ausencia: data.motivo_ausencia || null,
+        registrado_por:  updaterId
+      });
+    }
+
     // Auditoría detallada de cambio de estado o datos
     if (data.estado_laboral && data.estado_laboral !== persona.estado_laboral) {
         await this.auditService.logStatusChange(updaterId, 'Persona', id, persona.estado_laboral, data.estado_laboral, data.motivo_cambio || 'Cambio de estado laboral', data.categoria_motivo);
@@ -160,6 +174,41 @@ class PersonalService {
     }
 
     return true;
+  }
+
+  async toggleAcceso(personaId, accesoActivo, updaterId) {
+    const persona = await this.personalRepository.getPersonaById(personaId);
+    if (!persona) throw new ValidationError('Colaborador no encontrado');
+
+    if (persona.estado_laboral === 'Baja') {
+      throw new ValidationError('No se puede modificar acceso de un colaborador dado de Baja');
+    }
+
+    const usuario = await this.personalRepository.findUserByPersonaId(personaId);
+    if (!usuario) throw new ValidationError('Este colaborador no tiene cuenta de acceso');
+
+    if (persona.area_nombre !== 'Producción') {
+      throw new ValidationError('El control de acceso por toggle solo aplica a personal de Producción');
+    }
+
+    await this.personalRepository.updateAccesoUsuario(personaId, accesoActivo, updaterId);
+
+    await this.auditService.logChange({
+      accion: 'TOGGLE_ACCESO',
+      entidad: 'Usuario',
+      entidad_id: usuario.id,
+      realizado_por: updaterId,
+      usuario: updaterId,
+      valor_anterior: JSON.stringify({
+        estado_usuario: usuario.estado_usuario }),
+      valor_nuevo: JSON.stringify({
+        estado_usuario: accesoActivo ? 'Activo' : 'Inactivo' }),
+      motivo_cambio: accesoActivo
+        ? 'Activación de acceso al sistema'
+        : 'Desactivación de acceso al sistema'
+    });
+
+    return { acceso_activo: accesoActivo };
   }
 
   async getCatalogs() {

@@ -7,7 +7,7 @@ class PersonalRepository {
 
   async getAllPersonas() {
     const sql = `
-      SELECT p.*, a.nombre as area_nombre, r.nombre as rol_actual, u.username,
+      SELECT p.*, a.nombre as area_nombre, r.nombre as rol_actual, u.username, u.estado_usuario,
              (SELECT 1 FROM persona_roles_operativos pro
               JOIN roles_operativos ro ON pro.rol_operativo_id = ro.id
               WHERE pro.persona_id = p.id AND pro.fecha_hasta IS NULL AND ro.nombre = 'Auxiliar'
@@ -22,7 +22,7 @@ class PersonalRepository {
 
   async getPersonaById(id) {
     const sql = `
-      SELECT p.*, a.nombre as area_nombre, r.id as rol_id, r.nombre as rol_actual, u.username
+      SELECT p.*, a.nombre as area_nombre, r.id as rol_id, r.nombre as rol_actual, u.username, u.estado_usuario
       FROM personas p
       JOIN areas a ON p.area_id = a.id
       LEFT JOIN usuarios u ON p.id = u.persona_id
@@ -124,6 +124,44 @@ class PersonalRepository {
       userData.rol_id, userData.must_change_password ? 1 : 0, userData.created_by,
       userData.motivo_cambio || 'Creación inicial'
     ]);
+  }
+
+  async saveHistorialAusencia(data, tx) {
+    const db = tx || this.db;
+    const sql = `
+      INSERT INTO historial_ausencias (
+        persona_id, estado_laboral, tipo_ausencia,
+        ausencia_desde, ausencia_hasta,
+        motivo_ausencia, registrado_por
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    return await db.run(sql, [
+      data.persona_id, data.estado_laboral,
+      data.tipo_ausencia, data.ausencia_desde,
+      data.ausencia_hasta, data.motivo_ausencia,
+      data.registrado_por
+    ]);
+  }
+
+  async getHistorialAusenciasByPersona(personaId) {
+    const sql = `
+      SELECT * FROM historial_ausencias
+      WHERE persona_id = ?
+      ORDER BY ausencia_desde DESC
+    `;
+    return await this.db.query(sql, [personaId]);
+  }
+
+  async updateAccesoUsuario(personaId, accesoActivo, updaterId) {
+    const sql = `
+      UPDATE usuarios
+      SET estado_usuario = ?,
+          updated_by = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE persona_id = ?
+    `;
+    const estado = accesoActivo ? 'Activo' : 'Inactivo';
+    return await this.db.run(sql, [estado, updaterId, personaId]);
   }
 
   async assignRole(personaId, rolId, assignedBy, tx) {
