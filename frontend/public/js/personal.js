@@ -136,7 +136,6 @@ const PersonalModule = {
         const areaFilter = document.getElementById('filter-area').value;
         const rolFilter = document.getElementById('filter-rol').value;
         const estadoLaboralFilter = document.getElementById('filter-estado-laboral').value;
-        const estadoUsuarioFilter = document.getElementById('filter-estado-usuario').value;
         const user = Auth.getUser();
 
         // Reglas de permisos estrictas: Solo Admin y Jefe de Operaciones pueden editar/gestionar acceso
@@ -164,8 +163,7 @@ const PersonalModule = {
             const matchesArea = !areaFilter || p.area_id == areaFilter;
             const matchesRol = !rolFilter || p.rol_organizacional === rolFilter;
             const matchesEstadoLaboral = !estadoLaboralFilter || p.estado_laboral === estadoLaboralFilter;
-            const matchesEstadoUsuario = !estadoUsuarioFilter || p.estado_usuario === estadoUsuarioFilter;
-            return matchesSearch && matchesArea && matchesRol && matchesEstadoLaboral && matchesEstadoUsuario;
+            return matchesSearch && matchesArea && matchesRol && matchesEstadoLaboral;
         });
 
         // Sorting logic
@@ -254,7 +252,6 @@ const PersonalModule = {
         document.getElementById('filter-area').addEventListener('change', () => this.renderStaffList());
         document.getElementById('filter-rol').addEventListener('change', () => this.renderStaffList());
         document.getElementById('filter-estado-laboral').addEventListener('change', () => this.renderStaffList());
-        document.getElementById('filter-estado-usuario').addEventListener('change', () => this.renderStaffList());
         document.getElementById('btn-save-personal').addEventListener('click', () => this.saveStaff());
 
         document.querySelectorAll('#tabla-personal .sortable').forEach(header => {
