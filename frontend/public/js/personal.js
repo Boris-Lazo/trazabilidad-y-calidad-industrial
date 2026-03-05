@@ -56,7 +56,6 @@ const PersonalModule = {
             const res = await fetch('/api/personal/catalogos');
             const result = await res.json();
             if (result.success) {
-                // Filtrar áreas permitidas por el dominio
                 const allowedAreaNames = Object.keys(this.mappingAreaRoles);
                 this.areas = result.data.areas.filter(a => allowedAreaNames.includes(a.nombre));
                 this.roles = [...new Set(Object.values(this.mappingAreaRoles).flat())];
@@ -87,12 +86,10 @@ const PersonalModule = {
             areaSelect.innerHTML = '<option value="">Seleccione área...</option>' +
                 this.areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
         }
-
         if (filterAreaSelect) {
             filterAreaSelect.innerHTML = '<option value="">Todas</option>' +
                 this.areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
         }
-        
         if (filterRolSelect) {
             filterRolSelect.innerHTML = '<option value="">Todos</option>' +
                 this.roles.map(r => `<option value="${r}">${r}</option>`).join('');
@@ -102,17 +99,14 @@ const PersonalModule = {
     updateOrganizationalRoles(areaId) {
         const rolSelect = document.getElementById('p-rol-org');
         if (!rolSelect) return;
-
         if (!areaId) {
             rolSelect.innerHTML = '<option value="">Seleccione área primero...</option>';
             rolSelect.disabled = true;
             return;
         }
-
         const area = this.areas.find(a => a.id == areaId);
         const areaName = area ? area.nombre : '';
         const roles = this.mappingAreaRoles[areaName] || [];
-
         rolSelect.innerHTML = roles.map(r => `<option value="${r}">${r}</option>`).join('');
         rolSelect.disabled = roles.length === 0;
     },
@@ -138,7 +132,6 @@ const PersonalModule = {
         const estadoLaboralFilter = document.getElementById('filter-estado-laboral').value;
         const user = Auth.getUser();
 
-        // Reglas de permisos estrictas: Solo Admin y Jefe de Operaciones pueden editar/gestionar acceso
         const canManage = user && (user.rol === 'Administrador' || user.rol === 'Jefe de Operaciones');
         const isReadOnly = !canManage;
 
@@ -158,15 +151,14 @@ const PersonalModule = {
 
         let filtered = this.staff.filter(p => {
             const matchesSearch = p.nombre.toLowerCase().includes(searchTerm) ||
-                                 p.apellido.toLowerCase().includes(searchTerm) ||
-                                 p.codigo_interno.toLowerCase().includes(searchTerm);
+                                  p.apellido.toLowerCase().includes(searchTerm) ||
+                                  p.codigo_interno.toLowerCase().includes(searchTerm);
             const matchesArea = !areaFilter || p.area_id == areaFilter;
             const matchesRol = !rolFilter || p.rol_organizacional === rolFilter;
             const matchesEstadoLaboral = !estadoLaboralFilter || p.estado_laboral === estadoLaboralFilter;
             return matchesSearch && matchesArea && matchesRol && matchesEstadoLaboral;
         });
 
-        // Sorting logic
         filtered.sort((a, b) => {
             let valA, valB;
             if (this.sortState.key === 'codigo') {
@@ -179,12 +171,10 @@ const PersonalModule = {
                 valA = a[this.sortState.key];
                 valB = b[this.sortState.key];
             }
-
             if (valA < valB) return this.sortState.order === 'asc' ? -1 : 1;
             if (valA > valB) return this.sortState.order === 'asc' ? 1 : -1;
             return 0;
         });
-
 
         if (filtered.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-secondary">No se encontró personal</td></tr>';
@@ -200,6 +190,25 @@ const PersonalModule = {
             if (p.estado_laboral === 'Baja') badgeClass = 'badge-danger';
             if (p.estado_laboral === 'Incapacitado') badgeClass = 'badge-warning';
 
+            const accesoCell = p.username
+                ? `<div style="display:flex; align-items:center; gap:6px;">
+                       ${p.area_nombre === 'Producción'
+                           ? `<button class="btn btn-sm btn-toggle-acceso ${p.estado_usuario === 'Activo' ? 'badge-success' : 'badge-warning'}"
+                                  style="font-size:11px; padding:2px 8px; font-weight:600; border:none; border-radius:4px; cursor:pointer;"
+                                  ${!canManage || p.estado_laboral === 'Baja' ? 'disabled' : ''}
+                                  title="${p.estado_usuario === 'Activo' ? 'Desactivar acceso' : 'Activar acceso'}">
+                                  ${p.estado_usuario === 'Activo' ? 'ACTIVO' : 'INACTIVO'}
+                              </button>`
+                           : `<span class="badge badge-success">ACTIVO</span>`
+                       }
+                       ${canManage && p.estado_laboral !== 'Baja'
+                           ? `<button class="btn btn-secondary btn-sm btn-reset-psw" title="Reiniciar Contraseña">
+                                  <i data-lucide="key" style="width:14px;height:14px;"></i>
+                              </button>`
+                           : ''}
+                   </div>`
+                : '<span class="text-secondary" style="font-size:12px;">Sin Acceso</span>';
+
             return `
             <tr style="${rowStyle}" data-staff-id="${p.id}">
                 <td>
@@ -211,63 +220,26 @@ const PersonalModule = {
                 <td><span class="badge badge-info">${p.rol_organizacional || 'Sin Rol'}</span></td>
                 <td>
                     <div style="display:flex; flex-direction:column; gap:2px;">
-                        <span class="badge ${badgeClass}">
-                            ${p.estado_laboral.toUpperCase()}
-                        </span>
+                        <span class="badge ${badgeClass}">${p.estado_laboral.toUpperCase()}</span>
                         ${p.ausencia_vencida ? '<span class="badge badge-error" style="font-size:10px;">VENCIDA</span>' : ''}
                     </div>
                 </td>
+                <td>${accesoCell}</td>
                 <td>
-                    ${p.username
-                      ? `<div style="display:flex; align-items:center;
-                                     gap:6px;">
-                           ${p.area_nombre === 'Producción'
-                             ? `<button class="btn btn-sm
-                                  btn-toggle-acceso
-                                  ${p.estado_usuario === 'Activo'
-                                    ? 'badge-success'
-                                    : 'badge-warning'}"
-                                style="font-size:11px; padding:2px 8px;
-                                       font-weight:600; border:none;
-                                       border-radius:4px; cursor:pointer;"
-                                ${!canManage || p.estado_laboral === 'Baja'
-                                  ? 'disabled' : ''}
-                                title="${p.estado_usuario === 'Activo'
-                                  ? 'Desactivar acceso'
-                                  : 'Activar acceso'}">
-                                ${p.estado_usuario === 'Activo'
-                                  ? 'ACTIVO' : 'INACTIVO'}
+                    <div style="display:flex; gap:8px;">
+                        ${canManage && p.estado_laboral !== 'Baja'
+                            ? `<button class="btn btn-secondary btn-sm btn-edit" title="Editar">
+                                   <i data-lucide="pencil" style="width:14px;height:14px;"></i>
                                </button>`
-                             : `<span class="badge badge-success">
-                                  ACTIVO</span>`
-                           }
-                           ${canManage && p.estado_laboral !== 'Baja'
-                             ? `<button class="btn btn-secondary
-                                  btn-sm btn-reset-psw"
-                                  title="Reiniciar Contraseña">
-                                  <i data-lucide="key"
-                                     style="width:14px;height:14px;">
-                                  </i>
-                                </button>` : ''}
-                         </div>`
-                      : '<span class="text-secondary"
-                               style="font-size:12px;">
-                           Sin Acceso</span>'
-                    }
-                </td>
-                <td>
-                    <div style="display: flex; gap: 8px;">
-                        ${canManage && p.estado_laboral !== 'Baja' ? `
-                        <button class="btn btn-secondary btn-sm btn-edit" title="Editar">
-                            <i data-lucide="pencil" style="width:14px; height:14px;"></i>
-                        </button>` : ''}
+                            : ''}
                         <button class="btn btn-secondary btn-sm btn-view" title="Ver Detalle">
-                            <i data-lucide="eye" style="width:14px; height:14px;"></i>
+                            <i data-lucide="eye" style="width:14px;height:14px;"></i>
                         </button>
                     </div>
                 </td>
-            </tr>
-        `}).join('');
+            </tr>`;
+        }).join('');
+
         DesignSystem.initLucide();
         this.setupRowEventListeners();
     },
@@ -286,23 +258,17 @@ const PersonalModule = {
 
             const editBtn = row.querySelector('.btn-edit');
             if (editBtn) {
-                editBtn.addEventListener('click', () => {
-                    this.openAusenciaModal(staffId);
-                });
+                editBtn.addEventListener('click', () => this.openAusenciaModal(staffId));
             }
 
             const toggleAccesoBtn = row.querySelector('.btn-toggle-acceso');
             if (toggleAccesoBtn) {
-                toggleAccesoBtn.addEventListener('click', () => {
-                    this.toggleAcceso(staffId, staffMember);
-                });
+                toggleAccesoBtn.addEventListener('click', () => this.toggleAcceso(staffId, staffMember));
             }
 
             const viewBtn = row.querySelector('.btn-view');
             if (viewBtn) {
-                viewBtn.addEventListener('click', () => {
-                    this.viewDetails(staffId);
-                });
+                viewBtn.addEventListener('click', () => this.viewDetails(staffId));
             }
         });
     },
@@ -334,35 +300,13 @@ const PersonalModule = {
             });
         });
 
-
         const pArea = document.getElementById('p-area');
-        if (pArea) {
-            pArea.addEventListener('change', (e) => this.updateOrganizationalRoles(e.target.value));
-        }
+        if (pArea) pArea.addEventListener('change', (e) => this.updateOrganizationalRoles(e.target.value));
 
         const btnSaveAsig = document.getElementById('btn-save-assignment');
         if (btnSaveAsig) btnSaveAsig.addEventListener('click', () => this.saveAssignment());
 
         document.getElementById('btn-confirm-reset').addEventListener('click', () => this.executePasswordReset());
-
-        const pEstado = document.getElementById('p-estado');
-        if (pEstado) {
-            pEstado.addEventListener('change', (e) => {
-                const absenceFields = document.getElementById('absence-fields');
-                const val = e.target.value;
-                if (['Incapacitado', 'Inactivo', 'Baja'].includes(val)) {
-                    absenceFields.style.display = 'block';
-                    document.getElementById('p-abs-tipo').value = val === 'Incapacitado' ? 'Incapacidad' : (val === 'Inactivo' ? 'Permiso' : '');
-
-                    // Ajustar obligatoriedad de campos visualmente
-                    document.getElementById('p-abs-hasta').disabled = (val === 'Baja');
-                } else {
-                    absenceFields.style.display = 'none';
-                }
-            });
-        }
-
-        document.getElementById('btn-confirm-reset').addEventListener('click', () => this.confirmReset());
 
         const aProceso = document.getElementById('a-proceso');
         if (aProceso) {
@@ -371,20 +315,16 @@ const PersonalModule = {
                 const machineSelect = document.getElementById('a-maquina');
                 if (!machineSelect) return;
                 machineSelect.innerHTML = '<option value="">Cualquier máquina</option>';
-
                 if (procesoId) {
                     try {
                         const res = await fetch(`/api/maquinas?proceso_id=${procesoId}`);
                         const result = await res.json();
                         if (result.success) {
-                            // Filtro de dominio: Bloquear máquinas en Baja o Fuera de Servicio para nuevas asignaciones
                             const allowedStates = ['Disponible', 'Operativa', 'En mantenimiento'];
                             const machines = result.data.filter(m => allowedStates.includes(m.estado_actual));
-
                             machineSelect.innerHTML += machines.map(m =>
                                 `<option value="${m.id}">${m.nombre_visible} (${m.estado_actual})</option>`
                             ).join('');
-
                             if (machines.length === 0) {
                                 DesignSystem.showToast('No hay máquinas operativas disponibles para este proceso', 'warning');
                             }
@@ -394,7 +334,6 @@ const PersonalModule = {
             });
         }
 
-        // Event listeners for modal close buttons
         document.getElementById('btn-close-personal').addEventListener('click', () => this.closeModal());
         document.getElementById('btn-cancel-personal').addEventListener('click', () => this.closeModal());
         document.getElementById('btn-close-reset').addEventListener('click', () => this.closeResetModal());
@@ -409,17 +348,14 @@ const PersonalModule = {
         this.currentStaffId = null;
         const form = document.getElementById('form-personal');
         if (form) form.reset();
-
         const editFields = document.getElementById('edit-audit-fields');
         const modalTitle = document.getElementById('modal-title');
         const codigoInput = document.getElementById('p-codigo');
         const rolSelect = document.getElementById('p-rol-org');
-
         if (modalTitle) modalTitle.textContent = 'Registrar Nuevo Colaborador';
         if (codigoInput) codigoInput.disabled = false;
         if (editFields) editFields.style.display = 'none';
         if (rolSelect) rolSelect.disabled = true;
-
         document.getElementById('modal-personal').style.display = 'flex';
     },
 
@@ -435,7 +371,6 @@ const PersonalModule = {
             area_id: parseInt(document.getElementById('p-area').value),
             rol_organizacional: document.getElementById('p-rol-org').value
         };
-
         try {
             const res = await fetch('/api/personal', {
                 method: 'POST',
@@ -468,11 +403,10 @@ const PersonalModule = {
                 const indicator = document.getElementById('detail-indicator');
                 if (isAuxActive) {
                     indicator.innerHTML = `
-                        <div class="badge badge-primary w-100" style="padding: 10px; text-align: left; font-size: 0.9rem;">
+                        <div class="badge badge-primary w-100" style="padding:10px; text-align:left; font-size:0.9rem;">
                             <i data-lucide="shield-check" class="inline-icon"></i>
                             <strong>Atención:</strong> Colaborador identificado como Auxiliar con acceso activo al sistema.
-                        </div>
-                    `;
+                        </div>`;
                 } else {
                     indicator.innerHTML = '';
                 }
@@ -485,38 +419,34 @@ const PersonalModule = {
                         <div><strong>Desde:</strong> ${this.formatDate(p.ausencia_desde)}</div>
                         <div><strong>Hasta:</strong> ${this.formatDate(p.ausencia_hasta)}</div>
                         <div><strong>Motivo:</strong> ${p.motivo_ausencia || '-'}</div>
-                        ${p.ausencia_vencida ? '<div class="badge badge-warning" style="white-space:normal;">⚠ Ausencia vencida — pendiente de confirmar retorno</div>' : ''}
-                    `;
+                        ${p.ausencia_vencida ? '<div class="badge badge-warning" style="white-space:normal;">⚠ Ausencia vencida — pendiente de confirmar retorno</div>' : ''}`;
                 } else if (p.estado_laboral === 'Baja') {
                     ausenciaInfo = `
                         <div><strong>Fecha de salida:</strong> ${this.formatDate(p.ausencia_desde)}</div>
-                        <div><strong>Motivo:</strong> ${p.motivo_ausencia || '-'}</div>
-                    `;
+                        <div><strong>Motivo:</strong> ${p.motivo_ausencia || '-'}</div>`;
                 }
 
                 document.getElementById('staff-info-details').innerHTML = `
                     <div><strong>Código:</strong> ${p.codigo_interno}</div>
-                    <div><strong>Email:</strong> ${p.email}</div>
+                    <div><strong>Email:</strong> ${p.email || '-'}</div>
                     <div><strong>Teléfono:</strong> ${p.telefono || '-'}</div>
                     <div><strong>Área:</strong> ${p.area_nombre}</div>
                     <div><strong>Rol Organizacional:</strong> ${p.rol_organizacional || '-'}</div>
-                    <div><strong>Ingreso:</strong> ${p.fecha_ingreso}</div>
+                    <div><strong>Ingreso:</strong> ${p.fecha_ingreso || '-'}</div>
                     <div><strong>Estado:</strong> ${estadoBadge}</div>
-                    ${ausenciaInfo}
-                `;
+                    ${ausenciaInfo}`;
 
                 document.getElementById('current-op-role').innerHTML = p.rol_operativo_actual
-                    ? `<span class="badge badge-info" style="font-size: 1.1rem; padding: 8px 16px;">${p.rol_operativo_actual.rol_nombre}</span>`
+                    ? `<span class="badge badge-info" style="font-size:1.1rem; padding:8px 16px;">${p.rol_operativo_actual.rol_nombre}</span>`
                     : '<span class="text-secondary italic">Sin rol operativo asignado</span>';
 
                 const assignmentsList = document.getElementById('active-assignments-details');
                 if (p.asignaciones_activas && p.asignaciones_activas.length > 0) {
                     assignmentsList.innerHTML = p.asignaciones_activas.map(a => `
-                        <div class="card p-2 mb-2" style="border-left: 4px solid var(--primary-base); background: rgba(0,0,0,0.02);">
-                            <div style="font-weight: 600;">${a.proceso_nombre} ${a.maquina_codigo ? '- ' + a.maquina_codigo : ''}</div>
-                            <div style="font-size: 12px; color: var(--text-secondary);">Turno: ${a.turno} ${a.permanente ? '(Permanente)' : ''}</div>
-                        </div>
-                    `).join('');
+                        <div class="card p-2 mb-2" style="border-left:4px solid var(--primary-base); background:rgba(0,0,0,0.02);">
+                            <div style="font-weight:600;">${a.proceso_nombre} ${a.maquina_codigo ? '- ' + a.maquina_codigo : ''}</div>
+                            <div style="font-size:12px; color:var(--text-secondary);">Turno: ${a.turno} ${a.permanente ? '(Permanente)' : ''}</div>
+                        </div>`).join('');
                 } else {
                     assignmentsList.innerHTML = '<div class="text-secondary italic p-2">Sin asignaciones operativas activas</div>';
                 }
@@ -529,15 +459,12 @@ const PersonalModule = {
                                 <span class="badge ${
                                     a.estado_laboral === 'Incapacitado' ? 'badge-warning' :
                                     a.estado_laboral === 'Baja' ? 'badge-danger' : 'badge-secondary'
-                                }">
-                                    ${a.tipo_ausencia || a.estado_laboral}
-                                </span>
+                                }">${a.tipo_ausencia || a.estado_laboral}</span>
                             </td>
                             <td>${this.formatDate(a.ausencia_desde)}</td>
                             <td>${a.ausencia_hasta ? this.formatDate(a.ausencia_hasta) : '—'}</td>
                             <td style="font-size:12px;">${a.motivo_ausencia || '—'}</td>
-                        </tr>
-                    `).join('');
+                        </tr>`).join('');
                 } else {
                     ausenciasList.innerHTML = '<tr><td colspan="4" class="text-center text-secondary italic">Sin ausencias registradas</td></tr>';
                 }
@@ -548,8 +475,7 @@ const PersonalModule = {
                         <td>${new Date(h.fecha_asignacion).toLocaleString()}</td>
                         <td>${h.asignado_por_nombre || 'Sistema'}</td>
                         <td><span class="badge ${h.activo ? 'badge-success' : 'badge-secondary'}">${h.activo ? 'Actual' : 'Anterior'}</span></td>
-                    </tr>
-                `).join('');
+                    </tr>`).join('');
 
                 const btnReset = document.getElementById('btn-reset-desde-detalle');
                 if (btnReset) {
@@ -614,49 +540,24 @@ const PersonalModule = {
     },
 
     _renderEstadoBadge(p) {
-      const estado = p.estado_laboral;
-      if (estado === 'Activo') {
-        return `<span class="badge badge-success">
-                  ACTIVO</span>`;
-      }
-      if (estado === 'Incapacitado') {
-        return p.ausencia_vencida
-          ? `<span class="badge badge-warning">
-               INCAPACITADO</span><br>
-             <small style="color:var(--warning);">
-               ⚠ Vencida el
-               ${this.formatDate(p.ausencia_hasta)}
-             </small>`
-          : `<span class="badge badge-warning">
-               INCAPACITADO</span><br>
-             <small class="text-secondary">
-               Hasta ${this.formatDate(p.ausencia_hasta)}
-             </small>`;
-      }
-      if (estado === 'Inactivo') {
-        return p.ausencia_vencida
-          ? `<span class="badge badge-secondary">
-               INACTIVO</span><br>
-             <small style="color:var(--warning);">
-               ⚠ Vencida el
-               ${this.formatDate(p.ausencia_hasta)}
-             </small>`
-          : `<span class="badge badge-secondary">
-               INACTIVO</span><br>
-             <small class="text-secondary">
-               Hasta ${this.formatDate(p.ausencia_hasta)}
-             </small>`;
-      }
-      if (estado === 'Baja') {
-        return `<span class="badge badge-danger">
-                  BAJA</span><br>
-                <small class="text-secondary">
-                  Desde ${this.formatDate(p.ausencia_desde)}
-                </small>`;
-      }
-      return `<span class="badge badge-secondary">
-                ${estado ? estado.toUpperCase() : '-'}
-              </span>`;
+        const estado = p.estado_laboral;
+        if (estado === 'Activo') {
+            return '<span class="badge badge-success">ACTIVO</span>';
+        }
+        if (estado === 'Incapacitado') {
+            return p.ausencia_vencida
+                ? `<span class="badge badge-warning">INCAPACITADO</span><br><small style="color:var(--warning);">⚠ Vencida el ${this.formatDate(p.ausencia_hasta)}</small>`
+                : `<span class="badge badge-warning">INCAPACITADO</span><br><small class="text-secondary">Hasta ${this.formatDate(p.ausencia_hasta)}</small>`;
+        }
+        if (estado === 'Inactivo') {
+            return p.ausencia_vencida
+                ? `<span class="badge badge-secondary">INACTIVO</span><br><small style="color:var(--warning);">⚠ Vencida el ${this.formatDate(p.ausencia_hasta)}</small>`
+                : `<span class="badge badge-secondary">INACTIVO</span><br><small class="text-secondary">Hasta ${this.formatDate(p.ausencia_hasta)}</small>`;
+        }
+        if (estado === 'Baja') {
+            return `<span class="badge badge-danger">BAJA</span><br><small class="text-secondary">Desde ${this.formatDate(p.ausencia_desde)}</small>`;
+        }
+        return `<span class="badge badge-secondary">${estado ? estado.toUpperCase() : '-'}</span>`;
     },
 
     closeAssignmentModal() {
@@ -666,20 +567,14 @@ const PersonalModule = {
     openAusenciaModal(id) {
         this.currentStaffId = id;
         const p = this.staff.find(s => s.id === id);
-
         document.getElementById('ausencia-modal-title').textContent = `Reportar Ausencia — ${p.nombre} ${p.apellido}`;
         document.getElementById('ausencia-nombre-colaborador').textContent = `${p.nombre} ${p.apellido}`;
-
-        const estadoActualBadge = this._renderEstadoBadge(p);
-        document.getElementById('ausencia-estado-actual').innerHTML = estadoActualBadge;
-
+        document.getElementById('ausencia-estado-actual').innerHTML = this._renderEstadoBadge(p);
         document.getElementById('aus-estado').value = p.estado_laboral;
         document.getElementById('aus-desde').value = p.ausencia_desde || '';
         document.getElementById('aus-hasta').value = p.ausencia_hasta || '';
         document.getElementById('aus-motivo').value = p.motivo_ausencia || '';
-
         this._toggleAusenciaCampos(p.estado_laboral);
-
         document.getElementById('modal-ausencia').style.display = 'flex';
     },
 
@@ -687,7 +582,6 @@ const PersonalModule = {
         const campos = document.getElementById('aus-campos-ausencia');
         const warning = document.getElementById('aus-baja-warning');
         const hasta = document.getElementById('aus-hasta');
-
         if (estado === 'Activo') {
             campos.style.display = 'none';
             warning.style.display = 'none';
@@ -716,7 +610,6 @@ const PersonalModule = {
             categoria_motivo: 'AJUSTE_OPERATIVO'
         };
 
-        // Validaciones
         if (estadoNuevo !== 'Activo') {
             if (!desde) {
                 DesignSystem.showToast('La fecha de inicio es obligatoria', 'warning');
@@ -787,12 +680,10 @@ const PersonalModule = {
             permanente: document.getElementById('a-permanente').checked,
             motivo_cambio: document.getElementById('a-motivo').value
         };
-
         if (!data.proceso_id) {
             DesignSystem.showToast('Debe seleccionar un proceso', 'warning');
             return;
         }
-
         try {
             const res = await fetch(`/api/personal/${this.currentStaffId}/asignacion`, {
                 method: 'POST',
