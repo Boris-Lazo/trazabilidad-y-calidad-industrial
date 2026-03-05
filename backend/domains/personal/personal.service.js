@@ -8,13 +8,41 @@ class PersonalService {
     this.auditService = auditService;
   }
 
+  _enrichEstado(persona) {
+    if (!persona) return persona;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    let estado_efectivo = persona.estado_laboral;
+    let ausencia_vencida = false;
+
+    if (['Incapacitado', 'Inactivo'].includes(persona.estado_laboral) && persona.ausencia_hasta) {
+      const hasta = new Date(persona.ausencia_hasta);
+      const hastaTrunc = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
+
+      if (hastaTrunc < today) {
+        estado_efectivo = 'Activo';
+        ausencia_vencida = true;
+      }
+    }
+
+    return {
+      ...persona,
+      estado_efectivo,
+      ausencia_vencida
+    };
+  }
+
   async getAllStaff() {
-    return await this.personalRepository.getAllPersonas();
+    const staff = await this.personalRepository.getAllPersonas();
+    return staff.map(p => this._enrichEstado(p));
   }
 
   async getStaffDetails(id) {
-    const persona = await this.personalRepository.getPersonaById(id);
+    let persona = await this.personalRepository.getPersonaById(id);
     if (!persona) throw new ValidationError('Persona no encontrada');
+    persona = this._enrichEstado(persona);
 
     const roleHistory = await this.personalRepository.getRoleHistory(id);
     const assignments = await this.personalRepository.getActiveAssignments(id);
@@ -87,23 +115,42 @@ class PersonalService {
     });
   }
 
-  async _checkTerminalState(personaId) {
-    const user = await this.personalRepository.findUserByPersonaId(personaId);
-    if (user && user.estado_usuario === 'Baja lógica') {
-      throw new ValidationError('Estado terminal: No se pueden realizar cambios en un usuario con Baja lógica');
-    }
-  }
-
   async updateStaff(id, data, updaterId) {
     const persona = await this.personalRepository.getPersonaById(id);
     if (!persona) throw new ValidationError('Persona no encontrada');
 
-    await this._checkTerminalState(id);
+    if (persona.estado_laboral === 'Baja') {
+      throw new ValidationError('Estado terminal: No se pueden realizar cambios en un colaborador dado de Baja');
+    }
 
-    await this.personalRepository.updatePersona(id, {
-      ...data,
-      updated_by: updaterId
-    });
+    const updatePayload = { ...data, updated_by: updaterId };
+
+    // Validaciones de negocio para ausencias
+    if (data.estado_laboral === 'Incapacitado' || data.estado_laboral === 'Inactivo') {
+      if (!data.ausencia_desde) throw new ValidationError('La fecha de inicio de ausencia es obligatoria');
+      if (!data.ausencia_hasta) throw new ValidationError('La fecha de fin de ausencia es obligatoria');
+      if (!data.tipo_ausencia) throw new ValidationError('El tipo de ausencia es obligatorio');
+      if (!data.motivo_ausencia || data.motivo_ausencia.length < 5) throw new ValidationError('El motivo de ausencia es obligatorio (min 5 caracteres)');
+
+      if (data.estado_laboral === 'Incapacitado' && data.tipo_ausencia !== 'Incapacidad') {
+        throw new ValidationError("Tipo de ausencia debe ser 'Incapacidad' para estado 'Incapacitado'");
+      }
+      if (data.estado_laboral === 'Inactivo' && data.tipo_ausencia !== 'Permiso') {
+        throw new ValidationError("Tipo de ausencia debe ser 'Permiso' para estado 'Inactivo'");
+      }
+    } else if (data.estado_laboral === 'Baja') {
+      if (!data.ausencia_desde) throw new ValidationError('La fecha de baja (ausencia_desde) es obligatoria');
+      if (!data.motivo_ausencia || data.motivo_ausencia.length < 5) throw new ValidationError('El motivo de baja es obligatorio');
+      updatePayload.tipo_ausencia = null;
+      updatePayload.ausencia_hasta = null;
+    } else if (data.estado_laboral === 'Activo') {
+      updatePayload.ausencia_desde = null;
+      updatePayload.ausencia_hasta = null;
+      updatePayload.tipo_ausencia = null;
+      updatePayload.motivo_ausencia = null;
+    }
+
+    await this.personalRepository.updatePersona(id, updatePayload);
 
     // Auditoría detallada de cambio de estado o datos
     if (data.estado_laboral && data.estado_laboral !== persona.estado_laboral) {
@@ -128,7 +175,9 @@ class PersonalService {
     const persona = await this.personalRepository.getPersonaById(personaId);
     if (!persona) throw new ValidationError('Persona no encontrada');
 
-    await this._checkTerminalState(personaId);
+    if (persona.estado_laboral === 'Baja') {
+      throw new ValidationError('Estado terminal: No se pueden realizar cambios en un colaborador dado de Baja');
+    }
 
     return await this.personalRepository.withTransaction(async () => {
       await this.personalRepository.updateUserRole(personaId, rolId, assignerId, finalReason);
@@ -150,78 +199,43 @@ class PersonalService {
     });
   }
 
-  async updateUserStatus(identifier, newStatus, updaterId, reason, useUserId = false, categoria_motivo = null) {
-    if (!reason) throw new ValidationError('El motivo del cambio de estado es obligatorio');
+  async resetPassword(personaId, updaterId) {
+    const persona = await this.personalRepository.getPersonaById(personaId);
+    if (!persona) throw new ValidationError('Persona no encontrada');
 
-    const user = useUserId
-        ? await this.personalRepository.findUserById(identifier)
-        : await this.personalRepository.findUserByPersonaId(identifier);
-
-    if (!user) throw new ValidationError('Usuario no encontrado');
-
-    // Regla de Oro: Baja lógica es terminal e irreversible
-    if (user.estado_usuario === 'Baja lógica') {
-      throw new ValidationError('Estado terminal: El usuario se encuentra en Baja lógica (despido/salida definitiva). No se permiten cambios.');
-    }
-
-    const validStatuses = ['Activo', 'Suspendido', 'Bloqueado', 'Baja lógica'];
-    if (!validStatuses.includes(newStatus)) {
-      throw new ValidationError('Estado de usuario no válido');
-    }
-
-    return await this.personalRepository.withTransaction(async () => {
-      await this.personalRepository.updateUserStatus(user.id, newStatus, updaterId, reason);
-
-      await this.auditService.logStatusChange(updaterId, 'Usuario', user.id, user.estado_usuario, newStatus, reason, categoria_motivo);
-
-      return true;
-    });
-  }
-
-  async reactivateUser(personaId, updaterId, reason, categoria_motivo = null) {
     const user = await this.personalRepository.findUserByPersonaId(personaId);
-    if (!user) throw new ValidationError('Usuario no encontrado');
+    if (!user) throw new ValidationError('La persona no tiene un usuario asociado');
 
-    if (user.estado_usuario === 'Baja lógica') {
-      throw new ValidationError('La Baja lógica es irreversible. No se puede reactivar el usuario.');
-    }
+    const tempPassword = Math.random().toString(36).slice(-8);
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-    if (user.estado_usuario === 'Activo') {
-      throw new ValidationError('El usuario ya se encuentra Activo');
-    }
+    await this.personalRepository.resetPassword(personaId, passwordHash, updaterId);
 
-    return await this.personalRepository.withTransaction(async () => {
-      await this.personalRepository.updateUserStatus(user.id, 'Activo', updaterId, reason);
-
-      // Auditoría reforzada para reactivación
-      await this.auditService.logChange({
-        usuario: updaterId,
-        accion: 'REACTIVACION_USUARIO',
-        entidad: 'Usuario',
-        entidad_id: user.id,
-        valor_anterior: { estado: user.estado_usuario },
-        valor_nuevo: { estado: 'Activo' },
-        motivo_cambio: reason,
-        categoria_motivo
-      });
-
-      return true;
+    await this.auditService.logChange({
+      usuario: updaterId,
+      accion: 'PASSWORD_RESET',
+      entidad: 'Usuario',
+      entidad_id: user.id,
+      motivo_cambio: 'Reset de contraseña por administrador'
     });
+
+    return { tempPassword };
   }
 
   async assignOperation(assignmentData, creatorId) {
     const personaId = assignmentData.persona_id;
-    const isAuxiliarConAcceso = await this.personalRepository.isAuxiliarWithActiveUser(personaId);
 
-    const user = await this.personalRepository.findUserByPersonaId(personaId);
+    const persona = await this.personalRepository.getPersonaById(personaId);
+    if (!persona) throw new ValidationError('Persona no encontrada');
 
-    // Un usuario debe estar Activo para ser asignado a operaciones
-    if (!user) {
-      throw new ValidationError('Asignación bloqueada: No se encontró un usuario asociado a esta persona');
+    if (persona.estado_laboral !== 'Activo') {
+      throw new ValidationError(`Asignación bloqueada: El colaborador se encuentra en estado ${persona.estado_laboral}. Solo colaboradores en estado Activo pueden participar en la operación.`);
     }
 
-    if (user.estado_usuario !== 'Activo') {
-      throw new ValidationError(`Asignación bloqueada: El usuario se encuentra en estado ${user.estado_usuario}. Solo usuarios en estado Activo pueden participar en la operación.`);
+    // Un usuario debe estar Activo para ser asignado a operaciones
+    const user = await this.personalRepository.findUserByPersonaId(personaId);
+    if (!user) {
+      throw new ValidationError('Asignación bloqueada: No se encontró un usuario asociado a esta persona');
     }
 
     // Validación de Máquina (si aplica)
@@ -244,13 +258,6 @@ class PersonalService {
         : (assignmentData.motivo_cambio || 'Asignación operativa regular');
 
     const result = await this.personalRepository.withTransaction(async () => {
-      // Regla: Si es Auxiliar con acceso y es movido de proceso/máquina, se desactiva
-      if (isAuxiliarConAcceso) {
-          const deactivationReason = `Desactivación automática por cambio en asignación operativa de Auxiliar: ${assignmentData.motivo_cambio || 'Reasignación'}`;
-          await this.personalRepository.updateUserStatus(user.id, 'Suspendido', creatorId, deactivationReason);
-          await this.auditService.logStatusChange(creatorId, 'Usuario', user.id, 'Activo', 'Suspendido', deactivationReason, 'AJUSTE_OPERATIVO');
-      }
-
       return await this.personalRepository.assignOperation({
         ...assignmentData,
         proceso_id: assignmentData.proceso_id,

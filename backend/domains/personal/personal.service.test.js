@@ -16,12 +16,16 @@ describe('PersonalService', () => {
             createUser: jest.fn(),
             assignRole: jest.fn(),
             findUserByPersonaId: jest.fn(),
-            updateUserStatus: jest.fn(),
+            updatePersona: jest.fn(),
             updateUserRole: jest.fn(),
             assignOperation: jest.fn(),
+            resetPassword: jest.fn(),
             isAuxiliarWithActiveUser: jest.fn().mockResolvedValue(false),
             getRoles: jest.fn().mockResolvedValue([{ id: 5, nombre: 'Operario' }]),
-            withTransaction: jest.fn(fn => fn())
+            withTransaction: jest.fn(fn => fn()),
+            db: {
+                get: jest.fn()
+            }
         };
         auditServiceMock = {
             logChange: jest.fn(),
@@ -29,6 +33,38 @@ describe('PersonalService', () => {
             logUpdate: jest.fn()
         };
         personalService = new PersonalService(personalRepositoryMock, auditServiceMock);
+    });
+
+    describe('_enrichEstado', () => {
+        test('mantiene estado si no ha vencido la ausencia', () => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const fechaStr = tomorrow.toISOString().split('T')[0];
+
+            const persona = {
+                estado_laboral: 'Incapacitado',
+                ausencia_hasta: fechaStr
+            };
+
+            const enriched = personalService._enrichEstado(persona);
+            expect(enriched.estado_efectivo).toBe('Incapacitado');
+            expect(enriched.ausencia_vencida).toBe(false);
+        });
+
+        test('cambia a Activo y marca como vencida si ya pasó la fecha', () => {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const fechaStr = yesterday.toISOString().split('T')[0];
+
+            const persona = {
+                estado_laboral: 'Incapacitado',
+                ausencia_hasta: fechaStr
+            };
+
+            const enriched = personalService._enrichEstado(persona);
+            expect(enriched.estado_efectivo).toBe('Activo');
+            expect(enriched.ausencia_vencida).toBe(true);
+        });
     });
 
     describe('registerStaff', () => {
@@ -54,90 +90,90 @@ describe('PersonalService', () => {
 
             expect(personalRepositoryMock.createPersona).toHaveBeenCalled();
             expect(personalRepositoryMock.createUser).toHaveBeenCalledWith(expect.objectContaining({
-                rol_id: 5, // Default from mock
+                rol_id: 5,
                 motivo_cambio: expect.any(String)
             }));
             expect(result).toHaveProperty('tempPassword');
         });
     });
 
-    describe('updateUserStatus', () => {
-        test('lanza error si no se proporciona motivo', async () => {
-            await expect(personalService.updateUserStatus(1, 'Activo', 99, null))
-                .rejects.toThrow(/motivo.*obligatorio/);
-        });
+    describe('updateStaff', () => {
+        test('lanza error si el colaborador está de Baja', async () => {
+            personalRepositoryMock.getPersonaById.mockResolvedValue({ id: 1, estado_laboral: 'Baja' });
 
-        test('lanza error si el usuario está en Baja lógica', async () => {
-            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ id: 1, estado_usuario: 'Baja lógica' });
-
-            await expect(personalService.updateUserStatus(1, 'Activo', 99, 'Reactivación'))
+            await expect(personalService.updateStaff(1, { nombre: 'Pedro' }, 99))
                 .rejects.toThrow(/Estado terminal/);
         });
 
-        test('actualiza el estado correctamente', async () => {
-            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ id: 1, estado_usuario: 'Suspendido' });
+        test('valida campos obligatorios para Incapacitado', async () => {
+            personalRepositoryMock.getPersonaById.mockResolvedValue({ id: 1, estado_laboral: 'Activo' });
 
-            await personalService.updateUserStatus(1, 'Activo', 99, 'Reactivación');
-
-            expect(personalRepositoryMock.updateUserStatus).toHaveBeenCalledWith(1, 'Activo', 99, 'Reactivación');
-            expect(auditServiceMock.logStatusChange).toHaveBeenCalled();
-        });
-    });
-
-    describe('reactivateUser', () => {
-        test('lanza error si el usuario está en Baja lógica', async () => {
-            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ id: 1, estado_usuario: 'Baja lógica' });
-
-            await expect(personalService.reactivateUser(1, 99, 'Reactivación'))
-                .rejects.toThrow(/Baja lógica es irreversible/);
+            await expect(personalService.updateStaff(1, { estado_laboral: 'Incapacitado' }, 99))
+                .rejects.toThrow(/fecha de inicio de ausencia es obligatoria/);
         });
 
-        test('reactiva un usuario suspendido', async () => {
-            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ id: 1, estado_usuario: 'Suspendido' });
+        test('limpia campos de ausencia al volver a Activo', async () => {
+            personalRepositoryMock.getPersonaById.mockResolvedValue({ id: 1, estado_laboral: 'Incapacitado' });
 
-            await personalService.reactivateUser(1, 99, 'Reactivación');
+            await personalService.updateStaff(1, { estado_laboral: 'Activo' }, 99);
 
-            expect(personalRepositoryMock.updateUserStatus).toHaveBeenCalledWith(1, 'Activo', 99, 'Reactivación');
-            expect(auditServiceMock.logChange).toHaveBeenCalledWith(expect.objectContaining({
-                accion: 'REACTIVACION_USUARIO'
+            expect(personalRepositoryMock.updatePersona).toHaveBeenCalledWith(1, expect.objectContaining({
+                estado_laboral: 'Activo',
+                ausencia_desde: null,
+                ausencia_hasta: null,
+                tipo_ausencia: null,
+                motivo_ausencia: null
             }));
         });
     });
 
     describe('assignOperation', () => {
-        test('bloquea asignación si el usuario no está Activo', async () => {
-            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ persona_id: 1, estado_usuario: 'Suspendido' });
+        test('bloquea asignación si el colaborador no está Activo', async () => {
+            personalRepositoryMock.getPersonaById.mockResolvedValue({ id: 1, estado_laboral: 'Incapacitado' });
 
             await expect(personalService.assignOperation({ persona_id: 1, turno: 'Mañana' }, 99))
                 .rejects.toThrow(/Asignación bloqueada/);
         });
 
-        test('permite asignación si el usuario está Activo', async () => {
-            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ persona_id: 1, username: 'operario1', estado_usuario: 'Activo' });
+        test('permite asignación si el colaborador está Activo', async () => {
+            personalRepositoryMock.getPersonaById.mockResolvedValue({ id: 1, estado_laboral: 'Activo' });
+            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ id: 10, username: 'operario1' });
 
             await personalService.assignOperation({ persona_id: 1, turno: 'Mañana' }, 99);
 
             expect(personalRepositoryMock.assignOperation).toHaveBeenCalled();
         });
-
-        test('bloquea asignación si el usuario es admin técnico', async () => {
-            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ persona_id: 1, username: 'admin', estado_usuario: 'Activo' });
-
-            await expect(personalService.assignOperation({ persona_id: 1, turno: 'Mañana' }, 99))
-                .rejects.toThrow(/Excepción Técnica/);
-        });
     });
 
     describe('assignRole', () => {
-        test('realiza auditoría reforzada al cambiar rol', async () => {
-            personalRepositoryMock.getPersonaById.mockResolvedValue({ id: 1, rol_actual: 'Operario' });
+        test('bloquea cambio de rol si está de Baja', async () => {
+            personalRepositoryMock.getPersonaById.mockResolvedValue({ id: 1, estado_laboral: 'Baja' });
 
-            await personalService.assignRole(1, 2, 99, 'Ascenso a Supervisor');
+            await expect(personalService.assignRole(1, 2, 99, 'Cambio'))
+                .rejects.toThrow(/Estado terminal/);
+        });
 
-            expect(personalRepositoryMock.updateUserRole).toHaveBeenCalledWith(1, 2, 99, 'Ascenso a Supervisor');
+        test('realiza auditoría al cambiar rol', async () => {
+            personalRepositoryMock.getPersonaById.mockResolvedValue({ id: 1, estado_laboral: 'Activo', rol_actual: 'Operario' });
+
+            await personalService.assignRole(1, 2, 99, 'Ascenso');
+
+            expect(personalRepositoryMock.updateUserRole).toHaveBeenCalledWith(1, 2, 99, 'Ascenso');
+            expect(auditServiceMock.logChange).toHaveBeenCalled();
+        });
+    });
+
+    describe('resetPassword', () => {
+        test('genera nueva contraseña temporal', async () => {
+            personalRepositoryMock.getPersonaById.mockResolvedValue({ id: 1 });
+            personalRepositoryMock.findUserByPersonaId.mockResolvedValue({ id: 10, username: 'user1' });
+
+            const result = await personalService.resetPassword(1, 99);
+
+            expect(personalRepositoryMock.resetPassword).toHaveBeenCalled();
+            expect(result).toHaveProperty('tempPassword');
             expect(auditServiceMock.logChange).toHaveBeenCalledWith(expect.objectContaining({
-                accion: 'ROLE_CHANGE',
-                motivo_cambio: 'Ascenso a Supervisor'
+                accion: 'PASSWORD_RESET'
             }));
         });
     });

@@ -23,8 +23,7 @@ router.get('/:id', authorize(PERMISSIONS.VIEW_STAFF), (req, res, next) => person
 router.post('/', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => personalController.registerStaff(req, res, next));
 router.put('/:id', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => personalController.updateStaff(req, res, next));
 router.post('/:id/rol', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => personalController.assignRole(req, res, next));
-router.put('/:id/estado', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => personalController.updateStatus(req, res, next));
-router.put('/:id/reactivar', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => personalController.reactivateUser(req, res, next));
+router.put('/:id/reset-password', authorize(PERMISSIONS.MANAGE_STAFF), (req, res, next) => personalController.resetPassword(req, res, next));
 
 // Asignaciones operativas pueden ser hechas por quienes tengan el permiso ASSIGN_OPERATIONS
 router.post('/:id/asignacion', authorize(PERMISSIONS.ASSIGN_OPERATIONS), (req, res, next) => personalController.assignOperation(req, res, next));

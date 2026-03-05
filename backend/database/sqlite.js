@@ -39,9 +39,10 @@ const initDB = () => {
       db.all("PRAGMA table_info(personas)", (err, columns) => {
         const hasTipoPersonal = columns.some(c => c.name === 'tipo_personal');
         const hasRolOrg = columns.some(c => c.name === 'rol_organizacional');
+        const hasAusencia = columns.some(c => c.name === 'ausencia_desde');
 
-        if (hasTipoPersonal || !hasRolOrg) {
-          logger.info("Migrando tabla personas para rediseño de dominio...");
+        if (hasTipoPersonal || !hasRolOrg || !hasAusencia) {
+          logger.info("Migrando tabla personas para rediseño de dominio y gestión de ausencias...");
           db.serialize(() => {
             db.run("BEGIN TRANSACTION");
             db.run(`CREATE TABLE personas_new (
@@ -53,8 +54,12 @@ const initDB = () => {
                 email TEXT UNIQUE NOT NULL,
                 telefono TEXT,
                 fecha_ingreso DATE,
-                estado_laboral TEXT CHECK(estado_laboral IN ('Activo', 'Inactivo', 'Baja')) DEFAULT 'Activo',
+                estado_laboral TEXT CHECK(estado_laboral IN ('Activo', 'Incapacitado', 'Inactivo', 'Baja')) DEFAULT 'Activo',
                 rol_organizacional TEXT,
+                ausencia_desde DATE,
+                ausencia_hasta DATE,
+                tipo_ausencia TEXT CHECK(tipo_ausencia IN ('Incapacidad', 'Permiso')),
+                motivo_ausencia TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 created_by TEXT,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -63,13 +68,12 @@ const initDB = () => {
                 FOREIGN KEY (area_id) REFERENCES areas(id)
             )`);
 
-            db.run(`INSERT INTO personas_new (
-                id, nombre, apellido, codigo_interno, area_id, email, telefono,
-                fecha_ingreso, estado_laboral, created_at, created_by, updated_at, updated_by, motivo_cambio
-            ) SELECT
-                id, nombre, apellido, codigo_interno, area_id, email, telefono,
-                fecha_ingreso, estado_laboral, created_at, created_by, updated_at, updated_by, motivo_cambio
-            FROM personas`);
+            const colsToCopy = ['id', 'nombre', 'apellido', 'codigo_interno', 'area_id', 'email', 'telefono', 'fecha_ingreso', 'estado_laboral', 'rol_organizacional', 'created_at', 'created_by', 'updated_at', 'updated_by', 'motivo_cambio'];
+            const existingCols = columns.map(c => c.name);
+            const commonCols = colsToCopy.filter(c => existingCols.includes(c));
+
+            db.run(`INSERT INTO personas_new (${commonCols.join(', ')})
+                    SELECT ${commonCols.join(', ')} FROM personas`);
 
             db.run("DROP TABLE personas");
             db.run("ALTER TABLE personas_new RENAME TO personas");
@@ -99,14 +103,15 @@ const initDB = () => {
             runFullSchema();
           });
         }
-        // Caso 2: Tabla tiene persona_id pero es NOT NULL o falta rol_id (Migración de dominio)
-        else if ((personaIdCol && personaIdCol.notnull === 1) || !hasRolId) {
-          logger.info("Migrando tabla usuarios para soportar nuevo dominio (persona_id NULL y rol_id)...");
+        // Caso 2: Tabla tiene persona_id pero es NOT NULL o falta rol_id o tiene CHECK en estado_usuario (Migración de dominio)
+        else if ((personaIdCol && personaIdCol.notnull === 1) || !hasRolId || columns.some(c => c.name === 'estado_usuario' && c.dflt_value && c.dflt_value.includes('CHECK'))) {
+          // Nota: SQLite no muestra fácilmente si hay un CHECK en table_info, pero recreamos para asegurar limpieza de estados paralelos.
+          logger.info("Migrando tabla usuarios para soportar nuevo dominio y unificación de estados...");
 
           db.serialize(() => {
             db.run("BEGIN TRANSACTION");
 
-            // 1. Crear tabla temporal con el esquema correcto
+            // 1. Crear tabla temporal con el esquema correcto (sin CHECK en estado_usuario)
             db.run(`CREATE TABLE usuarios_new (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 persona_id INTEGER UNIQUE,
@@ -117,7 +122,7 @@ const initDB = () => {
                 intentos_fallidos INTEGER DEFAULT 0,
                 bloqueado_at DATETIME,
                 bloqueado_por INTEGER,
-                estado_usuario TEXT CHECK(estado_usuario IN ('Activo', 'Suspendido', 'Bloqueado', 'Baja lógica')) DEFAULT 'Activo',
+                estado_usuario TEXT DEFAULT 'Activo',
                 must_change_password BOOLEAN DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 created_by TEXT,
@@ -133,11 +138,11 @@ const initDB = () => {
             db.run(`INSERT INTO usuarios_new (
                 id, persona_id, username, password_hash, password_last_changed_at,
                 intentos_fallidos, bloqueado_at, bloqueado_por, estado_usuario,
-                must_change_password, created_at, created_by, updated_at, updated_by, motivo_cambio
+                must_change_password, created_at, created_by, updated_at, updated_by, motivo_cambio, rol_id
             ) SELECT
                 id, persona_id, username, password_hash, password_last_changed_at,
                 intentos_fallidos, bloqueado_at, bloqueado_por, estado_usuario,
-                must_change_password, created_at, created_by, updated_at, updated_by, motivo_cambio
+                must_change_password, created_at, created_by, updated_at, updated_by, motivo_cambio, rol_id
             FROM usuarios`);
 
             // 3. Intercambiar tablas
@@ -1021,8 +1026,12 @@ const runFullSchema = () => {
         email TEXT UNIQUE NOT NULL,
         telefono TEXT,
         fecha_ingreso DATE,
-        estado_laboral TEXT CHECK(estado_laboral IN ('Activo', 'Inactivo', 'Baja')) DEFAULT 'Activo',
+        estado_laboral TEXT CHECK(estado_laboral IN ('Activo', 'Incapacitado', 'Inactivo', 'Baja')) DEFAULT 'Activo',
         rol_organizacional TEXT,
+        ausencia_desde DATE,
+        ausencia_hasta DATE,
+        tipo_ausencia TEXT CHECK(tipo_ausencia IN ('Incapacidad', 'Permiso')),
+        motivo_ausencia TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         created_by TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -1041,7 +1050,7 @@ const runFullSchema = () => {
         intentos_fallidos INTEGER DEFAULT 0,
         bloqueado_at DATETIME,
         bloqueado_por INTEGER,
-        estado_usuario TEXT CHECK(estado_usuario IN ('Activo', 'Suspendido', 'Bloqueado', 'Baja lógica')) DEFAULT 'Activo',
+        estado_usuario TEXT DEFAULT 'Activo',
         must_change_password BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         created_by TEXT,

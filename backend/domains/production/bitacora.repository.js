@@ -116,7 +116,6 @@ class BitacoraRepository {
       JOIN roles r ON u.rol_id = r.id
       WHERE r.nombre IN (${rolesConPermiso.map(r => `'${r}'`).join(',')})
       AND p.estado_laboral = 'Activo'
-      AND u.estado_usuario = 'Activo'
     `;
     // Nota: El admin técnico está excluido al no tener Persona asociada.
     return await this.db.query(sql);
