@@ -7,11 +7,11 @@ class PersonalRepository {
 
   async getAllPersonas() {
     const sql = `
-      SELECT p.*, a.nombre as area_nombre, r.nombre as rol_actual, u.estado_usuario,
+      SELECT p.*, a.nombre as area_nombre, r.nombre as rol_actual, u.username,
              (SELECT 1 FROM persona_roles_operativos pro
               JOIN roles_operativos ro ON pro.rol_operativo_id = ro.id
               WHERE pro.persona_id = p.id AND pro.fecha_hasta IS NULL AND ro.nombre = 'Auxiliar'
-              LIMIT 1) AND (u.estado_usuario = 'Activo') as es_auxiliar_activo
+              LIMIT 1) AND (p.estado_laboral = 'Activo') as es_auxiliar_activo
       FROM personas p
       JOIN areas a ON p.area_id = a.id
       LEFT JOIN usuarios u ON p.id = u.persona_id
@@ -22,7 +22,7 @@ class PersonalRepository {
 
   async getPersonaById(id) {
     const sql = `
-      SELECT p.*, a.nombre as area_nombre, r.id as rol_id, r.nombre as rol_actual, u.estado_usuario, u.username
+      SELECT p.*, a.nombre as area_nombre, r.id as rol_id, r.nombre as rol_actual, u.username
       FROM personas p
       JOIN areas a ON p.area_id = a.id
       LEFT JOIN usuarios u ON p.id = u.persona_id
@@ -53,7 +53,7 @@ class PersonalRepository {
     const fields = [];
     const params = [];
 
-    const allowedFields = ['nombre', 'apellido', 'email', 'telefono', 'area_id', 'rol_organizacional', 'estado_laboral', 'updated_by', 'motivo_cambio'];
+    const allowedFields = ['nombre', 'apellido', 'email', 'telefono', 'area_id', 'rol_organizacional', 'estado_laboral', 'updated_by', 'motivo_cambio', 'ausencia_desde', 'ausencia_hasta', 'tipo_ausencia', 'motivo_ausencia'];
 
     Object.keys(updateData).forEach(key => {
       if (allowedFields.includes(key)) {
@@ -77,14 +77,16 @@ class PersonalRepository {
     return await this.db.get('SELECT * FROM usuarios WHERE id = ?', [userId]);
   }
 
-  async updateUserStatus(userId, status, updaterId, reason, tx) {
-    const db = tx || this.db;
+  async resetPassword(personaId, passwordHash, updaterId) {
     const sql = `
       UPDATE usuarios
-      SET estado_usuario = ?, updated_by = ?, motivo_cambio = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
+      SET password_hash = ?,
+          must_change_password = 1,
+          updated_by = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE persona_id = ?
     `;
-    return await this.db.run(sql, [status, updaterId, reason, userId]);
+    return await this.db.run(sql, [passwordHash, updaterId, personaId]);
   }
 
   async updateUserRole(personaId, roleId, updaterId, reason, tx) {
@@ -213,11 +215,10 @@ class PersonalRepository {
     const sql = `
       SELECT 1 as is_auxiliar
       FROM personas p
-      JOIN usuarios u ON p.id = u.persona_id
       JOIN persona_roles_operativos pro ON p.id = pro.persona_id
       JOIN roles_operativos ro ON pro.rol_operativo_id = ro.id
       WHERE p.id = ?
-      AND u.estado_usuario = 'Activo'
+      AND p.estado_laboral = 'Activo'
       AND pro.fecha_hasta IS NULL
       AND ro.nombre = 'Auxiliar'
       LIMIT 1

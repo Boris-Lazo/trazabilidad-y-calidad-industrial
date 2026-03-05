@@ -195,6 +195,11 @@ const PersonalModule = {
             const isAuxActive = p.es_auxiliar_activo;
             const rowStyle = isAuxActive ? 'background-color: rgba(30, 64, 175, 0.05); border-left: 4px solid var(--primary-base);' : '';
 
+            let badgeClass = 'badge-secondary';
+            if (p.estado_efectivo === 'Activo') badgeClass = 'badge-success';
+            if (p.estado_laboral === 'Baja') badgeClass = 'badge-danger';
+            if (p.estado_laboral === 'Incapacitado') badgeClass = 'badge-warning';
+
             return `
             <tr style="${rowStyle}" data-staff-id="${p.id}">
                 <td>
@@ -205,7 +210,22 @@ const PersonalModule = {
                 <td>${p.area_nombre}</td>
                 <td><span class="badge badge-info">${p.rol_organizacional || 'Sin Rol'}</span></td>
                 <td>
-                    ${this._renderEstadoBadge(p)}
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span class="badge ${badgeClass}">
+                            ${p.estado_laboral.toUpperCase()}
+                        </span>
+                        ${p.ausencia_vencida ? '<span class="badge badge-error" style="font-size:10px;">VENCIDA</span>' : ''}
+                    </div>
+                </td>
+                <td>
+                    ${p.username ? `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="badge badge-success">ACTIVO</span>
+                        ${canManage && p.estado_laboral !== 'Baja' ? `
+                        <button class="btn btn-secondary btn-sm btn-reset-psw" title="Reiniciar Contraseña">
+                            <i data-lucide="key" style="width:14px; height:14px;"></i>
+                        </button>` : ''}
+                    </div>` : '<span class="text-secondary" style="font-size:12px;">Sin Acceso</span>'}
                 </td>
                 <td>
                     <div style="display: flex; gap: 8px;">
@@ -227,6 +247,14 @@ const PersonalModule = {
     setupRowEventListeners() {
         document.querySelectorAll('#lista-personal tr[data-staff-id]').forEach(row => {
             const staffId = parseInt(row.dataset.staffId);
+            const staffMember = this.staff.find(p => p.id === staffId);
+
+            const resetBtn = row.querySelector('.btn-reset-psw');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                    this.openResetModal(staffId, `${staffMember.nombre} ${staffMember.apellido}`);
+                });
+            }
 
             const editBtn = row.querySelector('.btn-edit');
             if (editBtn) {
@@ -276,11 +304,23 @@ const PersonalModule = {
         const btnSaveAsig = document.getElementById('btn-save-assignment');
         if (btnSaveAsig) btnSaveAsig.addEventListener('click', () => this.saveAssignment());
 
-        document.getElementById('p-estado').addEventListener('change', (e) => this._toggleAusenciaFields(e.target.value));
+        document.getElementById('btn-confirm-reset').addEventListener('click', () => this.executePasswordReset());
 
-        const btnResetDetalle = document.getElementById('btn-reset-desde-detalle');
-        if (btnResetDetalle) {
-            btnResetDetalle.addEventListener('click', () => this.openResetModal(this.currentStaffId));
+        const pEstado = document.getElementById('p-estado');
+        if (pEstado) {
+            pEstado.addEventListener('change', (e) => {
+                const absenceFields = document.getElementById('absence-fields');
+                const val = e.target.value;
+                if (['Incapacitado', 'Inactivo', 'Baja'].includes(val)) {
+                    absenceFields.style.display = 'block';
+                    document.getElementById('p-abs-tipo').value = val === 'Incapacitado' ? 'Incapacidad' : (val === 'Inactivo' ? 'Permiso' : '');
+
+                    // Ajustar obligatoriedad de campos visualmente
+                    document.getElementById('p-abs-hasta').disabled = (val === 'Baja');
+                } else {
+                    absenceFields.style.display = 'none';
+                }
+            });
         }
 
         document.getElementById('btn-confirm-reset').addEventListener('click', () => this.confirmReset());
@@ -318,6 +358,8 @@ const PersonalModule = {
         // Event listeners for modal close buttons
         document.getElementById('btn-close-personal').addEventListener('click', () => this.closeModal());
         document.getElementById('btn-cancel-personal').addEventListener('click', () => this.closeModal());
+        document.getElementById('btn-close-reset').addEventListener('click', () => this.closeResetModal());
+        document.getElementById('btn-cancel-reset').addEventListener('click', () => this.closeResetModal());
         document.getElementById('btn-close-detail').addEventListener('click', () => this.closeDetailModal());
         document.getElementById('btn-cancel-detail').addEventListener('click', () => this.closeDetailModal());
         document.getElementById('btn-close-assignment').addEventListener('click', () => this.closeAssignmentModal());
@@ -349,16 +391,22 @@ const PersonalModule = {
             document.getElementById('p-fecha-ingreso').value = p.fecha_ingreso;
             document.getElementById('p-telefono').value = p.telefono || '';
             document.getElementById('p-estado').value = p.estado_laboral;
-            this._toggleAusenciaFields(p.estado_laboral);
 
-            if (p.ausencia_desde) {
-                document.getElementById('p-ausencia-desde').value = p.ausencia_desde || '';
-                document.getElementById('p-ausencia-hasta').value = p.ausencia_hasta || '';
-                document.getElementById('p-tipo-ausencia').value = p.tipo_ausencia || 'Incapacidad';
-                document.getElementById('p-ausencia-desde-baja').value = p.ausencia_desde || '';
+            // Cargar datos de ausencia si existen
+            document.getElementById('p-abs-desde').value = p.ausencia_desde || '';
+            document.getElementById('p-abs-hasta').value = p.ausencia_hasta || '';
+            document.getElementById('p-abs-motivo').value = p.motivo_ausencia || '';
+            document.getElementById('p-abs-tipo').value = p.tipo_ausencia || '';
+
+            if (['Incapacitado', 'Inactivo', 'Baja'].includes(p.estado_laboral)) {
+                document.getElementById('absence-fields').style.display = 'block';
+                document.getElementById('p-abs-hasta').disabled = (p.estado_laboral === 'Baja');
+            } else {
+                document.getElementById('absence-fields').style.display = 'none';
             }
 
             document.getElementById('p-categoria').value = '';
+            document.getElementById('p-motivo').value = '';
 
             codigoInput.disabled = true;
             editFields.style.display = 'block';
@@ -395,7 +443,11 @@ const PersonalModule = {
                 email: data.email,
                 telefono: data.telefono,
                 rol_organizacional: document.getElementById('p-rol-org').value,
-                estado_laboral: estadoNuevo,
+                estado_laboral: document.getElementById('p-estado').value,
+                ausencia_desde: document.getElementById('p-abs-desde').value || null,
+                ausencia_hasta: document.getElementById('p-abs-hasta').value || null,
+                tipo_ausencia: document.getElementById('p-abs-tipo').value || null,
+                motivo_ausencia: document.getElementById('p-abs-motivo').value || null,
                 motivo_cambio: document.getElementById('p-motivo').value,
                 categoria_motivo: document.getElementById('p-categoria').value
             };
@@ -580,77 +632,11 @@ const PersonalModule = {
         document.getElementById('modal-detalle').style.display = 'none';
     },
 
-    _renderEstadoBadge(p) {
-        const estado = p.estado_laboral;
-        if (estado === 'Activo') {
-            return `<span class="badge badge-success">ACTIVO</span>`;
-        }
-
-        if (estado === 'Incapacitado') {
-            if (p.ausencia_vencida === true) {
-                return `
-                    <span class="badge badge-warning">INCAPACITADO</span>
-                    <br>
-                    <small style="color:var(--warning);">⚠ Vencida el ${this.formatDate(p.ausencia_hasta)}</small>
-                `;
-            } else {
-                return `
-                    <span class="badge badge-warning">INCAPACITADO</span>
-                    <br>
-                    <small class="text-secondary">Hasta ${this.formatDate(p.ausencia_hasta)}</small>
-                `;
-            }
-        }
-
-        if (estado === 'Inactivo') {
-            if (p.ausencia_vencida === true) {
-                return `
-                    <span class="badge badge-secondary">INACTIVO</span>
-                    <br>
-                    <small style="color:var(--warning);">⚠ Vencida el ${this.formatDate(p.ausencia_hasta)}</small>
-                `;
-            } else {
-                return `
-                    <span class="badge badge-secondary">INACTIVO</span>
-                    <br>
-                    <small class="text-secondary">Hasta ${this.formatDate(p.ausencia_hasta)}</small>
-                `;
-            }
-        }
-
-        if (estado === 'Baja') {
-            return `
-                <span class="badge badge-danger">BAJA</span>
-                <br>
-                <small class="text-secondary">Desde ${this.formatDate(p.ausencia_desde)}</small>
-            `;
-        }
-        return `<span class="badge badge-secondary">${estado ? estado.toUpperCase() : '-'}</span>`;
-    },
-
-    _toggleAusenciaFields(estado) {
-        const bloqueAusencia = document.getElementById('bloque-ausencia');
-        const bloqueBaja = document.getElementById('bloque-baja');
-        const bajaWarning = document.getElementById('baja-warning');
-
-        if (bloqueAusencia) bloqueAusencia.style.display = ['Incapacitado', 'Inactivo'].includes(estado) ? 'block' : 'none';
-        if (bloqueBaja) bloqueBaja.style.display = estado === 'Baja' ? 'block' : 'none';
-        if (bajaWarning) bajaWarning.style.display = estado === 'Baja' ? 'block' : 'none';
-
-        // Ajustar tipo_ausencia según estado
-        const tipoSelect = document.getElementById('p-tipo-ausencia');
-        if (tipoSelect) {
-            if (estado === 'Incapacitado') tipoSelect.value = 'Incapacidad';
-            else if (estado === 'Inactivo') tipoSelect.value = 'Permiso';
-        }
-    },
-
-    openResetModal(id) {
+    openResetModal(id, name) {
         this.currentStaffId = id;
-        const p = this.staff.find(s => s.id === id);
-        document.getElementById('reset-target-name').textContent = p ? `Colaborador: ${p.nombre} ${p.apellido}` : '';
+        document.getElementById('reset-target-name').textContent = `Colaborador: ${name}`;
         document.getElementById('reset-result').style.display = 'none';
-        document.getElementById('reset-modal-footer').style.display = 'flex';
+        document.getElementById('btn-confirm-reset').style.display = 'block';
         document.getElementById('modal-reset-password').style.display = 'flex';
     },
 
@@ -658,18 +644,20 @@ const PersonalModule = {
         document.getElementById('modal-reset-password').style.display = 'none';
     },
 
-    async confirmReset() {
+    async executePasswordReset() {
+        const id = this.currentStaffId;
         try {
             DesignSystem.setBtnLoading(document.getElementById('btn-confirm-reset'), true);
-            const res = await fetch(`/api/personal/${this.currentStaffId}/reset-password`, {
+            const res = await fetch(`/api/personal/${id}/reset-password`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' }
             });
             const result = await res.json();
             if (result.success) {
-                document.getElementById('reset-temp-password').textContent = result.data.tempPassword;
+                document.getElementById('temp-password-display').textContent = result.data.tempPassword;
                 document.getElementById('reset-result').style.display = 'block';
-                document.getElementById('reset-modal-footer').style.display = 'none';
+                document.getElementById('btn-confirm-reset').style.display = 'none';
+                DesignSystem.showToast('Contraseña reiniciada con éxito');
             } else {
                 DesignSystem.showToast(result.error, 'error');
             }

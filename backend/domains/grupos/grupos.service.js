@@ -8,15 +8,7 @@ class GruposService {
   }
 
   async _checkAndDeactivateAuxiliar(personaId, assignerId, reason) {
-    const isAuxiliarConAcceso = await this.personalRepository.isAuxiliarWithActiveUser(personaId);
-    if (isAuxiliarConAcceso) {
-      const user = await this.personalRepository.findUserByPersonaId(personaId);
-      if (user) {
-        const deactivationReason = `Desactivación automática por cambio en asignación/rol de Auxiliar: ${reason}`;
-        await this.personalRepository.updateUserStatus(user.id, 'Suspendido', assignerId, deactivationReason);
-        await this.auditService.logStatusChange(assignerId, 'Usuario', user.id, 'Activo', 'Suspendido', deactivationReason, 'AJUSTE_OPERATIVO');
-      }
-    }
+    // Método conservado para integridad de firma pero vaciado según requerimiento de eliminar suspensión automática
   }
 
   async getGrupos() {
@@ -62,9 +54,8 @@ class GruposService {
     if (!persona) throw new ValidationError('Persona no encontrada');
 
     // Validar estado terminal
-    const user = await this.personalRepository.findUserByPersonaId(personaId);
-    if (user && user.estado_usuario === 'Baja lógica') {
-        throw new ValidationError('No se puede asignar a un colaborador con Baja lógica');
+    if (persona && persona.estado_laboral === 'Baja') {
+        throw new ValidationError('No se puede asignar a un colaborador dado de Baja');
     }
 
     // Regla: Administrativos no en grupos operativos, y viceversa

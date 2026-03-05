@@ -32,9 +32,19 @@ class AuthService {
     const user = await this.authRepository.findByUsername(username);
 
     if (user) {
-        if (user.estado_usuario !== 'Activo') {
+        if (user.persona_id) {
+            const persona = await this.authRepository.getPersonaById(user.persona_id);
+            if (persona && persona.estado_laboral === 'Baja') {
+                throw new UnauthorizedError('Acceso denegado: cuenta dada de baja.');
+            }
+            if (persona && ['Incapacitado', 'Inactivo'].includes(persona.estado_laboral)) {
+                throw new UnauthorizedError('Acceso denegado: colaborador con ausencia activa.');
+            }
+        } else if (user.estado_usuario !== 'Activo') {
+            // Verificación legacy para admin técnico sin persona_id
             throw new UnauthorizedError(`Acceso denegado: Cuenta en estado ${user.estado_usuario}`);
         }
+
         if (user.bloqueado_at) {
             // Podríamos implementar lógica de desbloqueo por tiempo aquí si fuera necesario
             throw new UnauthorizedError('Cuenta bloqueada por seguridad. Contacte al administrador.');

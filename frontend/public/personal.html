@@ -142,7 +142,8 @@
                                     <th class="sortable" data-sort-key="nombre">Nombre Completo</th>
                                     <th>Área</th>
                                     <th>Rol</th>
-                                    <th>Estado</th>
+                                    <th>Estado Laboral</th>
+                                    <th class="col-usuario">Acceso (Psw)</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -217,49 +218,41 @@
                             <select id="p-estado" class="form-control">
                                 <option value="Activo">Activo</option>
                                 <option value="Incapacitado">Incapacitado</option>
-                                <option value="Inactivo">Inactivo</option>
-                                <option value="Baja">Baja (salida definitiva)</option>
+                                <option value="Inactivo">Inactivo (Permiso)</option>
+                                <option value="Baja">Baja</option>
                             </select>
                         </div>
 
-                        <div id="bloque-ausencia" style="display:none;">
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                        <div id="absence-fields" style="display: none; border: 1px dashed var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                                 <div class="form-group">
                                     <label class="form-label">Desde</label>
-                                    <input type="date" id="p-ausencia-desde" class="form-control">
+                                    <input type="date" id="p-abs-desde" class="form-control">
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Hasta</label>
-                                    <input type="date" id="p-ausencia-hasta" class="form-control">
+                                    <input type="date" id="p-abs-hasta" class="form-control">
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Tipo</label>
-                                <select id="p-tipo-ausencia" class="form-control">
-                                    <option value="Incapacidad">Incapacidad médica</option>
-                                    <option value="Permiso">Permiso</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div id="bloque-baja" style="display:none;">
-                            <div class="form-group">
-                                <label class="form-label">Fecha de Salida</label>
-                                <input type="date" id="p-ausencia-desde-baja" class="form-control">
+                                <label class="form-label">Tipo / Motivo Ausencia</label>
+                                <input type="text" id="p-abs-motivo" class="form-control" placeholder="Especifique el motivo de la ausencia...">
+                                <input type="hidden" id="p-abs-tipo">
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">Categoría de Motivo</label>
+                            <label class="form-label">Categoría de Cambio (Auditoría)</label>
                             <select id="p-categoria" class="form-control">
                                 <option value="">Seleccione categoría...</option>
                                 <option value="CORRECCION_HISTORICA">Corrección Histórica</option>
                                 <option value="AJUSTE_OPERATIVO">Ajuste Operativo</option>
+                                <option value="LICENCIA_O_PERMISO">Licencia o Permiso</option>
                                 <option value="ERROR_CAPTURA">Error de Captura</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Motivo del Cambio (Obligatorio)</label>
+                            <label class="form-label">Observaciones del Cambio (Obligatorio)</label>
                             <textarea id="p-motivo" class="form-control" rows="2"></textarea>
                         </div>
 
@@ -272,6 +265,34 @@
             <div class="modal-footer">
                 <button type="button" id="btn-cancel-personal" class="btn btn-secondary">Cancelar</button>
                 <button type="button" id="btn-save-personal" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Reset de Password -->
+    <div id="modal-reset-password" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Reiniciar Contraseña</h2>
+                <button id="btn-close-reset" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="reset-target-name" style="font-weight: 600; margin-bottom: 12px;"></p>
+                <p>Esta acción generará una nueva contraseña temporal para el colaborador.</p>
+
+                <div id="reset-result" class="card p-3 mb-3 text-center" style="display: none; background: var(--primary-light); border: 2px dashed var(--primary-base);">
+                    <small>Nueva contraseña temporal:</small>
+                    <div id="temp-password-display" style="font-size: 1.5rem; font-weight: 700; color: var(--primary-base); margin: 8px 0;"></div>
+                    <small class="text-secondary">Visible una sola vez. Favor de entregarla al colaborador.</small>
+                </div>
+
+                <div id="reset-warning" class="badge badge-warning w-100" style="white-space: normal; text-align: left; padding: 10px;">
+                    <i data-lucide="alert-triangle" class="inline-icon"></i> Se le solicitará al colaborador cambiarla en su próximo ingreso.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btn-cancel-reset" class="btn btn-secondary">Cerrar</button>
+                <button type="button" id="btn-confirm-reset" class="btn btn-primary">Generar Nueva Contraseña</button>
             </div>
         </div>
     </div>

@@ -11,7 +11,8 @@ describe('AuthService', () => {
             getSystemStatus: jest.fn().mockResolvedValue('INICIALIZADO'),
             findByUsername: jest.fn(),
             updateLoginAttempts: jest.fn(),
-            resetLoginAttempts: jest.fn()
+            resetLoginAttempts: jest.fn(),
+            getPersonaById: jest.fn()
         };
         tokenServiceMock = {
             generateAccessToken: jest.fn()
@@ -31,6 +32,7 @@ describe('AuthService', () => {
             estado_usuario: 'Activo'
         };
         authRepositoryMock.findByUsername.mockResolvedValue(user);
+        authRepositoryMock.getPersonaById.mockResolvedValue({ estado_laboral: 'Activo' });
 
         // Mock de bcrypt.compare se maneja implícitamente si usamos contraseñas reales,
         // pero aquí mockeamos AuthService que usa bcrypt.

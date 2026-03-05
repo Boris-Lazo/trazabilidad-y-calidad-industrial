@@ -42,6 +42,11 @@ class AuthRepository {
     return await this.db.run(sql, [userId]);
   }
 
+  async getPersonaById(id) {
+    const sql = 'SELECT estado_laboral FROM personas WHERE id = ?';
+    return await this.db.get(sql, [id]);
+  }
+
   async updatePassword(userId, passwordHash) {
     const sql = `
       UPDATE usuarios
