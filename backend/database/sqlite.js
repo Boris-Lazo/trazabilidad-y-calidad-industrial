@@ -40,8 +40,11 @@ const initDB = () => {
         const hasTipoPersonal = columns.some(c => c.name === 'tipo_personal');
         const hasRolOrg = columns.some(c => c.name === 'rol_organizacional');
         const hasAusencia = columns.some(c => c.name === 'ausencia_desde');
+        const areaIdCol = columns.find(c => c.name === 'area_id');
+        const emailCol = columns.find(c => c.name === 'email');
+        const hasStrictConstraints = (areaIdCol && areaIdCol.notnull === 1) || (emailCol && emailCol.notnull === 1);
 
-        if (hasTipoPersonal || !hasRolOrg || !hasAusencia) {
+        if (hasTipoPersonal || !hasRolOrg || !hasAusencia || hasStrictConstraints) {
           logger.info("Migrando tabla personas para rediseño de dominio y gestión de ausencias...");
           db.serialize(() => {
             db.run("BEGIN TRANSACTION");
@@ -50,8 +53,8 @@ const initDB = () => {
                 nombre TEXT NOT NULL,
                 apellido TEXT NOT NULL,
                 codigo_interno TEXT UNIQUE NOT NULL,
-                area_id INTEGER NOT NULL,
-                email TEXT UNIQUE NOT NULL,
+                area_id INTEGER,
+                email TEXT UNIQUE,
                 telefono TEXT,
                 fecha_ingreso DATE,
                 estado_laboral TEXT CHECK(estado_laboral IN ('Activo', 'Incapacitado', 'Inactivo', 'Baja')) DEFAULT 'Activo',
@@ -68,7 +71,7 @@ const initDB = () => {
                 FOREIGN KEY (area_id) REFERENCES areas(id)
             )`);
 
-            const colsToCopy = ['id', 'nombre', 'apellido', 'codigo_interno', 'area_id', 'email', 'telefono', 'fecha_ingreso', 'estado_laboral', 'rol_organizacional', 'created_at', 'created_by', 'updated_at', 'updated_by', 'motivo_cambio'];
+            const colsToCopy = ['id', 'nombre', 'apellido', 'codigo_interno', 'area_id', 'email', 'telefono', 'fecha_ingreso', 'estado_laboral', 'rol_organizacional', 'ausencia_desde', 'ausencia_hasta', 'tipo_ausencia', 'motivo_ausencia', 'created_at', 'created_by', 'updated_at', 'updated_by', 'motivo_cambio'];
             const existingCols = columns.map(c => c.name);
             const commonCols = colsToCopy.filter(c => existingCols.includes(c));
 
@@ -1022,8 +1025,8 @@ const runFullSchema = () => {
         nombre TEXT NOT NULL,
         apellido TEXT NOT NULL,
         codigo_interno TEXT UNIQUE NOT NULL,
-        area_id INTEGER NOT NULL,
-        email TEXT UNIQUE NOT NULL,
+        area_id INTEGER,
+        email TEXT UNIQUE,
         telefono TEXT,
         fecha_ingreso DATE,
         estado_laboral TEXT CHECK(estado_laboral IN ('Activo', 'Incapacitado', 'Inactivo', 'Baja')) DEFAULT 'Activo',

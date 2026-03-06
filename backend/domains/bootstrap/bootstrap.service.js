@@ -35,7 +35,7 @@ class BootstrapService {
     }
 
     // Validaciones básicas
-    const requiredFields = ['nombre', 'apellido', 'codigo_interno', 'area_id', 'email', 'password'];
+    const requiredFields = ['nombre', 'apellido', 'codigo_interno', 'password'];
     for (const field of requiredFields) {
       if (!data[field]) {
         throw new ValidationError(`El campo ${field} es obligatorio.`);
@@ -55,10 +55,7 @@ class BootstrapService {
         {
           nombre: data.nombre,
           apellido: data.apellido,
-          codigo_interno: data.codigo_interno,
-          area_id: data.area_id,
-          email: data.email,
-          telefono: data.telefono
+          codigo_interno: data.codigo_interno
         },
         {
           username: data.codigo_interno,

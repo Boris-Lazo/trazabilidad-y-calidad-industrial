@@ -36,7 +36,28 @@ class PersonalService {
 
   async getAllStaff() {
     const staff = await this.personalRepository.getAllPersonas();
-    return staff.map(p => this._enrichEstado(p));
+    const enriched = staff.map(p => this._enrichEstado(p));
+
+    // Auto-actualizar en BD los que vencieron
+    const vencidos = enriched.filter(p => p.ausencia_vencida);
+    for (const p of vencidos) {
+      try {
+        await this.personalRepository.updatePersona(p.id, {
+          estado_laboral: 'Activo',
+          ausencia_desde: null,
+          ausencia_hasta: null,
+          tipo_ausencia: null,
+          motivo_ausencia: null,
+          updated_by: 'SYSTEM_AUTO',
+          motivo_cambio: `Retorno automático por vencimiento de ausencia (hasta: ${p.ausencia_hasta})`
+        });
+        logger.info(`Persona ${p.id} (${p.nombre} ${p.apellido}): estado actualizado automáticamente a Activo por vencimiento de ausencia`);
+      } catch (err) {
+        logger.error(`Error al actualizar estado automático de persona ${p.id}:`, err.message);
+      }
+    }
+
+    return enriched;
   }
 
   async getStaffDetails(id) {

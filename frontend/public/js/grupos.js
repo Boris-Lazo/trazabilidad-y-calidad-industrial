@@ -1,343 +1,446 @@
 /**
- * GESTIÓN DE GRUPOS - PROD-SYS
+ * GRUPOS DE TURNO — PROD-SYS
+ * frontend/public/js/grupos.js
+ *
+ * Drag & drop con SortableJS:
+ *  - Pool "Sin asignar" → grupo: llama POST /api/grupos/:id/integrantes
+ *  - Grupo → grupo:       llama POST remove del origen + POST add al destino
+ *  - Grupo → pool:        llama POST remove del grupo
  */
 
 const GruposModule = {
-    grupos: [],
-    staff: [],
+    grupos:          [],   // solo operativos, ordenados A-B-C
+    staffPool:       [],   // personal de producción sin grupo
     rolesOperativos: [],
-    currentGrupoId: null,
-    currentPersonaId: null,
+    sortableInstances: [],
 
+    // persona_id → grupo_id (para saber de dónde viene al mover)
+    personaGrupoMap: {},
+
+    currentPersonaId:  null,
+    currentGrupoId:    null,
+
+    CICLO: { T1: 'T3', T3: 'T2', T2: 'T1' },
+
+    // ── Semana ISO ──────────────────────────────────────────
+    getISOWeek(date) {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        const y = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return { week: Math.ceil(((d - y) / 86400000 + 1) / 7), year: d.getUTCFullYear() };
+    },
+
+    getMondayOfWeek(week, year) {
+        const jan4 = new Date(year, 0, 4);
+        const mon  = new Date(jan4);
+        mon.setDate(jan4.getDate() - (jan4.getDay() || 7) + 1 + (week - 1) * 7);
+        return mon;
+    },
+
+    formatRango(mon) {
+        const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+        const f = d => d.toLocaleDateString('es-SV', { day: 'numeric', month: 'short' });
+        return `${f(mon)} – ${f(sun)}`;
+    },
+
+    renderSemana() {
+        const { week, year } = this.getISOWeek(new Date());
+        const nw   = week >= 52 ? 1 : week + 1;
+        const ny   = week >= 52 ? year + 1 : year;
+        const mon  = this.getMondayOfWeek(week, year);
+        const nmon = this.getMondayOfWeek(nw, ny);
+        document.getElementById('semana-num').textContent          = `Semana ${week}`;
+        document.getElementById('semana-rango').textContent        = this.formatRango(mon);
+        document.getElementById('semana-siguiente-num').textContent = `Semana ${nw}`;
+        document.getElementById('semana-siguiente-rango').textContent = this.formatRango(nmon);
+    },
+
+    // ── Init ────────────────────────────────────────────────
     async init() {
-        await this.loadGrupos();
-        await this.loadCatalogs();
-        this.setupEventListeners();
+        this.renderSemana();
+        await this.loadAll();
+        this.setupStaticListeners();
     },
 
-    async loadGrupos() {
+    async loadAll() {
         try {
-            const res = await fetch('/api/grupos');
-            const result = await res.json();
-            if (result.success) {
-                this.grupos = result.data;
-                this.renderGruposList();
-            }
-        } catch (error) {
-            DesignSystem.showToast('Error al cargar grupos', 'error');
-        }
-    },
+            const [resGrupos, resStaff, resRoles] = await Promise.all([
+                fetch('/api/grupos'),
+                fetch('/api/personal'),
+                fetch('/api/grupos/roles-operativos')
+            ]);
+            const [rg, rs, rr] = await Promise.all([
+                resGrupos.json(), resStaff.json(), resRoles.json()
+            ]);
 
-    async loadCatalogs() {
-        try {
-            // Cargar Roles Operativos
-            const resRoles = await fetch('/api/grupos/roles-operativos');
-            const resultRoles = await resRoles.json();
-            if (resultRoles.success) {
-                this.rolesOperativos = resultRoles.data;
-                const select = document.getElementById('select-rol-operativo');
-                if (select) {
-                    select.innerHTML = this.rolesOperativos.map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
-                }
+            if (rg.success) {
+                this.grupos = rg.data
+                    .filter(g => g.tipo !== 'administrativo')
+                    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+            }
+            if (rr.success) {
+                this.rolesOperativos = rr.data;
+                const sel = document.getElementById('select-rol-operativo');
+                if (sel) sel.innerHTML = rr.data
+                    .map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
             }
 
-            // Cargar Personal (para añadir a grupos)
-            const resStaff = await fetch('/api/personal');
-            const resultStaff = await resStaff.json();
-            if (resultStaff.success) {
-                this.staff = resultStaff.data;
-                const select = document.getElementById('select-persona');
-                if (select) {
-                    select.innerHTML = '<option value="">Seleccione colaborador...</option>' +
-                        this.staff.map(p => `<option value="${p.id}">${p.nombre} ${p.apellido} (${p.codigo_interno})</option>`).join('');
-                }
+            // Cargar integrantes de cada grupo
+            await Promise.all(this.grupos.map(async g => {
+                const res = await fetch(`/api/grupos/${g.id}`);
+                const r   = await res.json();
+                g.integrantes = r.success ? (r.data.integrantes || []) : [];
+            }));
+
+            // Construir mapa persona → grupo
+            this.personaGrupoMap = {};
+            this.grupos.forEach(g => {
+                g.integrantes.forEach(i => {
+                    this.personaGrupoMap[i.persona_id] = g.id;
+                });
+            });
+
+            // Personal de producción activo
+            if (rs.success) {
+                const asignados = new Set(Object.keys(this.personaGrupoMap).map(Number));
+                this.staffPool = rs.data.filter(p =>
+                    p.area_nombre === 'Producción' &&
+                    p.estado_laboral === 'Activo' &&
+                    !asignados.has(p.id)
+                );
             }
+
+            this.renderGrupos();
+            this.renderAsignacion();
+
         } catch (e) {
-            console.error('Error al cargar catálogos:', e);
+            DesignSystem.showToast('Error al cargar datos', 'error');
+            console.error(e);
         }
     },
 
-    renderGruposList() {
-        const list = document.getElementById('lista-grupos');
-        if (!list) return;
+    // ── Render tarjetas de turno ────────────────────────────
+    renderGrupos() {
+        const grid = document.getElementById('grupos-grid');
+        if (!grid) return;
+        const { week } = this.getISOWeek(new Date());
+        const canEdit  = this._canManage();
 
-        list.innerHTML = this.grupos.map(g => `
-            <div class="list-group-item ${this.currentGrupoId === g.id ? 'active' : ''}" data-id="${g.id}" style="cursor: pointer;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+        grid.innerHTML = this.grupos.map(g => {
+            const t     = g.turno_actual || 'T1';
+            const tn    = this.CICLO[t] || 'T1';
+            const tc    = t.toLowerCase();
+            const tnc   = tn.toLowerCase();
+            return `
+            <div class="grupo-card">
+                <div class="grupo-card-top">
                     <div>
-                        <div style="font-weight: 600;">${g.nombre}</div>
-                        <div style="font-size: 12px; opacity: 0.8;">${g.tipo === 'operativo' ? 'Producción' : 'Administración'}</div>
+                        <div class="grupo-card-nombre">${g.nombre}</div>
+                        <div class="grupo-card-tipo">Grupo Operativo</div>
                     </div>
-                    <span class="badge ${g.tipo === 'operativo' ? 'badge-info' : 'badge-secondary'}">${g.turno_actual}</span>
+                    <div class="grupo-semana-num">Sem. ${week}</div>
                 </div>
-            </div>
-        `).join('');
-    },
-
-    async selectGrupo(id) {
-        this.currentGrupoId = id;
-        this.renderGruposList();
-
-        const user = Auth.getUser();
-        const isReadOnly = user && (user.rol === 'Inspector' || user.rol === 'Inspector de Calidad');
-
-        if (isReadOnly) {
-            if (!document.getElementById('readonly-notice-grupos')) {
-                const notice = document.createElement('div');
-                notice.id = 'readonly-notice-grupos';
-                notice.className = 'badge badge-warning mb-3 w-100';
-                notice.style.padding = '10px';
-                notice.innerHTML = '<i data-lucide="info" style="width:14px; height:14px; vertical-align:middle; margin-right:8px;"></i> Información histórica y no editable para Inspectores.';
-                const container = document.getElementById('detalle-grupo-container');
-                container.insertBefore(notice, container.firstChild);
-                DesignSystem.initLucide();
-            }
-        }
-
-        document.getElementById('no-grupo-selected').style.display = 'none';
-        document.getElementById('detalle-grupo-container').style.display = 'flex';
-
-        try {
-            const res = await fetch(`/api/grupos/${id}`);
-            const result = await res.json();
-            if (result.success) {
-                const g = result.data;
-                document.getElementById('grupo-nombre-titulo').textContent = g.nombre;
-                document.getElementById('grupo-tipo-badge').textContent = g.tipo === 'operativo' ? 'Grupo Operativo de Producción' : 'Grupo de Personal Administrativo';
-                document.getElementById('grupo-turno-actual').textContent = g.turno_actual;
-
-                // Mostrar/Ocultar control de turno (fijo para administrativos)
-                const btnRotar = document.getElementById('btn-rotar-turno');
-                if (btnRotar) {
-                    btnRotar.style.display = (g.tipo === 'administrativo' || isReadOnly) ? 'none' : 'block';
-                }
-
-                const btnAdd = document.getElementById('btn-add-integrante');
-                if (btnAdd) {
-                    btnAdd.style.display = isReadOnly ? 'none' : 'block';
-                }
-
-                this.renderIntegrantes(g.integrantes);
-                this.renderHistorial(g.historial);
-            }
-        } catch (e) {
-            DesignSystem.showToast('Error al cargar detalle del grupo', 'error');
-        }
-    },
-
-    renderIntegrantes(integrantes) {
-        const tbody = document.getElementById('lista-integrantes');
-        if (!tbody) return;
-
-        const user = Auth.getUser();
-        const isReadOnly = user && (user.rol === 'Inspector' || user.rol === 'Inspector de Calidad');
-
-        if (integrantes.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-secondary">No hay integrantes en este grupo</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = integrantes.map(i => `
-            <tr>
-                <td style="font-weight: 500;">${i.nombre} ${i.apellido}</td>
-                <td><code>${i.codigo_interno}</code></td>
-                <td>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span>${i.rol_operativo || '<em class="text-secondary">Sin asignar</em>'}</span>
-                        ${!isReadOnly ? `
-                        <button class="btn btn-secondary btn-sm btn-edit-rol" style="padding: 2px 4px;" data-id="${i.persona_id}" data-nombre="${i.nombre} ${i.apellido}">
-                            <i data-lucide="edit-3" style="width:12px; height:12px;"></i>
-                        </button>` : ''}
+                <div class="grupo-turnos">
+                    <div class="grupo-turno-celda">
+                        <div class="grupo-turno-etiqueta">Esta semana</div>
+                        <div class="turno-circulo ${tc}">${t}</div>
                     </div>
-                </td>
-                <td>
-                    ${!isReadOnly ? `
-                    <button class="btn btn-danger btn-sm btn-remove-integrante" data-id="${i.persona_id}" data-nombre="${i.nombre} ${i.apellido}" title="Remover del grupo">
-                        <i data-lucide="user-minus" style="width:14px; height:14px;"></i>
-                    </button>` : '<span class="badge badge-secondary">Activo</span>'}
-                </td>
-            </tr>
-        `).join('');
+                    <div class="grupo-turno-celda">
+                        <div class="grupo-turno-etiqueta">Próxima semana</div>
+                        <div class="turno-circulo ${tnc} next">${tn}</div>
+                    </div>
+                </div>
+                ${canEdit ? `
+                <div class="grupo-card-footer">
+                    <button class="btn btn-secondary btn-sm btn-cambiar-turno"
+                            data-grupo-id="${g.id}"
+                            data-grupo-nombre="${g.nombre}"
+                            data-turno-actual="${t}">
+                        <i data-lucide="edit-2" class="btn-cambiar-turno-icon"></i>
+                        Cambiar turno
+                    </button>
+                </div>` : ''}
+            </div>`;
+        }).join('');
+
         DesignSystem.initLucide();
     },
 
-    renderHistorial(historial) {
-        const tbody = document.getElementById('lista-historial-integrantes');
-        if (!tbody) return;
+    // ── Render zona drag & drop ─────────────────────────────
+    renderAsignacion() {
+        // Destruir instancias Sortable previas
+        this.sortableInstances.forEach(s => s.destroy());
+        this.sortableInstances = [];
 
-        if (!historial || historial.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-secondary" style="font-size: 13px;">No hay registros históricos</td></tr>';
-            return;
-        }
+        const wrapper = document.getElementById('asignacion-wrapper');
+        if (!wrapper) return;
+        const canEdit = this._canManage();
 
-        tbody.innerHTML = historial.map(h => {
-            const fechaDesde = new Date(h.fecha_desde).toLocaleString();
-            const fechaHasta = h.fecha_hasta ? new Date(h.fecha_hasta).toLocaleString() : '<span class="text-success">Vigente</span>';
-            const esPasado = !!h.fecha_hasta;
+        // Columnas de grupos
+        const colsHTML = this.grupos.map(g => {
+            const t  = g.turno_actual || 'T1';
+            const tc = t.toLowerCase();
+            const sorted = this._sortIntegrantes(g.integrantes || []);
+            const items  = sorted.map(i => this._chipHTML(i, canEdit)).join('');
+            const empty  = sorted.length === 0
+                ? `<div class="drop-empty-msg">
+                       <i data-lucide="users" class="drop-empty-icon"></i>
+                       Arrastra colaboradores aquí
+                   </div>` : '';
 
             return `
-                <tr style="${esPasado ? 'opacity: 0.7; background-color: rgba(0,0,0,0.02);' : 'font-weight: 500;'}">
-                    <td>${h.nombre} ${h.apellido}</td>
-                    <td style="font-size: 12px;">${fechaDesde}</td>
-                    <td style="font-size: 12px;">${fechaHasta}</td>
-                    <td style="font-size: 12px; font-style: italic;">${h.motivo || '-'}</td>
-                </tr>
-            `;
+            <div class="grupo-drop-col" id="drop-grupo-${g.id}" data-grupo-id="${g.id}">
+                <div class="grupo-drop-header">
+                    <div class="grupo-drop-titulo">
+                        ${g.nombre}
+                        <span class="grupo-drop-turno ${tc}">${t}</span>
+                    </div>
+                    <span class="grupo-drop-count" id="count-grupo-${g.id}">${sorted.length}</span>
+                </div>
+                <div class="grupo-drop-list" id="list-grupo-${g.id}">
+                    ${items}${empty}
+                </div>
+            </div>`;
         }).join('');
+
+        // Columna pool sin asignar
+        const poolItems = this.staffPool
+            .sort((a, b) => `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`))
+            .map(p => this._chipHTMLPool(p)).join('');
+
+        const poolHTML = `
+        <div class="pool-col">
+            <div class="pool-header">
+                <span class="pool-titulo">Sin asignar</span>
+                <span class="pool-count" id="count-pool">${this.staffPool.length}</span>
+            </div>
+            <div class="pool-list" id="list-pool">
+                ${poolItems || `<div class="drop-empty-msg">
+                    <i data-lucide="check-circle" class="drop-empty-icon"></i>
+                    Todo el personal está asignado
+                </div>`}
+            </div>
+        </div>`;
+
+        wrapper.innerHTML = colsHTML + poolHTML;
+        DesignSystem.initLucide();
+
+        if (!canEdit) return;
+
+        // Crear instancias Sortable para cada lista
+        const allListIds = [
+            ...this.grupos.map(g => `list-grupo-${g.id}`),
+            'list-pool'
+        ];
+
+        allListIds.forEach(listId => {
+            const el = document.getElementById(listId);
+            if (!el) return;
+            const instance = Sortable.create(el, {
+                group:     'colaboradores',   // mismo grupo = mover entre listas
+                animation: 150,
+                ghostClass:  'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                handle: '.colab-chip',
+                onAdd: (evt) => this._onChipMoved(evt),
+                onUpdate: () => {},           // reordenamiento interno (ignorar)
+            });
+            this.sortableInstances.push(instance);
+        });
+
+        // Delegación para botón de rol
+        wrapper.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-chip-rol');
+            if (!btn) return;
+            this.openRolModal(
+                parseInt(btn.dataset.personaId),
+                btn.dataset.nombre,
+                parseInt(btn.dataset.grupoId)
+            );
+        });
     },
 
-    setupEventListeners() {
+    // ── Callback cuando un chip cambia de lista ─────────────
+    async _onChipMoved(evt) {
+        const chip       = evt.item;
+        const personaId  = parseInt(chip.dataset.personaId);
+        const fromListId = evt.from.id;   // list-grupo-X o list-pool
+        const toListId   = evt.to.id;
+
+        const fromGrupoId = fromListId.startsWith('list-grupo-')
+            ? parseInt(fromListId.replace('list-grupo-', '')) : null;
+        const toGrupoId   = toListId.startsWith('list-grupo-')
+            ? parseInt(toListId.replace('list-grupo-', '')) : null;
+
+        // Revertir DOM inmediatamente — recargamos desde backend
+        chip.remove();
+
+        try {
+            // 1. Si venía de un grupo, removerlo
+            if (fromGrupoId) {
+                const r = await fetch(`/api/grupos/${fromGrupoId}/integrantes/${personaId}/remove`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const res = await r.json();
+                if (!res.success) throw new Error(res.error || 'Error al remover');
+            }
+
+            // 2. Si va a un grupo, añadirlo
+            if (toGrupoId) {
+                const r = await fetch(`/api/grupos/${toGrupoId}/integrantes`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ personaId })
+                });
+                const res = await r.json();
+                if (!res.success) throw new Error(res.error || 'Error al asignar');
+            }
+
+            // Recargar todo silenciosamente
+            await this.loadAll();
+
+        } catch (e) {
+            DesignSystem.showToast(e.message || 'Error al mover colaborador', 'error');
+            await this.loadAll(); // revertir estado
+        }
+    },
+
+    // ── Chip HTML para integrante de grupo ──────────────────
+    _chipHTML(i, canEdit) {
+        const esInspector = this._esInspector(i.rol_operativo);
+        const iniciales   = `${(i.nombre||'?')[0]}${(i.apellido||'?')[0]}`.toUpperCase();
+        const inspPill    = esInspector ? '<span class="inspector-pill">Insp.</span>' : '';
+        const rolBtn      = canEdit ? `
+            <button class="btn-chip-rol"
+                    data-persona-id="${i.persona_id}"
+                    data-nombre="${i.nombre} ${i.apellido}"
+                    data-grupo-id="${this.personaGrupoMap[i.persona_id] || ''}">
+                <i data-lucide="edit-3" class="btn-chip-rol-icon"></i>
+            </button>` : '';
+
+        return `
+        <div class="colab-chip"
+             data-persona-id="${i.persona_id}"
+             data-nombre="${i.nombre} ${i.apellido}">
+            <i data-lucide="grip-vertical" class="drag-handle"></i>
+            <div class="colab-chip-avatar ${esInspector ? 'inspector' : ''}">${iniciales}</div>
+            <div class="colab-chip-info">
+                <div class="colab-chip-nombre">${i.nombre} ${i.apellido} ${inspPill}</div>
+                <div class="colab-chip-sub">${i.rol_operativo || 'Sin rol'} · ${i.codigo_interno}</div>
+            </div>
+            ${rolBtn}
+        </div>`;
+    },
+
+    // ── Chip HTML para pool sin asignar ─────────────────────
+    _chipHTMLPool(p) {
+        const iniciales = `${(p.nombre||'?')[0]}${(p.apellido||'?')[0]}`.toUpperCase();
+        return `
+        <div class="colab-chip"
+             data-persona-id="${p.id}"
+             data-nombre="${p.nombre} ${p.apellido}">
+            <i data-lucide="grip-vertical" class="drag-handle"></i>
+            <div class="colab-chip-avatar">${iniciales}</div>
+            <div class="colab-chip-info">
+                <div class="colab-chip-nombre">${p.nombre} ${p.apellido}</div>
+                <div class="colab-chip-sub">${p.rol_organizacional || 'Producción'} · ${p.codigo_interno}</div>
+            </div>
+        </div>`;
+    },
+
+    _sortIntegrantes(list) {
+        return [...list].sort((a, b) => {
+            const ai = this._esInspector(a.rol_operativo);
+            const bi = this._esInspector(b.rol_operativo);
+            if (ai && !bi) return -1;
+            if (!ai && bi) return  1;
+            return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`);
+        });
+    },
+
+    _esInspector(rol) {
+        return !!(rol && rol.toLowerCase().includes('inspector'));
+    },
+
+    _canManage() {
         const user = Auth.getUser();
-        const isReadOnly = user && (user.rol === 'Inspector' || user.rol === 'Inspector de Calidad');
+        return user && !['Inspector', 'Inspector de Calidad', 'Supervisor'].includes(user.rol);
+    },
 
-        const btnAdd = document.getElementById('btn-add-integrante');
-        if (btnAdd) btnAdd.addEventListener('click', () => this.openModal('modal-integrante'));
-
-        const btnRotar = document.getElementById('btn-rotar-turno');
-        if (btnRotar) btnRotar.addEventListener('click', () => {
-            const turnoActual = document.getElementById('grupo-turno-actual').textContent.trim();
-            const siguiente = this.getNextTurno(turnoActual);
-            document.getElementById('turno-siguiente-display').textContent = this.getTurnoLabel(siguiente);
-            document.getElementById('turno-siguiente-value').value = siguiente;
-            this.openModal('modal-turno');
-        });
-
-        const btnNuevo = document.getElementById('btn-nuevo-grupo');
-        if (btnNuevo) {
-            if (isReadOnly) btnNuevo.remove();
-            else btnNuevo.addEventListener('click', () => this.openModal('modal-nuevo-grupo'));
-        }
-
-        const selectTipo = document.getElementById('nuevo-grupo-tipo');
-        if (selectTipo) {
-            selectTipo.addEventListener('change', (e) => {
-                const container = document.getElementById('nuevo-grupo-turno-container');
-                container.style.display = e.target.value === 'administrativo' ? 'none' : 'block';
-            });
-        }
-
-        const btnConfirmNuevo = document.getElementById('btn-confirm-nuevo-grupo');
-        if (btnConfirmNuevo) btnConfirmNuevo.addEventListener('click', () => this.createGrupo());
-
-        const btnConfirmAdd = document.getElementById('btn-confirm-add');
-        if (btnConfirmAdd) btnConfirmAdd.addEventListener('click', () => this.addIntegrante());
-
-        const btnConfirmTurno = document.getElementById('btn-confirm-turno');
-        if (btnConfirmTurno) btnConfirmTurno.addEventListener('click', () => this.saveTurno());
-
-        const btnConfirmRol = document.getElementById('btn-confirm-rol');
-        if (btnConfirmRol) btnConfirmRol.addEventListener('click', () => this.saveRol());
-
-        const btnConfirmRemove = document.getElementById('btn-confirm-remove');
-        if (btnConfirmRemove) btnConfirmRemove.addEventListener('click', () => this.removeIntegrante());
-
-        // Manejo de cierre de modales por data-attribute (evita inline JS bloqueado por CSP)
+    // ── Event listeners estáticos (modales) ────────────────
+    setupStaticListeners() {
         document.querySelectorAll('[data-close]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const modalId = btn.dataset.close;
-                this.closeModal(modalId);
-            });
+            btn.addEventListener('click', () => this.closeModal(btn.dataset.close));
         });
 
-        // Event Delegation para lista de grupos
-        const listGrupos = document.getElementById('lista-grupos');
-        if (listGrupos) {
-            listGrupos.addEventListener('click', (e) => {
-                const item = e.target.closest('.list-group-item');
-                if (item && item.dataset.id) {
-                    this.selectGrupo(parseInt(item.dataset.id));
-                }
-            });
-        }
+        // Turno selector
+        document.getElementById('turno-selector')?.addEventListener('click', e => {
+            const btn = e.target.closest('.turno-opcion');
+            if (!btn) return;
+            document.querySelectorAll('.turno-opcion').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            document.getElementById('turno-selected-value').value = btn.dataset.turno;
+        });
 
-        // Event Delegation para lista de integrantes
-        const listIntegrantes = document.getElementById('lista-integrantes');
-        if (listIntegrantes) {
-            listIntegrantes.addEventListener('click', (e) => {
-                const btnEdit = e.target.closest('.btn-edit-rol');
-                const btnRemove = e.target.closest('.btn-remove-integrante');
+        document.getElementById('btn-confirm-turno')?.addEventListener('click', () => {
+            this.saveTurno();
+        });
 
-                if (btnEdit) {
-                    this.openRolModal(parseInt(btnEdit.dataset.id), btnEdit.dataset.nombre);
-                } else if (btnRemove) {
-                    this.openRemoveModal(parseInt(btnRemove.dataset.id), btnRemove.dataset.nombre);
-                }
-            });
-        }
+        document.getElementById('btn-confirm-rol')?.addEventListener('click', () => {
+            this.saveRol();
+        });
+
+        // Delegación en grupos-grid para btn-cambiar-turno
+        document.getElementById('grupos-grid')?.addEventListener('click', e => {
+            const btn = e.target.closest('.btn-cambiar-turno');
+            if (btn) this.openTurnoModal(
+                parseInt(btn.dataset.grupoId),
+                btn.dataset.grupoNombre,
+                btn.dataset.turnoActual
+            );
+        });
     },
 
-    openModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) modal.style.display = 'flex';
+    openModal(id)  { const m = document.getElementById(id); if (m) m.style.display = 'flex'; },
+    closeModal(id) { const m = document.getElementById(id); if (m) m.style.display = 'none'; },
+
+    openTurnoModal(grupoId, nombre, turnoActual) {
+        const { week } = this.getISOWeek(new Date());
+        document.getElementById('turno-grupo-id').value = grupoId;
+        document.getElementById('modal-turno-grupo-nombre').textContent = nombre;
+        document.getElementById('modal-turno-semana').textContent = `Semana ${week}`;
+        document.querySelectorAll('.turno-opcion').forEach(b => {
+            b.classList.toggle('selected', b.dataset.turno === turnoActual);
+        });
+        document.getElementById('turno-selected-value').value = turnoActual;
+        this.openModal('modal-turno');
     },
 
-    closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) modal.style.display = 'none';
-    },
-
-    openRolModal(personaId, nombre) {
+    openRolModal(personaId, nombre, grupoId) {
         this.currentPersonaId = personaId;
-        const label = document.getElementById('rol-colaborador-nombre');
-        if (label) label.textContent = nombre;
+        this.currentGrupoId   = grupoId;
+        document.getElementById('rol-colaborador-nombre').textContent = nombre;
         this.openModal('modal-rol');
     },
 
-    openRemoveModal(personaId, nombre) {
-        this.currentPersonaId = personaId;
-        const text = document.getElementById('remove-text');
-        if (text) text.innerHTML = `¿Está seguro de que desea remover a <strong>${nombre}</strong> del grupo actual?`;
-        this.openModal('modal-remove');
-    },
-
-    async addIntegrante() {
-        const personaId = document.getElementById('select-persona').value;
-
-        if (!personaId) {
-            DesignSystem.showToast('Debe seleccionar un colaborador', 'warning');
-            return;
-        }
-
-        try {
-            const res = await fetch(`/api/grupos/${this.currentGrupoId}/integrantes`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ personaId })
-            });
-            const result = await res.json();
-            if (result.success) {
-                DesignSystem.showToast('Integrante añadido con éxito');
-                this.closeModal('modal-integrante');
-                document.getElementById('form-integrante').reset();
-                this.selectGrupo(this.currentGrupoId);
-            } else {
-                DesignSystem.showToast(result.error, 'error');
-            }
-        } catch (e) {
-            DesignSystem.showToast('Error de red', 'error');
-        }
-    },
-
+    // ── API calls ───────────────────────────────────────────
     async saveTurno() {
-        const nuevoTurno = document.getElementById('turno-siguiente-value').value;
-        if (!nuevoTurno) {
-            DesignSystem.showToast('No se pudo determinar el turno siguiente', 'error');
-            return;
-        }
+        const grupoId    = document.getElementById('turno-grupo-id').value;
+        const nuevoTurno = document.getElementById('turno-selected-value').value;
+        if (!nuevoTurno) { DesignSystem.showToast('Selecciona un turno', 'warning'); return; }
         try {
-            const res = await fetch(`/api/grupos/${this.currentGrupoId}/turno`, {
+            const r = await fetch(`/api/grupos/${grupoId}/turno`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nuevoTurno })
             });
-            const result = await res.json();
-            if (result.success) {
-                DesignSystem.showToast('Turno rotado con éxito');
+            const res = await r.json();
+            if (res.success) {
+                DesignSystem.showToast('Turno actualizado', 'success');
                 this.closeModal('modal-turno');
-                this.selectGrupo(this.currentGrupoId);
-                this.loadGrupos();
+                await this.loadAll();
             } else {
-                DesignSystem.showToast(result.error, 'error');
+                DesignSystem.showToast(res.error || 'Error al guardar', 'error');
             }
         } catch (e) {
             DesignSystem.showToast('Error de red', 'error');
@@ -346,92 +449,25 @@ const GruposModule = {
 
     async saveRol() {
         const rolOperativoId = document.getElementById('select-rol-operativo').value;
-
         try {
-            const res = await fetch(`/api/grupos/persona/${this.currentPersonaId}/rol-operativo`, {
+            const r = await fetch(`/api/grupos/persona/${this.currentPersonaId}/rol-operativo`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ rolOperativoId })
             });
-            const result = await res.json();
-            if (result.success) {
-                DesignSystem.showToast('Rol operativo actualizado');
+            const res = await r.json();
+            if (res.success) {
+                DesignSystem.showToast('Rol actualizado', 'success');
                 this.closeModal('modal-rol');
-                document.getElementById('form-rol').reset();
-                this.selectGrupo(this.currentGrupoId);
+                await this.loadAll();
             } else {
-                DesignSystem.showToast(result.error, 'error');
+                DesignSystem.showToast(res.error || 'Error al guardar', 'error');
             }
         } catch (e) {
             DesignSystem.showToast('Error de red', 'error');
         }
-    },
-
-    async removeIntegrante() {
-        try {
-            const res = await fetch(`/api/grupos/${this.currentGrupoId}/integrantes/${this.currentPersonaId}/remove`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ })
-            });
-            const result = await res.json();
-            if (result.success) {
-                DesignSystem.showToast('Colaborador removido del grupo');
-                this.closeModal('modal-remove');
-                this.selectGrupo(this.currentGrupoId);
-            } else {
-                DesignSystem.showToast(result.error, 'error');
-            }
-        } catch (e) {
-            DesignSystem.showToast('Error de red', 'error');
-        }
-    },
-
-    async createGrupo() {
-        const nombre = document.getElementById('nuevo-grupo-nombre').value;
-        const tipo = document.getElementById('nuevo-grupo-tipo').value;
-        const turno_actual = tipo === 'administrativo' ? 'T4' : document.getElementById('nuevo-grupo-turno').value;
-
-        if (!nombre) {
-            DesignSystem.showToast('El nombre del grupo es obligatorio', 'warning');
-            return;
-        }
-
-        try {
-            DesignSystem.setBtnLoading('btn-confirm-nuevo-grupo', true);
-            const res = await fetch('/api/grupos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, tipo, turno_actual })
-            });
-            const result = await res.json();
-            if (result.success) {
-                DesignSystem.showToast('Grupo creado con éxito');
-                this.closeModal('modal-nuevo-grupo');
-                document.getElementById('form-nuevo-grupo').reset();
-                await this.loadGrupos();
-            } else {
-                DesignSystem.showToast(result.error, 'error');
-            }
-        } catch (e) {
-            DesignSystem.showToast('Error de red', 'error');
-        } finally {
-            DesignSystem.setBtnLoading('btn-confirm-nuevo-grupo', false);
-        }
-    },
-
-    getNextTurno(turnoActual) {
-        // Orden solicitado: T3 -> T2 -> T1 -> T3
-        const ciclo = { 'T3': 'T2', 'T2': 'T1', 'T1': 'T3' };
-        return ciclo[turnoActual] || 'T3';
-    },
-
-    getTurnoLabel(turno) {
-        const labels = { 'T1': 'Turno 1 (Mañana)', 'T2': 'Turno 2 (Tarde)', 'T3': 'Turno 3 (Noche)' };
-        return labels[turno] || turno;
-    },
+    }
 };
-
 
 window.GruposModule = GruposModule;
 document.addEventListener('DOMContentLoaded', () => GruposModule.init());

@@ -42,8 +42,8 @@ class PersonalRepository {
     `;
     const result = await db.run(sql, [
       personaData.nombre, personaData.apellido, personaData.codigo_interno,
-      personaData.area_id, personaData.email, personaData.telefono,
-      personaData.fecha_ingreso, personaData.rol_organizacional, personaData.created_by
+      personaData.area_id || null, personaData.email || null, personaData.telefono || null,
+      personaData.fecha_ingreso || null, personaData.rol_organizacional, personaData.created_by
     ]);
     return result.lastID;
   }
