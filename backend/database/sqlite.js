@@ -981,6 +981,42 @@ const runFullSchema = () => {
         FOREIGN KEY (orden_id) REFERENCES orden_produccion(id)
     );`);
 
+
+    // ── Extrusión PE: rollos producidos (proceso 6) ──────────────────
+    db.run(`CREATE TABLE IF NOT EXISTS extru_pe_rollos (
+        id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id          INTEGER NOT NULL,
+        maquina_id           INTEGER NOT NULL,
+        orden_id             INTEGER NOT NULL,
+        codigo_rollo         TEXT NOT NULL,
+        peso_kg              REAL NOT NULL,
+        registro_trabajo_id  INTEGER,
+        usuario_modificacion TEXT,
+        created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id)  REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id)    REFERENCES orden_produccion(id)
+    );`);
+
+    // ── Extrusión PE: muestras de calidad (4 lecturas/turno) ─────────
+    db.run(`CREATE TABLE IF NOT EXISTS extru_pe_muestras (
+        id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id          INTEGER NOT NULL,
+        maquina_id           INTEGER NOT NULL,
+        orden_id             INTEGER NOT NULL,
+        lectura_indice       INTEGER NOT NULL,   -- 1..4
+        espesor_mm           REAL,
+        ancho_burbuja        REAL,               -- pulgadas
+        microperforado       INTEGER DEFAULT 0,  -- 0/1
+        espesor_resultado    TEXT,               -- Cumple / No cumple
+        ancho_resultado      TEXT,               -- Cumple / No cumple
+        usuario_modificacion TEXT,
+        created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id)  REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id)    REFERENCES orden_produccion(id)
+    );`);
+
     db.run(`CREATE TABLE IF NOT EXISTS RECURSO (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         codigo TEXT UNIQUE,
@@ -1492,7 +1528,8 @@ const runFullSchema = () => {
       { table: 'personas', column: 'ausencia_desde', type: 'DATE' },
       { table: 'personas', column: 'ausencia_hasta', type: 'DATE' },
       { table: 'personas', column: 'tipo_ausencia', type: 'TEXT' },
-      { table: 'personas', column: 'motivo_ausencia', type: 'TEXT' }
+      { table: 'personas', column: 'motivo_ausencia', type: 'TEXT' },
+      { table: 'grupos', column: 'turno_siguiente', type: 'TEXT' }
     ];
 
     // Migración de roles desde persona_roles a usuarios (Idempotente)

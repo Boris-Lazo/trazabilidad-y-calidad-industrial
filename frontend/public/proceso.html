@@ -259,7 +259,93 @@
                             <button id="btn-agregar-tinta" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 8px;">+ Agregar Tinta</button>
                         </div>
 
-                        <!-- Tabla Genérica (se ocultará para 1, 3, 4) -->
+                        <!-- ── Extrusión PE (proceso 6) ─────────────── -->
+                        <div id="section-extrusion-pe" style="display:none; padding: 1rem;">
+
+                            <!-- Selector de máquina -->
+                            <div style="display:flex; gap:16px; align-items:flex-end; margin-bottom:1.2rem; flex-wrap:wrap;">
+                                <div>
+                                    <label style="font-size:0.8rem; font-weight:600; display:block; margin-bottom:4px;">Máquina activa</label>
+                                    <select id="select-maquina-pe" class="form-control" style="min-width:160px;">
+                                        <option value="">— Seleccione —</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.8rem; font-weight:600; display:block; margin-bottom:4px;">Merma (kg)</label>
+                                    <input type="number" id="input-merma-pe" class="form-control"
+                                           min="0" step="0.1" placeholder="0.0" style="width:100px;">
+                                </div>
+                            </div>
+
+                            <!-- Rollos producidos -->
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
+                                <h5 style="font-size:0.9rem; margin:0;">Rollos de Manga Producidos</h5>
+                                <span style="font-size:0.85rem; color:var(--text-secondary);">
+                                    Total: <strong id="total-kg-pe">0.0 kg</strong>
+                                </span>
+                            </div>
+                            <div class="table-container mb-2">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Código Rollo</th>
+                                            <th>Peso (kg)</th>
+                                            <th style="width:50px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-rollos-pe"></tbody>
+                                </table>
+                            </div>
+                            <button id="btn-agregar-rollo-pe" class="btn btn-secondary"
+                                    style="font-size:0.8rem; padding:4px 8px; margin-bottom:1.5rem;">
+                                + Agregar Rollo
+                            </button>
+
+                            <!-- 4 Lecturas de calidad -->
+                            <h5 style="font-size:0.9rem; margin-bottom:0.8rem; margin-top:0.5rem;">
+                                Lecturas de Calidad — 4 por turno
+                            </h5>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:60px;">Lectura</th>
+                                            <th>Espesor (mm)</th>
+                                            <th>Ancho Burbuja (pulg.)</th>
+                                            <th style="width:110px; text-align:center;">Microperforado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="fila-lectura-pe" data-indice="1">
+                                            <td style="font-weight:600; color:var(--text-secondary);">L1</td>
+                                            <td><input type="number" class="form-control pe-espesor" step="0.001" min="0" placeholder="0.000" style="width:100px;"></td>
+                                            <td><input type="number" class="form-control pe-ancho"   step="0.125" min="0" placeholder="0.000" style="width:100px;"></td>
+                                            <td style="text-align:center;"><input type="checkbox" class="pe-micro"></td>
+                                        </tr>
+                                        <tr class="fila-lectura-pe" data-indice="2">
+                                            <td style="font-weight:600; color:var(--text-secondary);">L2</td>
+                                            <td><input type="number" class="form-control pe-espesor" step="0.001" min="0" placeholder="0.000" style="width:100px;"></td>
+                                            <td><input type="number" class="form-control pe-ancho"   step="0.125" min="0" placeholder="0.000" style="width:100px;"></td>
+                                            <td style="text-align:center;"><input type="checkbox" class="pe-micro"></td>
+                                        </tr>
+                                        <tr class="fila-lectura-pe" data-indice="3">
+                                            <td style="font-weight:600; color:var(--text-secondary);">L3</td>
+                                            <td><input type="number" class="form-control pe-espesor" step="0.001" min="0" placeholder="0.000" style="width:100px;"></td>
+                                            <td><input type="number" class="form-control pe-ancho"   step="0.125" min="0" placeholder="0.000" style="width:100px;"></td>
+                                            <td style="text-align:center;"><input type="checkbox" class="pe-micro"></td>
+                                        </tr>
+                                        <tr class="fila-lectura-pe" data-indice="4">
+                                            <td style="font-weight:600; color:var(--text-secondary);">L4</td>
+                                            <td><input type="number" class="form-control pe-espesor" step="0.001" min="0" placeholder="0.000" style="width:100px;"></td>
+                                            <td><input type="number" class="form-control pe-ancho"   step="0.125" min="0" placeholder="0.000" style="width:100px;"></td>
+                                            <td style="text-align:center;"><input type="checkbox" class="pe-micro"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tabla Genérica (se ocultará para 1, 3, 4, 6) -->
                         <div id="section-produccion-generica" style="padding: 1rem;">
                             <div class="table-container mb-4">
                                 <table class="table" id="tabla-produccion">

@@ -96,8 +96,10 @@ class GruposRepository {
     return await this.db.run(sql, [data.persona_id, data.rol_operativo_id, data.motivo, data.asignado_por]);
   }
 
-  async updateTurnoGrupo(grupoId, nuevoTurno) {
-    const sql = `UPDATE grupos SET turno_actual = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+  async updateTurnoGrupo(grupoId, nuevoTurno, campo = 'turno_actual') {
+    // campo puede ser 'turno_actual' o 'turno_siguiente'
+    const columna = campo === 'turno_siguiente' ? 'turno_siguiente' : 'turno_actual';
+    const sql = `UPDATE grupos SET ${columna} = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
     return await this.db.run(sql, [nuevoTurno, grupoId]);
   }
 

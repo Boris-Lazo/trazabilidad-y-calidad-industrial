@@ -143,7 +143,7 @@ class GruposService {
     });
   }
 
-  async rotarTurno(grupoId, nuevoTurno, assignerId) {
+  async rotarTurno(grupoId, nuevoTurno, assignerId, campo = 'turno_actual') {
     const grupo = await this.gruposRepository.getGrupoById(grupoId);
     if (!grupo) throw new ValidationError('Grupo no encontrado');
 
@@ -151,18 +151,20 @@ class GruposService {
       throw new ValidationError('El turno del grupo administrativo es fijo (T4)');
     }
 
-    const anteriorTurno = grupo.turno_actual;
+    const campoValido = campo === 'turno_siguiente' ? 'turno_siguiente' : 'turno_actual';
+    const anteriorTurno = grupo[campoValido];
+
     return await this.gruposRepository.withTransaction(async () => {
-      await this.gruposRepository.updateTurnoGrupo(grupoId, nuevoTurno);
+      await this.gruposRepository.updateTurnoGrupo(grupoId, nuevoTurno, campoValido);
 
       await this.auditService.logChange({
         usuario: assignerId,
         accion: 'GRUPO_ROTAR_TURNO',
         entidad: 'Grupo',
         entidad_id: grupoId,
-        valor_anterior: { turno: anteriorTurno },
-        valor_nuevo: { turno: nuevoTurno },
-        motivo_cambio: 'Rotación programada de turno'
+        valor_anterior: { [campoValido]: anteriorTurno },
+        valor_nuevo: { [campoValido]: nuevoTurno },
+        motivo_cambio: `Rotación de ${campoValido === 'turno_siguiente' ? 'próxima semana' : 'semana actual'}`
       });
 
       return true;

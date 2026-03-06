@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const procesoId = urlParams.get('id');
@@ -412,12 +411,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- UI ESPECÍFICA POR PROCESO ---
     function initProcesoUI(procesoId) {
         const pId = parseInt(procesoId);
-        const specificProcesses = [1, 3, 4];
+        const specificProcesses = [1, 3, 4, 6];
 
         document.getElementById('section-orden-especifica').style.display = 'none';
         document.getElementById('section-extrusor-pp').style.display = 'none';
         document.getElementById('section-laminado').style.display = 'none';
         document.getElementById('section-imprenta').style.display = 'none';
+        document.getElementById('section-extrusion-pe').style.display = 'none';
         document.getElementById('section-produccion-generica').style.display = 'block';
 
         if (specificProcesses.includes(pId)) {
@@ -446,6 +446,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                      th.style.fontSize = '0.8rem';
                      headerTr.insertBefore(th, headerTr.children[1]);
                 }
+            } else if (pId === 6) {
+                document.getElementById('section-extrusion-pe').style.display = 'block';
+                document.getElementById('btn-agregar-rollo-pe').onclick = () => agregarFilaRolloPE();
+                poblarSelectMaquinasPE();
             }
         }
     }
@@ -491,6 +495,78 @@ document.addEventListener('DOMContentLoaded', async () => {
         tr.querySelector('.btn-eliminar-fila').onclick = () => tr.remove();
     }
 
+
+    // ── Extrusión PE ─────────────────────────────────────────────────
+
+    function poblarSelectMaquinasPE() {
+        const sel = document.getElementById('select-maquina-pe');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">— Máquina —</option>' +
+            maquinasAutorizadas.map(m => `<option value="${m.id}">${m.nombre_visible}</option>`).join('');
+    }
+
+    function agregarFilaRolloPE(data = {}) {
+        const tbody = document.getElementById('tbody-rollos-pe');
+        if (!tbody) return;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text"   class="form-control codigo-rollo-pe"
+                       value="${data.codigo_rollo || ''}" placeholder="PE-001" style="width:100px;"></td>
+            <td><input type="number" class="form-control peso-rollo-pe"
+                       value="${data.peso_kg || ''}" step="0.1" min="0" placeholder="kg" style="width:90px;"></td>
+            <td><button class="btn-eliminar-fila" style="color:var(--error);border:none;background:none;cursor:pointer;font-size:1.1rem;">×</button></td>
+        `;
+        tbody.appendChild(tr);
+        tr.querySelector('.btn-eliminar-fila').onclick = () => { tr.remove(); actualizarTotalKgPE(); };
+        tr.querySelector('.peso-rollo-pe').oninput = actualizarTotalKgPE;
+    }
+
+    function actualizarTotalKgPE() {
+        const total = Array.from(document.querySelectorAll('.peso-rollo-pe'))
+            .reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+        const el = document.getElementById('total-kg-pe');
+        if (el) el.textContent = total.toFixed(1) + ' kg';
+    }
+
+    function recogerMuestrasPE() {
+        const lecturas = [];
+        document.querySelectorAll('.fila-lectura-pe').forEach((fila, idx) => {
+            lecturas.push({
+                lectura_indice: idx + 1,
+                espesor_mm:     parseFloat(fila.querySelector('.pe-espesor')?.value) || null,
+                ancho_burbuja:  parseFloat(fila.querySelector('.pe-ancho')?.value)   || null,
+                microperforado: fila.querySelector('.pe-micro')?.checked || false,
+            });
+        });
+        return lecturas.filter(l => l.espesor_mm || l.ancho_burbuja);
+    }
+
+    function cargarMuestrasPE(muestras) {
+        muestras.forEach(m => {
+            const fila = document.querySelector(`.fila-lectura-pe[data-indice="${m.lectura_indice}"]`);
+            if (!fila) return;
+            const espesorIn = fila.querySelector('.pe-espesor');
+            const anchoIn   = fila.querySelector('.pe-ancho');
+            const microIn   = fila.querySelector('.pe-micro');
+            if (espesorIn) espesorIn.value = m.espesor_mm || '';
+            if (anchoIn)   anchoIn.value   = m.ancho_burbuja || '';
+            if (microIn)   microIn.checked  = !!m.microperforado;
+        });
+    }
+
+    function recogerMateriasPrimas(paramLista) {
+        if (!paramLista) return [];
+        return Array.from(document.querySelectorAll('#tbody-materias-dinamica tr')).map(tr => {
+            const inputs = tr.querySelectorAll('input, select');
+            const obj = {};
+            paramLista.campos.forEach((campo, i) => {
+                const el = inputs[i];
+                obj[campo.nombre] = el ? (campo.nombre === 'porcentaje' ? parseFloat(el.value)||0 : el.value) : '';
+            });
+            return obj;
+        }).filter(o => o.tipo);
+    }
+
     // --- CARGAR DATOS EXISTENTES ---
     async function cargarDatosExistentes() {
         try {
@@ -499,6 +575,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 1: `/api/extrusor-pp/detalle/${currentBitacora.id}`,
                 3: `/api/laminado/detalle/0?bitacora_id=${currentBitacora.id}`,
                 4: `/api/imprenta/detalle/0?bitacora_id=${currentBitacora.id}`,
+                6: `/api/extrusion-pe/detalle?bitacora_id=${currentBitacora.id}&maquina_id=${encodeURIComponent(document.getElementById('select-maquina-pe')?.value||'')}`,
             };
 
             let data = {};
@@ -533,6 +610,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else if (pId === 4) {
                     if (data.rollos) data.rollos.forEach(r => agregarFilaRolloImprenta(r));
                     if (data.tintas) data.tintas.forEach(t => agregarFilaTinta(t));
+                } else if (pId === 6) {
+                    if (data.rollos) data.rollos.forEach(r => agregarFilaRolloPE(r));
+                    if (data.orden_id) document.getElementById('select-orden-proceso').value = data.orden_id;
+                    // Recargar muestras PE (4 lecturas independientes)
+                    if (data.muestras && data.muestras.length > 0) {
+                        cargarMuestrasPE(data.muestras);
+                    }
                 }
 
                 if (data.orden_id) document.getElementById('select-orden-proceso').value = data.orden_id;
@@ -782,6 +866,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
         }
 
+        if (pId === 6) { // Extrusión PE
+            const maquinaId = document.getElementById('select-maquina-pe')?.value;
+            const ordenId6  = document.getElementById('select-orden-proceso')?.value;
+            const rollosPE  = Array.from(document.getElementById('tbody-rollos-pe').children).map(tr => ({
+                codigo_rollo: tr.querySelector('.codigo-rollo-pe').value.trim(),
+                peso_kg:      parseFloat(tr.querySelector('.peso-rollo-pe').value) || 0
+            })).filter(r => r.codigo_rollo);
+
+            const muestras6 = recogerMuestrasPE();
+
+            const paramLista = contrato.parametrosInformativos?.find(p => p.tipo === 'lista_dinamica');
+            const materias = paramLista ? recogerMateriasPrimas(paramLista) : [];
+
+            return {
+                bitacora_id:    currentBitacora.id,
+                maquina_id:     maquinaId ? parseInt(maquinaId) : null,
+                orden_id:       ordenId6 ? parseInt(ordenId6) : null,
+                rollos:         rollosPE,
+                muestras:       muestras6,
+                merma_kg:       parseFloat(document.getElementById('input-merma-pe')?.value) || 0,
+                materias_primas: materias,
+                observaciones:  observaciones
+            };
+        }
+
         // Fallback genérico
         const produccion = Array.from(document.getElementById('tbody-produccion').querySelectorAll('tr')).map(tr => {
             return {
@@ -821,6 +930,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             1: '/api/extrusor-pp/guardar',
             3: '/api/laminado/guardar',
             4: '/api/imprenta/guardar',
+            6: '/api/extrusion-pe/guardar',
         };
 
         const endpoint = PROCESO_ENDPOINTS[pId] || '/api/bitacora/guardar-proceso';

@@ -2,7 +2,9 @@
 const app = require('./app');
 const { PORT, NODE_ENV } = require('./config/env');
 const { initDB } = require('./database/sqlite');
+const sqlite = require('./database/sqlite');
 const { logger } = require('./shared/logger/logger');
+const { iniciarTurnoScheduler } = require('./shared/scheduler/turnoScheduler');
 
 // Inicializar base de datos
 try {
@@ -11,6 +13,9 @@ try {
   logger.error('Error fatal al inicializar la base de datos:', err);
   process.exit(1);
 }
+
+// Iniciar scheduler de rotación automática de turnos (cada lunes 00:05)
+iniciarTurnoScheduler(sqlite);
 
 const server = app.listen(PORT, () => {
   logger.info(`Servidor industrial corriendo en el puerto ${PORT} [Mode: ${NODE_ENV}]`);

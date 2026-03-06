@@ -62,10 +62,10 @@ class GruposController {
   async rotarTurno(req, res, next) {
     try {
       const { id } = req.params;
-      const { nuevoTurno } = req.body;
+      const { nuevoTurno, campo } = req.body;  // campo: 'turno_actual' | 'turno_siguiente'
       const assignerId = req.user.persona_id;
 
-      await this.gruposService.rotarTurno(id, nuevoTurno, assignerId);
+      await this.gruposService.rotarTurno(id, nuevoTurno, assignerId, campo);
       res.json({ success: true, data: { message: 'Turno actualizado con éxito' } });
     } catch (error) {
       next(error);
