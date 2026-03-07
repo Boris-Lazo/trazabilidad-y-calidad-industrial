@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>
                     <div style="font-size: 0.85rem;">${log.motivo_cambio || '-'}</div>
                     ${log.valor_anterior || log.valor_nuevo ? `
-                        <button class="btn btn-outline btn-sm" onclick="toggleDetails(this)" style="padding: 2px 4px; font-size: 0.7rem; margin-top: 4px;">Ver Diferencia</button>
+                        <button class="btn btn-outline btn-sm" data-action="toggle-diff" style="padding: 2px 4px; font-size: 0.7rem; margin-top: 4px;">Ver Diferencia</button>
                         <div class="diff-container" style="display: none; font-family: monospace; font-size: 0.75rem; background: var(--bg-secondary); padding: 0.5rem; border-radius: 4px; margin-top: 4px;">
                             <div style="color: var(--danger);">Ant: ${log.valor_anterior || 'null'}</div>
                             <div style="color: var(--success);">Nue: ${log.valor_nuevo || 'null'}</div>
@@ -74,7 +74,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.toggleDetails = (btn) => {
+    // Delegación de eventos — evita onclick inline bloqueado por CSP
+    tableBody.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action="toggle-diff"]');
+        if (!btn) return;
         const container = btn.nextElementSibling;
         if (container.style.display === 'none') {
             container.style.display = 'block';
@@ -83,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
             container.style.display = 'none';
             btn.textContent = 'Ver Diferencia';
         }
-    };
+    });
 
     [userFilter, entityFilter, dateFilter].forEach(el => {
         el.addEventListener('change', fetchAuditLogs);

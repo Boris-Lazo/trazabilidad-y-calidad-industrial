@@ -19,9 +19,9 @@ const MAPEO_SAP = {
 // Mapeo inverso: proceso_id → unidad de medida por defecto
 const UNIDAD_POR_PROCESO = {
   1: 'KG',   // ExtruPP
-  2: 'M2',   // Telar
-  3: 'M2',   // Laminado
-  4: 'MIL',  // Imprenta
+  2: 'M',   // Telar
+  3: 'M',   // Laminado
+  4: 'UND',  // Imprenta
   5: 'UND',  // ConverSA
   6: 'KG',   // ExtruPE
   7: 'UND',  // ConverLI
@@ -52,17 +52,91 @@ class OrdenProduccionService {
     return await this.ordenProduccionRepository.findById(id);
   }
 
-  async create(data) {
-    // Validar prefijo del código de orden (7 dígitos ya validados por Zod)
-    const prefix = parseInt(data.codigo_orden[0]);
-    if (prefix < 1 || prefix > 9) {
-        throw new ValidationError('El primer dígito de la orden debe estar entre 1 y 9.');
+  async create(data, usuario = 'SISTEMA') {
+    // Órdenes SAP: 7 dígitos numéricos
+    // Órdenes Emergencia: generadas internamente como EM-XXXX
+    if (data.origen !== 'EMERGENCIA') {
+        const prefix = parseInt(data.codigo_orden?.[0]);
+        if (prefix < 1 || prefix > 9) {
+            throw new ValidationError('El primer dígito de la orden debe estar entre 1 y 9.');
+        }
     }
 
     const id = await this.ordenProduccionRepository.create({
         ...data,
-        estado: 'Creada'
+        estado:  'Liberada',
+        origen:  data.origen || 'SAP',
     });
+
+    await this.auditService.logChange({
+        usuario, entidad: 'OrdenProduccion', entidad_id: id,
+        accion: 'CREAR',
+        motivo_cambio: `Orden ${data.codigo_orden} creada (origen: ${data.origen || 'SAP'})`
+    });
+
+    return await this.ordenProduccionRepository.findById(id);
+  }
+
+  async crearEmergencia(data, usuario = 'SISTEMA') {
+    // Generar código autoincremental EM-XXXX
+    const ultimo = await this.ordenProduccionRepository.getUltimoNumeroEmergencia();
+    const numero = String(ultimo + 1).padStart(4, '0');
+    const codigo = `EM-${numero}`;
+
+    const id = await this.ordenProduccionRepository.create({
+        codigo_orden:       codigo,
+        producto:           data.producto,
+        cantidad_objetivo:  data.cantidad_objetivo,
+        unidad:             data.unidad || 'UND',
+        fecha_planificada:  data.fecha_planificada || null,
+        prioridad:          data.prioridad || 'Alta',
+        observaciones:      data.observaciones || '',
+        proceso_id:         data.proceso_id,
+        estado:             'Liberada',
+        origen:             'EMERGENCIA',
+        especificaciones:   JSON.stringify({
+            creado_por: usuario,
+            creado_en:  new Date().toISOString(),
+            motivo_emergencia: data.motivo_emergencia || ''
+        })
+    });
+
+    await this.auditService.logChange({
+        usuario, entidad: 'OrdenProduccion', entidad_id: id,
+        accion: 'CREAR',
+        motivo_cambio: `Orden de emergencia ${codigo} creada por ${usuario}`
+    });
+
+    return await this.ordenProduccionRepository.findById(id);
+  }
+
+  async vincularEmergenciaASAP(id, codigoSAP, usuario = 'SISTEMA') {
+    const orden = await this.ordenProduccionRepository.findById(id);
+    if (!orden) throw new NotFoundError('Orden no encontrada.');
+    if (orden.origen !== 'EMERGENCIA')
+        throw new ValidationError('Solo se pueden vincular órdenes de emergencia.');
+    if (!/^\d{7}$/.test(String(codigoSAP)))
+        throw new ValidationError('El código SAP debe tener exactamente 7 dígitos numéricos.');
+
+    const existente = await this.ordenProduccionRepository.findByCodigoOrden(codigoSAP);
+    if (existente)
+        throw new ValidationError(`El código SAP ${codigoSAP} ya existe en el sistema.`);
+
+    const codigoOriginal = orden.codigo_orden;
+
+    await this.ordenProduccionRepository.update(id, {
+        codigo_orden:      codigoSAP,
+        origen:            'SAP',           // pasa a ser oficial
+        codigo_emergencia: codigoOriginal,  // guarda el EM-XXXX original
+        vinculado_por:     usuario,
+        vinculado_en:      new Date().toISOString(),
+    });
+
+    await this.auditService.logUpdate(usuario, 'OrdenProduccion', id,
+        { codigo_orden: codigoOriginal },
+        { codigo_orden: codigoSAP },
+        `Orden de emergencia ${codigoOriginal} vinculada a SAP ${codigoSAP}`);
+
     return await this.ordenProduccionRepository.findById(id);
   }
 
@@ -71,7 +145,7 @@ class OrdenProduccionService {
     if (!existing) throw new NotFoundError('Orden no encontrada');
 
     // Si la orden está liberada o en producción, solo permitir cambios de estado o motivo_cierre
-    const restrictedStates = ['Liberada', 'En producción', 'Pausada', 'Cerrada', 'Cancelada'];
+    const restrictedStates = ['En Proceso', 'Completada', 'Cancelada'];
     if (restrictedStates.includes(existing.estado)) {
         const allowedKeys = ['estado', 'motivo_cierre'];
         const keys = Object.keys(data);
@@ -83,8 +157,8 @@ class OrdenProduccionService {
     }
 
     // Validar cambio a Cerrada o Cancelada
-    if ((data.estado === 'Cerrada' || data.estado === 'Cancelada') && !data.motivo_cierre) {
-        throw new ValidationError('Es obligatorio proporcionar un motivo para cerrar o cancelar la orden.');
+    if ((data.estado === 'Completada' || data.estado === 'Cancelada') && !data.motivo_cierre) {
+        throw new ValidationError('Es obligatorio proporcionar un motivo para completar o cancelar la orden.');
     }
 
     await this.ordenProduccionRepository.update(id, data);
@@ -252,7 +326,7 @@ class OrdenProduccionService {
             observaciones:     orden.pedido_cliente
                                  ? `Pedido cliente: ${orden.pedido_cliente}`
                                  : '',
-            estado:            'Creada',
+            estado:            'Liberada',
             especificaciones: {
               ...orden.especificaciones,
               sap_serie:               orden.nombre_proceso_sap,

@@ -35,8 +35,31 @@ class OrdenProduccionController {
 
   create = async (req, res, next) => {
     try {
-      const orden = await this.ordenProduccionService.create(req.body);
+      const usuario = req.user ? req.user.username : 'SISTEMA';
+      const orden = await this.ordenProduccionService.create(req.body, usuario);
       return sendSuccess(res, orden, 201);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  crearEmergencia = async (req, res, next) => {
+    try {
+      const usuario = req.user ? req.user.username : 'SISTEMA';
+      const orden = await this.ordenProduccionService.crearEmergencia(req.body, usuario);
+      return sendSuccess(res, orden, 201);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  vincularEmergencia = async (req, res, next) => {
+    try {
+      const usuario = req.user ? req.user.username : 'SISTEMA';
+      const orden = await this.ordenProduccionService.vincularEmergenciaASAP(
+          req.params.id, req.body.codigo_sap, usuario
+      );
+      return sendSuccess(res, orden);
     } catch (error) {
       next(error);
     }

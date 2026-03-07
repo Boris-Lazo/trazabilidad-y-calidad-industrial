@@ -4,7 +4,7 @@ class DashboardRepository {
   }
 
   async getCounts() {
-    const ordenesActivas = await this.db.get("SELECT COUNT(*) as count FROM orden_produccion WHERE estado IN ('Liberada', 'En producción', 'Pausada')");
+    const ordenesActivas = await this.db.get("SELECT COUNT(*) as count FROM orden_produccion WHERE estado IN ('Liberada', 'En Proceso')");
     const lineasEjecucion = await this.db.get("SELECT COUNT(*) as count FROM lineas_ejecucion WHERE estado = 'ACTIVA'");
     const registrosAbiertos = await this.db.get("SELECT COUNT(*) as count FROM registros_trabajo WHERE estado = 'completado'");
     const incidentesActivos = await this.db.get("SELECT COUNT(*) as count FROM incidentes WHERE estado = 'abierto'");
@@ -27,7 +27,7 @@ class DashboardRepository {
 
   async getRecentOrders(limit = 5) {
     return await this.db.query(
-      "SELECT * FROM orden_produccion WHERE estado IN ('Liberada', 'En producción', 'Pausada') ORDER BY fecha_creacion DESC LIMIT ?",
+      "SELECT * FROM orden_produccion WHERE estado IN ('Liberada', 'En Proceso') ORDER BY fecha_creacion DESC LIMIT ?",
       [limit]
     );
   }

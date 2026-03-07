@@ -67,6 +67,16 @@ class BitacoraRepository {
     return await this.db.get('SELECT * FROM BITACORA_PROCESO WHERE bitacora_id = ? AND proceso_id = ?', [bitacoraId, procesoId]);
   }
 
+  // Estado agregado de todas las máquinas del proceso (usa bitacora_maquina_status)
+  async getEstadoMaquinasByProceso(bitacoraId, procesoId) {
+    return await this.db.query(`
+      SELECT bms.*
+      FROM bitacora_maquina_status bms
+      JOIN MAQUINAS m ON bms.maquina_id = m.id
+      WHERE bms.bitacora_id = ? AND m.proceso_id = ?
+    `, [bitacoraId, procesoId]);
+  }
+
   async deleteProcesoData(bitacoraId, procesoId) {
     await this.db.run(`
         DELETE FROM registros_trabajo

@@ -495,7 +495,7 @@ const runFullSchema = () => {
         fecha_planificada DATE,
         prioridad TEXT,
         observaciones TEXT,
-        estado TEXT CHECK(estado IN ('Creada', 'Liberada', 'En producción', 'Pausada', 'Cerrada', 'Cancelada')) DEFAULT 'Creada',
+        estado TEXT CHECK(estado IN ('Liberada', 'En Proceso', 'Completada', 'Cancelada')) DEFAULT 'Liberada',
         fecha_creacion DATE,
         especificaciones TEXT,
         motivo_cierre TEXT
@@ -1017,6 +1017,49 @@ const runFullSchema = () => {
         FOREIGN KEY (orden_id)    REFERENCES orden_produccion(id)
     );`);
 
+
+    // ── Migración: normalizar estados de orden_produccion ──────────────
+    // Actualiza estados viejos al nuevo esquema de 4 estados
+    db.run(`UPDATE orden_produccion SET estado = 'Liberada'   WHERE estado IN ('Creada', 'Liberada')`);
+    db.run(`UPDATE orden_produccion SET estado = 'En Proceso' WHERE estado IN ('En producción', 'Pausada')`);
+    db.run(`UPDATE orden_produccion SET estado = 'Completada' WHERE estado = 'Cerrada'`);
+
+    // ── Peletizado: inspecciones de calidad (proceso 8) ─────────────
+    db.run(`CREATE TABLE IF NOT EXISTS peletizado_inspecciones (
+        id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id          INTEGER NOT NULL,
+        maquina_id           INTEGER NOT NULL,
+        orden_id             INTEGER NOT NULL,
+        inspeccion_indice    INTEGER NOT NULL,  -- 1=inicio, 2=cierre
+        momento              TEXT NOT NULL,     -- 'inicio_turno' | 'cierre_turno'
+        color_pelet          TEXT,
+        tipo_material        TEXT,
+        usuario_modificacion TEXT,
+        created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (maquina_id)  REFERENCES MAQUINAS(id),
+        FOREIGN KEY (orden_id)    REFERENCES orden_produccion(id)
+    );`);
+
+
+    // ── Tareas Generales (proceso 99) ─────────────────────────────────
+    // Registro de trabajo no productivo: limpieza, reproceso, recuperación, etc.
+    // Sin orden de producción, sin contrato, sin lotes.
+    db.run(`CREATE TABLE IF NOT EXISTS tareas_generales (
+        id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+        bitacora_id          INTEGER NOT NULL,
+        persona_id           INTEGER,              -- opcional: quién hizo la tarea
+        tipo_tarea           TEXT NOT NULL,        -- del catálogo estático
+        area_maquina         TEXT,                 -- zona o máquina donde se hizo
+        tiempo_minutos       INTEGER DEFAULT 0,    -- duración
+        observaciones        TEXT,
+        usuario_modificacion TEXT,
+        created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bitacora_id) REFERENCES bitacora_turno(id),
+        FOREIGN KEY (persona_id)  REFERENCES personas(id)
+    );`);
+
     db.run(`CREATE TABLE IF NOT EXISTS RECURSO (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         codigo TEXT UNIQUE,
@@ -1516,7 +1559,11 @@ const runFullSchema = () => {
       { table: 'calidad_telares_visual', column: 'usuario_modificacion', type: 'TEXT' },
       { table: 'calidad_telares_visual', column: 'fecha_modificacion', type: 'DATETIME' },
       { table: 'orden_produccion', column: 'especificaciones', type: 'TEXT' },
-      { table: 'orden_produccion', column: 'motivo_cierre', type: 'TEXT' },
+      { table: 'orden_produccion', column: 'motivo_cierre',     type: 'TEXT' },
+      { table: 'orden_produccion', column: 'origen',            type: "TEXT DEFAULT 'SAP'" },
+      { table: 'orden_produccion', column: 'codigo_emergencia', type: 'TEXT' },
+      { table: 'orden_produccion', column: 'vinculado_por',     type: 'TEXT' },
+      { table: 'orden_produccion', column: 'vinculado_en',      type: 'TEXT' },
       { table: 'lineas_ejecucion', column: 'fecha_inicio', type: 'DATETIME' },
       { table: 'lineas_ejecucion', column: 'fecha_fin', type: 'DATETIME' },
       { table: 'auditoria', column: 'valor_anterior', type: 'TEXT' },

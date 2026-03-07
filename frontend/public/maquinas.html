@@ -27,6 +27,7 @@
                         <i data-lucide="chevron-right" class="chevron"></i>
                     </button>
                     <div class="nav-group-items">
+                        <a href="/planificacion.html" class="nav-item ">Planificación Semanal</a>
                         <a href="/bitacora.html" class="nav-item">Bitácora de Turno</a>
                         <a href="/ordenes.html" class="nav-item">Órdenes</a>
                         <a href="/ejecucion.html" class="nav-item">Ejecución</a>
@@ -145,7 +146,7 @@
         <div class="modal-content" style="max-width: 450px;">
             <div class="modal-header">
                 <h2>Actualizar Estado de Máquina</h2>
-                <button class="btn-close" onclick="MaquinaModule.closeModal()">&times;</button>
+                <button class="btn-close" id="btn-close-estado">&times;</button>
             </div>
             <div class="modal-body">
                 <p id="machine-target-name" style="font-weight: 600; margin-bottom: 12px;"></p>
@@ -179,7 +180,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="MaquinaModule.closeModal()">Cancelar</button>
+                <button type="button" class="btn btn-secondary" id="btn-cancel-estado">Cancelar</button>
                 <button type="button" id="btn-confirm-estado" class="btn btn-primary">Guardar Cambios</button>
             </div>
         </div>
@@ -190,7 +191,7 @@
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
                 <h2 id="historial-title">Historial de Estados</h2>
-                <button class="btn-close" onclick="document.getElementById('modal-historial').style.display='none'">&times;</button>
+                <button class="btn-close" id="btn-close-historial">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="table-container shadow-sm">
@@ -209,7 +210,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-historial').style.display='none'">Cerrar</button>
+                <button type="button" class="btn btn-secondary" id="btn-cancel-historial">Cerrar</button>
             </div>
         </div>
     </div>

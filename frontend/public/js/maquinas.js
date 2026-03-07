@@ -52,7 +52,7 @@ const MaquinaModule = {
 
         // Reglas de permisos: Solo Administrador, Jefe de Operaciones e Inspector pueden cambiar estado
         // (Basado en ROLE_PERMISSIONS en backend/shared/auth/permissions.js)
-        const canManage = user && (user.rol === 'Administrador' || user.rol === 'Jefe de Operaciones' || user.rol === 'Inspector');
+        const canManage = user && (user.rol === null || user.rol === 'Administrador' || user.rol === 'Jefe de Operaciones' || user.rol === 'Inspector');
 
         const filtered = this.machines.filter(m => {
             const matchesSearch = m.nombre_visible.toLowerCase().includes(searchTerm);
@@ -84,10 +84,10 @@ const MaquinaModule = {
                     <td>
                         <div style="display: flex; gap: 8px;">
                             ${canManage && m.estado_actual !== 'Baja' ? `
-                            <button class="btn btn-secondary btn-sm" onclick="MaquinaModule.openModal(${m.id})" title="Cambiar Estado">
+                            <button class="btn btn-secondary btn-sm" data-action="estado" data-id="${m.id}" title="Cambiar Estado">
                                 <i data-lucide="settings-2" style="width:14px; height:14px;"></i>
                             </button>` : ''}
-                            <button class="btn btn-secondary btn-sm" onclick="MaquinaModule.viewHistory(${m.id})" title="Ver Historial">
+                            <button class="btn btn-secondary btn-sm" data-action="historial" data-id="${m.id}" title="Ver Historial">
                                 <i data-lucide="history" style="width:14px; height:14px;"></i>
                             </button>
                         </div>
@@ -114,6 +114,26 @@ const MaquinaModule = {
         document.getElementById('filter-proceso').addEventListener('change', () => this.renderMachines());
         document.getElementById('filter-estado').addEventListener('change', () => this.renderMachines());
         document.getElementById('btn-confirm-estado').addEventListener('click', () => this.saveStatusChange());
+
+        // Delegación de eventos para botones de la tabla (evita onclick inline bloqueado por CSP)
+        document.getElementById('lista-maquinas').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            const id   = parseInt(btn.dataset.id);
+            const action = btn.dataset.action;
+            if (action === 'estado')   this.openModal(id);
+            if (action === 'historial') this.viewHistory(id);
+        });
+
+        // Botones de cerrar modales
+        document.getElementById('btn-close-estado').addEventListener('click', () => this.closeModal());
+        document.getElementById('btn-cancel-estado').addEventListener('click', () => this.closeModal());
+        document.getElementById('btn-close-historial').addEventListener('click', () => {
+            document.getElementById('modal-historial').style.display = 'none';
+        });
+        document.getElementById('btn-cancel-historial').addEventListener('click', () => {
+            document.getElementById('modal-historial').style.display = 'none';
+        });
     },
 
     openModal(id) {

@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const procesoId = urlParams.get('id');
@@ -411,13 +412,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- UI ESPECÍFICA POR PROCESO ---
     function initProcesoUI(procesoId) {
         const pId = parseInt(procesoId);
-        const specificProcesses = [1, 3, 4, 6];
+        const specificProcesses = [1, 3, 4, 6, 8];
 
         document.getElementById('section-orden-especifica').style.display = 'none';
         document.getElementById('section-extrusor-pp').style.display = 'none';
         document.getElementById('section-laminado').style.display = 'none';
         document.getElementById('section-imprenta').style.display = 'none';
         document.getElementById('section-extrusion-pe').style.display = 'none';
+        document.getElementById('section-peletizado').style.display = 'none';
         document.getElementById('section-produccion-generica').style.display = 'block';
 
         if (specificProcesses.includes(pId)) {
@@ -450,6 +452,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('section-extrusion-pe').style.display = 'block';
                 document.getElementById('btn-agregar-rollo-pe').onclick = () => agregarFilaRolloPE();
                 poblarSelectMaquinasPE();
+            } else if (pId === 8) {
+                document.getElementById('section-peletizado').style.display = 'block';
             }
         }
     }
@@ -567,6 +571,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         }).filter(o => o.tipo);
     }
 
+
+    // ── Peletizado ────────────────────────────────────────────────────
+
+    function calcularResumenPelet() {
+        const bolsas   = parseInt(document.getElementById('pelet-bolsas')?.value) || 0;
+        const pesoReal = parseFloat(document.getElementById('pelet-peso-real')?.value) || 0;
+        const teorico  = bolsas * 25;
+        const diff     = pesoReal - teorico;
+
+        const elTeorico    = document.getElementById('pelet-teorico');
+        const elDiferencia = document.getElementById('pelet-diferencia');
+        const elResumen    = document.getElementById('pelet-resumen');
+
+        if (elTeorico)    elTeorico.textContent    = teorico.toFixed(1) + ' kg';
+        if (elDiferencia) {
+            elDiferencia.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(1) + ' kg';
+            elDiferencia.style.color = Math.abs(diff) > teorico * 0.05
+                ? 'var(--warning)' : 'var(--success)';
+        }
+        if (elResumen) elResumen.style.display = bolsas > 0 || pesoReal > 0 ? 'flex' : 'none';
+    }
+
+    function recogerInspeccionesPelet() {
+        return Array.from(document.querySelectorAll('.fila-inspeccion-pelet')).map(fila => ({
+            inspeccion_indice: parseInt(fila.dataset.indice),
+            color_pelet:   fila.querySelector('.pelet-color')?.value.trim()    || '',
+            tipo_material: fila.querySelector('.pelet-tipo-mat')?.value.trim() || '',
+        })).filter(i => i.color_pelet || i.tipo_material);
+    }
+
+    function cargarInspeccionesPelet(inspecciones) {
+        inspecciones.forEach(insp => {
+            const fila = document.querySelector(`.fila-inspeccion-pelet[data-indice="${insp.inspeccion_indice}"]`);
+            if (!fila) return;
+            const colorIn = fila.querySelector('.pelet-color');
+            const tipoIn  = fila.querySelector('.pelet-tipo-mat');
+            if (colorIn) colorIn.value = insp.color_pelet   || '';
+            if (tipoIn)  tipoIn.value  = insp.tipo_material || '';
+        });
+    }
+
     // --- CARGAR DATOS EXISTENTES ---
     async function cargarDatosExistentes() {
         try {
@@ -576,6 +621,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 3: `/api/laminado/detalle/0?bitacora_id=${currentBitacora.id}`,
                 4: `/api/imprenta/detalle/0?bitacora_id=${currentBitacora.id}`,
                 6: `/api/extrusion-pe/detalle?bitacora_id=${currentBitacora.id}&maquina_id=${encodeURIComponent(document.getElementById('select-maquina-pe')?.value||'')}`,
+                8: `/api/peletizado/detalle?bitacora_id=${currentBitacora.id}`,
             };
 
             let data = {};
@@ -613,10 +659,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else if (pId === 6) {
                     if (data.rollos) data.rollos.forEach(r => agregarFilaRolloPE(r));
                     if (data.orden_id) document.getElementById('select-orden-proceso').value = data.orden_id;
-                    // Recargar muestras PE (4 lecturas independientes)
-                    if (data.muestras && data.muestras.length > 0) {
-                        cargarMuestrasPE(data.muestras);
+                    if (data.muestras && data.muestras.length > 0) cargarMuestrasPE(data.muestras);
+                } else if (pId === 8) {
+                    if (data.orden_id) document.getElementById('select-orden-proceso').value = data.orden_id;
+                    if (data.reporte_bolsas) {
+                        document.getElementById('pelet-bolsas').value    = data.reporte_bolsas.bolsas_producidas || '';
+                        document.getElementById('pelet-peso-real').value = data.reporte_bolsas.peso_real_kg || '';
+                        document.getElementById('pelet-merma').value     = data.reporte_bolsas.merma_kg || '';
+                        document.getElementById('pelet-tipo-desperdicio').value = data.reporte_bolsas.tipo_desperdicio_entrada || '';
+                        calcularResumenPelet();
                     }
+                    if (data.inspecciones) cargarInspeccionesPelet(data.inspecciones);
                 }
 
                 if (data.orden_id) document.getElementById('select-orden-proceso').value = data.orden_id;
@@ -866,6 +919,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
         }
 
+        if (pId === 8) { // Peletizado
+            const ordenId8 = document.getElementById('select-orden-proceso')?.value;
+            return {
+                bitacora_id:   currentBitacora.id,
+                orden_id:      ordenId8 ? parseInt(ordenId8) : null,
+                bolsas_producidas: parseInt(document.getElementById('pelet-bolsas')?.value) || 0,
+                peso_real_kg:  parseFloat(document.getElementById('pelet-peso-real')?.value) || 0,
+                merma_kg:      parseFloat(document.getElementById('pelet-merma')?.value) || 0,
+                tipo_desperdicio_entrada: document.getElementById('pelet-tipo-desperdicio')?.value || '',
+                inspecciones:  recogerInspeccionesPelet(),
+                observaciones: observaciones
+            };
+        }
+
         if (pId === 6) { // Extrusión PE
             const maquinaId = document.getElementById('select-maquina-pe')?.value;
             const ordenId6  = document.getElementById('select-orden-proceso')?.value;
@@ -931,6 +998,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             3: '/api/laminado/guardar',
             4: '/api/imprenta/guardar',
             6: '/api/extrusion-pe/guardar',
+            8: '/api/peletizado/guardar',
         };
 
         const endpoint = PROCESO_ENDPOINTS[pId] || '/api/bitacora/guardar-proceso';

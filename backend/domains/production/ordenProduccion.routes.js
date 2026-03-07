@@ -25,11 +25,21 @@ const ordenProduccionController = new OrdenProduccionController(ordenProduccionS
 
 const router = express.Router();
 
-router.get('/', ordenProduccionController.getAll);
+router.get('/',    ordenProduccionController.getAll);
 router.get('/:id', ordenProduccionController.getById);
-router.post('/', authorize(PERMISSIONS.MANAGE_PRODUCTION), ordenProduccionController.create);
+router.post('/',   authorize(PERMISSIONS.MANAGE_PRODUCTION), ordenProduccionController.create);
 router.put('/:id', authorize(PERMISSIONS.MANAGE_PRODUCTION), ordenProduccionController.update);
 router.delete('/:id', authorize(PERMISSIONS.MANAGE_PRODUCTION), ordenProduccionController.remove);
+
+// Órdenes de emergencia
+router.post('/emergencia/nueva',
+    authMiddleware, authorize(PERMISSIONS.MANAGE_PRODUCTION),
+    ordenProduccionController.crearEmergencia);
+
+// Vincular orden EM a código SAP oficial
+router.post('/:id/vincular-sap',
+    authMiddleware, authorize(PERMISSIONS.MANAGE_PRODUCTION),
+    ordenProduccionController.vincularEmergencia);
 
 // Endpoints de importación masiva SAP
 router.post(

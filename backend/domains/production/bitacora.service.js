@@ -171,51 +171,52 @@ class BitacoraService {
 
     for (const proceso of procesos) {
       const registros = await this.bitacoraRepository.getRegistrosByProceso(bitacoraId, proceso.processId);
-      const muestras = await this.bitacoraRepository.getMuestrasByProceso(bitacoraId, proceso.processId);
-      const status = await this.bitacoraRepository.getProcesoStatus(bitacoraId, proceso.processId);
+      const status    = await this.bitacoraRepository.getProcesoStatus(bitacoraId, proceso.processId);
+      const contract  = ProcessRegistry.get(proceso.processId);
 
-      const contract = ProcessRegistry.get(proceso.processId);
-      const muestrasMinimas = contract.frecuenciaMuestreo?.muestrasMinTurno || 1;
+      // Lee el estado real desde bitacora_maquina_status (escrito por cada domain propio).
+      // Si ninguna máquina del proceso ha sido guardada aún, estadosMaquinas estará vacío → SIN_DATOS.
+      const estadosMaquinas = await this.bitacoraRepository.getEstadoMaquinasByProceso(bitacoraId, proceso.processId);
 
       let estadoProceso = 'SIN_DATOS';
-      let siguienteAccion = 'REGISTRAR_CALIDAD';
-      let accionesPermitidas = ['REGISTRAR_CALIDAD'];
+      let siguienteAccion = 'REGISTRAR';
+      let accionesPermitidas = ['REGISTRAR'];
       let bloqueos = [];
 
       const produccionTotal = registros.reduce((sum, r) => sum + (r.cantidad_producida || 0), 0);
-      const hasRegistros = registros.length > 0;
-      const hasMuestras = muestras.length >= muestrasMinimas;
-
-      const RESULTADOS_REVISION = ['Rechazo', 'No cumple', 'En espera'];
-      const hasRechazo = muestras.some(m => RESULTADOS_REVISION.includes(m.resultado));
-      const hasIncidente = false; // TODO: implementar campo tiene_incidente en registros_trabajo
 
       if (status && status.no_operativo) {
+        // Marcado explícitamente como no operativo
         estadoProceso = 'COMPLETO';
         siguienteAccion = 'NINGUNA';
         accionesPermitidas = [];
-      } else if (hasRechazo || hasIncidente) {
-        estadoProceso = 'REVISION';
-        siguienteAccion = 'CORREGIR_O_JUSTIFICAR';
-        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION', 'CORREGIR'];
-      } else if (hasRegistros && hasMuestras) {
-        estadoProceso = 'COMPLETO';
-        siguienteAccion = 'NINGUNA';
-        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION'];
-      } else if (!hasMuestras) {
-        estadoProceso = 'ESPERANDO_CALIDAD';
-        siguienteAccion = 'REGISTRAR_CALIDAD';
-        accionesPermitidas = ['REGISTRAR_CALIDAD'];
-        bloqueos = [`No se puede registrar producción hasta validar calidad (mínimo ${muestrasMinimas} muestras).`];
-      } else if (!hasRegistros) {
-        estadoProceso = 'ESPERANDO_PRODUCCION';
-        siguienteAccion = 'REGISTRAR_PRODUCCION';
-        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION'];
-      } else {
-        estadoProceso = 'PARCIAL';
-        siguienteAccion = 'COMPLETAR_DATOS';
-        accionesPermitidas = ['REGISTRAR_CALIDAD', 'REGISTRAR_PRODUCCION'];
+      } else if (estadosMaquinas.length > 0) {
+        // Derivar estado del proceso desde el estado de sus máquinas
+        const estados = estadosMaquinas.map(m => m.estado);
+        const tieneDesviacion = estados.some(e => e === 'Con desviación');
+        const todosCompletos  = estados.every(e => e === 'Completo' || e === 'Con desviación');
+        const algunoParcial   = estados.some(e => e === 'Parcial');
+
+        if (tieneDesviacion) {
+          estadoProceso = 'REVISION';
+          siguienteAccion = 'REVISAR';
+          accionesPermitidas = ['REGISTRAR'];
+        } else if (todosCompletos) {
+          estadoProceso = 'COMPLETO';
+          siguienteAccion = 'NINGUNA';
+          accionesPermitidas = ['REGISTRAR'];
+        } else if (algunoParcial) {
+          estadoProceso = 'PARCIAL';
+          siguienteAccion = 'COMPLETAR_DATOS';
+          accionesPermitidas = ['REGISTRAR'];
+        } else {
+          // estados como 'Sin datos' en algunas máquinas
+          estadoProceso = 'PARCIAL';
+          siguienteAccion = 'COMPLETAR_DATOS';
+          accionesPermitidas = ['REGISTRAR'];
+        }
       }
+      // Si estadosMaquinas.length === 0 → estadoProceso queda 'SIN_DATOS', botón habilitado
 
       if (bitacora.estado === 'CERRADA') {
         estadoProceso = 'CERRADO';
@@ -225,11 +226,12 @@ class BitacoraService {
       }
 
       let ultimaActualizacion = '—';
-      const allDates = [
-        ...registros.map(r => new Date(r.fecha_hora)),
-        ...muestras.map(m => new Date(m.fecha_analisis))
-      ].filter(d => !isNaN(d.getTime()));
-
+      const allDates = estadosMaquinas
+        .map(m => new Date(m.updated_at || m.created_at))
+        .filter(d => !isNaN(d.getTime()));
+      if (allDates.length === 0) {
+        registros.map(r => new Date(r.fecha_hora)).filter(d => !isNaN(d.getTime())).forEach(d => allDates.push(d));
+      }
       if (allDates.length > 0) {
         const latest = new Date(Math.max(...allDates));
         ultimaActualizacion = latest.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -245,7 +247,7 @@ class BitacoraService {
         bloqueos,
         ultimaActualizacion,
         produccionTotal,
-        calidadValidada: hasMuestras && !hasRechazo,
+        calidadValidada: estadoProceso === 'COMPLETO',
         unidad: contract.unidadProduccion
       });
     }

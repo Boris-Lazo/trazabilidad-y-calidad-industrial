@@ -18,7 +18,7 @@ const ordenSchema = {
     prioridad: z.enum(['Alta', 'Media', 'Baja', 'Critica', 'media', 'alta', 'critica', 'baja']).optional(),
     observaciones: z.string().optional(),
     especificaciones: z.string().optional(),
-    estado: z.enum(['Creada', 'Liberada', 'En producción', 'Pausada', 'Cerrada', 'Cancelada']).optional(),
+    estado: z.enum(['Liberada', 'En Proceso', 'Completada', 'Cancelada']).optional(),
     motivo_cierre: z.string().optional()
   })
 };

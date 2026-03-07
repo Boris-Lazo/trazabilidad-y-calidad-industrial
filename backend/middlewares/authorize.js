@@ -23,6 +23,10 @@ const authorize = (...requirements) => {
     }
 
     // ─── LÓGICA DE PERMISOS (activa cuando DISABLE_AUTH_CHECKS != true) ─
+
+    // Admin bootstrap (rol === null) tiene acceso total
+    if (req.user.rol === null) return next();
+
     const userRole = req.user.rol;
 
     const isAuthorized = requirements.some(reqmt => {

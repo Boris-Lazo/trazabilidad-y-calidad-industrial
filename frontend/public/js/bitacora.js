@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     const viewApertura = document.getElementById('view-apertura');
     const viewAbierta = document.getElementById('view-abierta');
@@ -108,13 +107,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div style="background: rgba(0,0,0,0.05); padding: 0.75rem 1rem; text-align: right;">
                     <button class="btn ${isMandatory ? 'btn-primary' : 'btn-secondary'} btn-registrar"
                             data-id="${p.id}" data-nombre="${p.nombre}" style="min-width: 120px;"
-                            ${(!canAction || (data.siguienteAccion === 'IR_A_PROCESO' && !isMandatory)) ? 'disabled' : ''}>
-                        ${b.estado === 'CERRADA' ? 'Ver Histórico' : (isMandatory ? 'REGISTRO OBLIGATORIO' : p.siguienteAccion)}
+                            ${!canAction ? 'disabled' : ''}>
+                        ${b.estado === 'CERRADA' ? 'Ver Histórico' : (isMandatory ? 'REGISTRO OBLIGATORIO' : (() => {
+                            const labels = {
+                                'REGISTRAR':        'Registrar',
+                                'COMPLETAR_DATOS':  'Completar datos',
+                                'REVISAR':          'Revisar desviación',
+                                'NINGUNA':          'Ver detalle',
+                                'REGISTRAR_CALIDAD':'Registrar calidad',
+                                'REGISTRAR_PRODUCCION': 'Registrar producción',
+                            };
+                            return labels[p.siguienteAccion] || p.siguienteAccion;
+                        })())}
                     </button>
                 </div>
             `;
             gridProcesos.appendChild(card);
         });
+
+        // ── Tarjeta especial: Tareas Generales (proceso 99) ─────────────
+        if (b.estado !== 'CERRADA') {
+            const cardTG = document.createElement('div');
+            cardTG.className = 'card process-card';
+            cardTG.style.cssText = 'border-left:8px solid #6366f1; display:flex; flex-direction:column; justify-content:space-between;';
+            cardTG.innerHTML = `
+                <div style="padding:1rem;">
+                    <h3 style="margin-bottom:0.5rem; font-size:1.1rem;">Tareas Generales</h3>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span id="badge-tareas-generales" class="badge badge-secondary">Sin registros</span>
+                        <small style="color:var(--text-secondary); font-size:0.75rem;">Limpieza · Reproceso · Recuperación</small>
+                    </div>
+                </div>
+                <div style="background:rgba(0,0,0,0.05); padding:0.75rem 1rem; text-align:right;">
+                    <button class="btn btn-secondary" id="btn-abrir-tareas-generales" style="min-width:120px;">
+                        Registrar Tarea
+                    </button>
+                </div>
+            `;
+            gridProcesos.appendChild(cardTG);
+            document.getElementById('btn-abrir-tareas-generales').addEventListener('click', () => {
+                abrirModalTareasGenerales();
+            });
+            cargarResumenTareasGenerales();
+        }
 
         // Lógica de habilitación de cierre
         btnCerrar.disabled = data.estadoTurno !== 'LISTO_PARA_CIERRE' || b.estado === 'CERRADA';
@@ -290,6 +325,196 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     cancelarCierre.onclick = () => { modalCierre.style.display = 'none'; };
+
+    // ── Tareas Generales (proceso 99) ────────────────────────────────
+    const TIPOS_TAREA = [
+        'Limpieza de área', 'Limpieza de máquina',
+        'Reprocesamiento de material', 'Recuperación de material',
+        'Mantenimiento menor', 'Apoyo a otro proceso',
+        'Orden y clasificación', 'Otro',
+    ];
+
+    async function cargarResumenTareasGenerales() {
+        if (!currentBitacora) return;
+        try {
+            const res  = await fetch(`/api/tareas-generales?bitacora_id=${currentBitacora.id}`);
+            const data = (await res.json()).data || {};
+            const badge = document.getElementById('badge-tareas-generales');
+            if (!badge) return;
+            const n = (data.tareas || []).length;
+            if (n === 0) {
+                badge.textContent = 'Sin registros';
+                badge.className   = 'badge badge-secondary';
+            } else {
+                const mins = data.total_minutos || 0;
+                badge.textContent = `${n} tarea${n > 1 ? 's' : ''} · ${mins} min`;
+                badge.className   = 'badge badge-success';
+            }
+        } catch (e) { console.warn('Error cargando tareas generales', e); }
+    }
+
+    function abrirModalTareasGenerales() {
+        // Crear modal dinámicamente si no existe
+        let modal = document.getElementById('modal-tareas-generales');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'modal-tareas-generales';
+            modal.style.cssText = 'display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:flex-start; padding-top:3rem;';
+            modal.innerHTML = `
+                <div class="card" style="width:95%; max-width:640px; max-height:85vh; overflow-y:auto;">
+                    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span><i data-lucide="clipboard-list" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;"></i>Tareas Generales</span>
+                        <button id="btn-cerrar-tg" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--text-secondary);">×</button>
+                    </div>
+                    <div style="padding:1.2rem;">
+
+                        <!-- Formulario nueva tarea -->
+                        <div style="background:var(--bg-alt); border:1px solid var(--border); border-radius:8px; padding:1rem; margin-bottom:1.2rem;">
+                            <div style="font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); margin-bottom:0.8rem;">Agregar Tarea</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                                <div>
+                                    <label style="font-size:0.78rem; font-weight:600; display:block; margin-bottom:3px;">Tipo de tarea *</label>
+                                    <select id="tg-tipo" class="form-control" style="width:100%;">
+                                        <option value="">— Seleccione —</option>
+                                        ${TIPOS_TAREA.map(t => `<option value="${t}">${t}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.78rem; font-weight:600; display:block; margin-bottom:3px;">Área / Máquina</label>
+                                    <input type="text" id="tg-area" class="form-control" placeholder="Ej: Área de telares, EXTPP01" style="width:100%;">
+                                </div>
+                            </div>
+                            <div style="display:grid; grid-template-columns:120px 1fr; gap:10px; margin-bottom:10px;">
+                                <div>
+                                    <label style="font-size:0.78rem; font-weight:600; display:block; margin-bottom:3px;">Tiempo (min)</label>
+                                    <input type="number" id="tg-tiempo" class="form-control" min="0" placeholder="0" style="width:100%;">
+                                </div>
+                                <div>
+                                    <label style="font-size:0.78rem; font-weight:600; display:block; margin-bottom:3px;">Observaciones</label>
+                                    <input type="text" id="tg-obs" class="form-control" placeholder="Detalle adicional..." style="width:100%;">
+                                </div>
+                            </div>
+                            <div style="text-align:right;">
+                                <button id="btn-guardar-tg" class="btn btn-primary" style="font-size:0.85rem; padding:6px 16px;">
+                                    + Agregar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Lista de tareas registradas -->
+                        <div id="lista-tareas-generales">
+                            <div style="text-align:center; color:var(--text-secondary); padding:1rem; font-size:0.9rem;">Cargando...</div>
+                        </div>
+
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            document.getElementById('btn-cerrar-tg').onclick = () => {
+                modal.style.display = 'none';
+            };
+            modal.addEventListener('click', e => {
+                if (e.target === modal) modal.style.display = 'none';
+            });
+            document.getElementById('btn-guardar-tg').onclick = guardarTareaGeneral;
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        modal.style.display = 'flex';
+        renderListaTareasGenerales();
+    }
+
+    async function guardarTareaGeneral() {
+        const tipo  = document.getElementById('tg-tipo')?.value;
+        const area  = document.getElementById('tg-area')?.value;
+        const tiempo = document.getElementById('tg-tiempo')?.value;
+        const obs   = document.getElementById('tg-obs')?.value;
+
+        if (!tipo) { DesignSystem.showToast('Selecciona el tipo de tarea.', 'warning'); return; }
+
+        try {
+            const res = await fetch('/api/tareas-generales', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    bitacora_id:   currentBitacora.id,
+                    tipo_tarea:    tipo,
+                    area_maquina:  area,
+                    tiempo_minutos: parseInt(tiempo) || 0,
+                    observaciones: obs,
+                })
+            });
+            if (res.ok) {
+                // Limpiar form
+                document.getElementById('tg-tipo').value  = '';
+                document.getElementById('tg-area').value  = '';
+                document.getElementById('tg-tiempo').value = '';
+                document.getElementById('tg-obs').value   = '';
+                DesignSystem.showToast('Tarea registrada.', 'success');
+                await renderListaTareasGenerales();
+                await cargarResumenTareasGenerales();
+            } else {
+                const err = await res.json();
+                DesignSystem.showToast(err.error || 'Error al guardar.', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            DesignSystem.showToast('Error de conexión.', 'error');
+        }
+    }
+
+    async function renderListaTareasGenerales() {
+        const container = document.getElementById('lista-tareas-generales');
+        if (!container) return;
+        try {
+            const res  = await fetch(`/api/tareas-generales?bitacora_id=${currentBitacora.id}`);
+            const data = (await res.json()).data || {};
+            const tareas = data.tareas || [];
+
+            if (tareas.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:1rem; font-size:0.9rem;">No hay tareas registradas aún.</div>';
+                return;
+            }
+
+            const totalMins = data.total_minutos || 0;
+            container.innerHTML = `
+                <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); margin-bottom:0.6rem;">
+                    Registradas este turno — Total: ${totalMins} min
+                </div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    ${tareas.map(t => `
+                        <div style="background:var(--bg-alt); border:1px solid var(--border); border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-weight:600; font-size:0.88rem;">${t.tipo_tarea}</div>
+                                <div style="font-size:0.78rem; color:var(--text-secondary); margin-top:2px;">
+                                    ${t.area_maquina ? `<span style="margin-right:8px;">📍 ${t.area_maquina}</span>` : ''}
+                                    ${t.tiempo_minutos ? `<span style="margin-right:8px;">⏱ ${t.tiempo_minutos} min</span>` : ''}
+                                    ${t.observaciones ? `<span>${t.observaciones}</span>` : ''}
+                                </div>
+                            </div>
+                            <button onclick="eliminarTareaGeneral(${t.id})"
+                                    style="background:none; border:none; cursor:pointer; color:var(--error); font-size:1.2rem; flex-shrink:0; padding:0 4px;"
+                                    title="Eliminar">×</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } catch (e) {
+            container.innerHTML = '<div style="color:var(--error);">Error al cargar tareas.</div>';
+        }
+    }
+
+    window.eliminarTareaGeneral = async (id) => {
+        try {
+            const res = await fetch(`/api/tareas-generales/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                await renderListaTareasGenerales();
+                await cargarResumenTareasGenerales();
+                DesignSystem.showToast('Tarea eliminada.', 'success');
+            }
+        } catch (e) { DesignSystem.showToast('Error al eliminar.', 'error'); }
+    };
 
     checkEstado();
 });
