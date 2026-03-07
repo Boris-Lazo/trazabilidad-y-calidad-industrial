@@ -1,3 +1,4 @@
+const BaseProcesoService = require('./base/BaseProcesoService');
 const ValidationError = require('../../shared/errors/ValidationError');
 
 const PESO_BOLSA_NOMINAL_KG = 25;
@@ -6,70 +7,53 @@ const INSPECCIONES = [
     { indice: 2, momento: 'cierre_turno', etiqueta: 'Cierre de turno' },
 ];
 
-class PeletizadoService {
-    constructor(peletizadoRepository, lineaEjecucionRepository, loteService) {
-        this.repo      = peletizadoRepository;
-        this.lineaRepo = lineaEjecucionRepository;
-        this.loteService = loteService;
+class PeletizadoService extends BaseProcesoService {
+    constructor(peletizadoRepository, lineaEjecucionRepository, loteService, auditService) {
+        // Base constructor: (repository, loteService, lineaEjecucionRepository, auditService, config)
+        super(peletizadoRepository, loteService, lineaEjecucionRepository, auditService, {
+            procesoId: 8,
+            digitoOrden: '8'
+        });
     }
 
-    // ── GET ────────────────────────────────────────────────────────────
     async getDetalle(bitacoraId) {
-        const maquina = await this.repo.getMaquina();
-        const [estado, ultimoRegistro, inspecciones] = await Promise.all([
-            this.repo.getEstadoMaquina(bitacoraId, maquina.id),
-            this.repo.getUltimoRegistro(bitacoraId, maquina.id),
-            this.repo.getInspeccionesByBitacora(bitacoraId, maquina.id),
-        ]);
+        const baseDetalle = await super.getDetalle(bitacoraId);
+        const maquinaId = baseDetalle.maquina.id;
+        const inspecciones = await this.repository.getInspeccionesByBitacora(bitacoraId, maquinaId);
 
         let registroParseado = null;
-        if (ultimoRegistro?.parametros) {
+        if (baseDetalle.ultimo_registro?.parametros) {
             try {
-                registroParseado = JSON.parse(ultimoRegistro.parametros);
+                registroParseado = JSON.parse(baseDetalle.ultimo_registro.parametros);
             } catch (_) {}
         }
 
-        let loteTurno = null;
-        if (ultimoRegistro?.orden_id) {
-            loteTurno = await this.loteService.getByBitacoraYOrden(bitacoraId, ultimoRegistro.orden_id);
-        }
-
         return {
-            maquina,
-            estado_proceso: estado?.estado || 'Sin datos',
+            ...baseDetalle,
             reporte_bolsas: registroParseado,
-            orden_id: ultimoRegistro?.orden_id || null,
+            orden_id: baseDetalle.ultimo_registro?.orden_id || null,
             inspecciones,
-            lote_turno: loteTurno,
+            lote_turno: baseDetalle.lote,
         };
     }
 
-    // ── SAVE ───────────────────────────────────────────────────────────
     async saveDetalle(data, usuario) {
         const {
             bitacora_id,
             orden_id,
             bolsas_producidas,
             peso_real_kg,
-            tipo_desperdicio_entrada = '',  // descripción del material que entró
-            inspecciones    = [],           // [{ inspeccion_indice, color_pelet, tipo_material }]
+            tipo_desperdicio_entrada = '',
+            inspecciones    = [],
             merma_kg        = 0,
             observaciones   = '',
         } = data;
 
-        const PROCESO_ID = 8;
+        const PROCESO_ID = this.config.procesoId;
 
         // ── Validaciones ───────────────────────────────────────────────
-        if (!orden_id) throw new ValidationError('Debe seleccionar una orden de producción.');
-
-        const codigoOrden = await this.repo.findOrdenCodigo(orden_id);
-        if (!codigoOrden) throw new ValidationError(`La orden ID ${orden_id} no existe.`);
-        if (!codigoOrden.startsWith('8'))
-            throw new ValidationError(`La orden ${codigoOrden} no pertenece al proceso de Peletizado (debe iniciar con "8").`);
-
-        const orden = await this.repo.getOrdenById(orden_id);
-        if (orden?.estado === 'Cancelada')
-            throw new ValidationError(`La orden ${codigoOrden} está cancelada.`);
+        await this.validarOrden(orden_id);
+        const orden = await this.repository.getOrdenById(orden_id);
 
         if (bolsas_producidas !== null && bolsas_producidas !== undefined) {
             if (!Number.isInteger(Number(bolsas_producidas)) || Number(bolsas_producidas) < 0)
@@ -80,12 +64,12 @@ class PeletizadoService {
                 throw new ValidationError('El peso real no puede ser negativo.');
         }
 
-        const maquina = await this.repo.getMaquina();
+        const maquina = await this.repository.getMaquina();
 
-        return await this.repo.withTransaction(async () => {
+        return await this.repository.withTransaction(async () => {
             // ── Idempotencia ─────────────────────────────────────────
-            await this.repo.deleteInspeccionesByBitacora(bitacora_id, maquina.id);
-            await this.repo.deleteRegistrosByBitacoraYMaquina(bitacora_id, maquina.id);
+            await this.repository.deleteInspeccionesByBitacora(bitacora_id, maquina.id);
+            await this.repository.deleteRegistrosByBitacoraYMaquina(bitacora_id, maquina.id);
 
             // ── Cálculos del reporte de bolsas ────────────────────────
             const bolsas      = Number(bolsas_producidas) || 0;
@@ -94,14 +78,10 @@ class PeletizadoService {
             const diferencia  = +(pesoReal - pesoTeorico).toFixed(2);
 
             // ── Línea de ejecución ────────────────────────────────────
-            let linea = await this.lineaRepo.findByOrdenAndProceso(orden_id, PROCESO_ID, maquina.id);
-            if (!linea) {
-                const lineaId = await this.lineaRepo.create(orden_id, PROCESO_ID, maquina.id);
-                linea = { id: lineaId };
-            }
+            const linea = await this.obtenerOCrearLineaEjecucion(orden_id, maquina.id);
 
             // ── Registro de trabajo ───────────────────────────────────
-            const parametrosJSON = JSON.stringify({
+            const parametrosJSON = {
                 bolsas_producidas: bolsas,
                 peso_real_kg:      pesoReal,
                 peso_teorico_kg:   pesoTeorico,
@@ -109,9 +89,9 @@ class PeletizadoService {
                 tipo_desperdicio_entrada,
                 merma_kg,
                 observaciones,
-            });
+            };
 
-            const registroId = await this.repo.saveRegistroTrabajo({
+            const registroId = await this.repository.saveRegistroTrabajo({
                 cantidad_producida: pesoReal,
                 merma_kg,
                 observaciones,
@@ -125,9 +105,9 @@ class PeletizadoService {
             // ── Lote ──────────────────────────────────────────────────
             let loteTurno = await this.loteService.getByBitacoraYOrden(bitacora_id, orden_id);
             if (!loteTurno && bolsas > 0) {
-                const count = await this.repo.getMaxCorrelativoLoteByOrden(orden_id);
+                const count = await this.repository.getMaxCorrelativoLoteByOrden(orden_id);
                 const correlativo = count + 1;
-                const codigoLote  = `${codigoOrden}-PELET-${String(correlativo).padStart(3, '0')}`;
+                const codigoLote  = `${orden.codigo_orden}-PELET-${String(correlativo).padStart(3, '0')}`;
                 await this.loteService.crearLoteDirecto({
                     codigo_lote:        codigoLote,
                     orden_produccion_id: orden_id,
@@ -140,7 +120,7 @@ class PeletizadoService {
             // ── Inspecciones ──────────────────────────────────────────
             for (const insp of inspecciones) {
                 const def = INSPECCIONES.find(d => d.indice === Number(insp.inspeccion_indice));
-                await this.repo.saveInspeccion({
+                await this.repository.saveInspeccion({
                     bitacora_id,
                     maquina_id:           maquina.id,
                     orden_id,
@@ -161,7 +141,7 @@ class PeletizadoService {
                 if (tieneProduccion && tiene2Inspecciones) estado = 'Completo';
             }
 
-            await this.repo.saveEstadoMaquina(bitacora_id, maquina.id, estado, observaciones);
+            await this.actualizarEstado(bitacora_id, maquina.id, estado, observaciones);
 
             return {
                 registro_id:   registroId,

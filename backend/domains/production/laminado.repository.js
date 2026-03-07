@@ -1,71 +1,8 @@
-const NotFoundError = require('../../shared/errors/NotFoundError');
+const BaseProcesoRepository = require('./base/BaseProcesoRepository');
 
-class LaminadoRepository {
+class LaminadoRepository extends BaseProcesoRepository {
     constructor(db) {
-        this.db = db;
-    }
-
-    // ── Máquina ──────────────────────────────────────────────────────────
-    async getMaquina() {
-        const maquina = await this.db.get(
-            `SELECT * FROM MAQUINAS WHERE proceso_id = 3 AND activo = 1 LIMIT 1`
-        );
-        if (!maquina) throw new NotFoundError('No se encontró máquina configurada para Laminado.');
-        return maquina;
-    }
-
-    // ── Orden ─────────────────────────────────────────────────────────────
-    async findOrdenCodigo(ordenId) {
-        const row = await this.db.get(
-            `SELECT codigo_orden FROM orden_produccion WHERE id = ?`, [ordenId]
-        );
-        return row ? row.codigo_orden : null;
-    }
-
-    async getOrdenById(ordenId) {
-        return await this.db.get(
-            `SELECT * FROM orden_produccion WHERE id = ?`, [ordenId]
-        );
-    }
-
-    async getOrdenEspecificaciones(ordenId) {
-        return await this.db.get(
-            `SELECT * FROM orden_produccion WHERE id = ?`, [ordenId]
-        );
-    }
-
-    // ── Producción / registros_trabajo ────────────────────────────────────
-    async getUltimoRegistro(bitacoraId, maquinaId) {
-        return await this.db.get(`
-            SELECT * FROM registros_trabajo
-            WHERE bitacora_id = ? AND maquina_id = ?
-            ORDER BY created_at DESC LIMIT 1
-        `, [bitacoraId, maquinaId]);
-    }
-
-    async deleteRegistrosByBitacoraYMaquina(bitacoraId, maquinaId) {
-        await this.db.run(
-            `DELETE FROM registros_trabajo WHERE bitacora_id = ? AND maquina_id = ?`,
-            [bitacoraId, maquinaId]
-        );
-    }
-
-    // ── Estado bitacora_maquina_status ────────────────────────────────────
-    async saveEstadoMaquina(bitacoraId, maquinaId, estado, observacion) {
-        return await this.db.run(`
-            INSERT INTO bitacora_maquina_status (bitacora_id, maquina_id, estado, observacion_advertencia)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(bitacora_id, maquina_id) DO UPDATE SET
-                estado = EXCLUDED.estado,
-                observacion_advertencia = EXCLUDED.observacion_advertencia
-        `, [bitacoraId, maquinaId, estado, observacion]);
-    }
-
-    async getEstadoMaquina(bitacoraId, maquinaId) {
-        return await this.db.get(
-            `SELECT * FROM bitacora_maquina_status WHERE bitacora_id = ? AND maquina_id = ?`,
-            [bitacoraId, maquinaId]
-        );
+        super(db, 3); // proceso_id = 3
     }
 
     // ── Muestras ──────────────────────────────────────────────────────────
@@ -112,6 +49,13 @@ class LaminadoRepository {
         );
     }
 
+    async deleteRegistrosByBitacoraYMaquina(bitacoraId, maquinaId) {
+        await this.db.run(
+            `DELETE FROM registros_trabajo WHERE bitacora_id = ? AND maquina_id = ?`,
+            [bitacoraId, maquinaId]
+        );
+    }
+
     // ── Materias primas ───────────────────────────────────────────────────
     async saveMateriasPrimas(data) {
         const { bitacora_id, maquina_id, tipo, marca, lote_material,
@@ -143,7 +87,6 @@ class LaminadoRepository {
     }
 
     // ── PDF central de materiales ─────────────────────────────────────────
-    // Busca un PDF ya subido para un tipo+marca+lote específico
     async getPdfMaterial(tipo, marca, loteMaterial) {
         return await this.db.get(
             `SELECT * FROM laminado_pdf_materiales
@@ -152,7 +95,6 @@ class LaminadoRepository {
         );
     }
 
-    // Guarda o actualiza el PDF central para un tipo+marca+lote
     async upsertPdfMaterial(tipo, marca, loteMaterial, pdfBlob, pdfNombre, usuario) {
         return await this.db.run(`
             INSERT INTO laminado_pdf_materiales
@@ -166,11 +108,7 @@ class LaminadoRepository {
     }
 
     // ── Lotes ─────────────────────────────────────────────────────────────
-    // El código de lote en Laminado es el código del rollo de Telares
-    // con sufijo del correlativo laminado: R047-T05-L001
     async getMaxCorrelativoLaminadoPorOrden(ordenId) {
-        // Cuenta cuántos lotes de laminado existen ya para esta orden
-        // El correlativo reinicia por orden.
         const row = await this.db.get(`
             SELECT COUNT(*) as total FROM lotes
             WHERE orden_produccion_id = ? AND codigo_lote LIKE '%-L%'
@@ -179,28 +117,11 @@ class LaminadoRepository {
     }
 
     async findLoteExistentePorRollo(ordenId, codigoRollo) {
-        // Busca si ya existe un lote para este rollo en esta orden.
-        // Se usa para evitar duplicados al re-guardar el turno.
         return await this.db.get(
             `SELECT * FROM lotes
              WHERE orden_produccion_id = ? AND codigo_lote LIKE ?`,
             [ordenId, `${codigoRollo}-L%`]
         );
-    }
-
-    // ── Desperdicio ───────────────────────────────────────────────────────
-    async getDesperdicioByBitacora(bitacoraId, maquinaId) {
-        const row = await this.db.get(`
-            SELECT SUM(merma_kg) as total_merma
-            FROM registros_trabajo
-            WHERE bitacora_id = ? AND maquina_id = ?
-        `, [bitacoraId, maquinaId]);
-        return row ? (row.total_merma || 0) : 0;
-    }
-
-    // ── Transacción ───────────────────────────────────────────────────────
-    async withTransaction(fn) {
-        return await this.db.withTransaction(fn);
     }
 }
 

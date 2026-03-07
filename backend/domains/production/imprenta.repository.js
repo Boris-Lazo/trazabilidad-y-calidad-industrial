@@ -1,56 +1,8 @@
-const NotFoundError = require('../../shared/errors/NotFoundError');
+const BaseProcesoRepository = require('./base/BaseProcesoRepository');
 
-class ImprentaRepository {
+class ImprentaRepository extends BaseProcesoRepository {
     constructor(db) {
-        this.db = db;
-    }
-
-    // ── Máquina ──────────────────────────────────────────────────────────
-    // Afecta tabla: MAQUINAS
-    async getMaquina() {
-        const maquina = await this.db.get(
-            `SELECT * FROM MAQUINAS WHERE proceso_id = 4 AND activo = 1 LIMIT 1`
-        );
-        if (!maquina) throw new NotFoundError('No se encontró máquina configurada para Imprenta.');
-        return maquina;
-    }
-
-    // ── Orden ─────────────────────────────────────────────────────────────
-    // Afecta tabla: orden_produccion
-    async findOrdenCodigo(ordenId) {
-        const row = await this.db.get(
-            `SELECT codigo_orden FROM orden_produccion WHERE id = ?`, [ordenId]
-        );
-        return row ? row.codigo_orden : null;
-    }
-
-    async getOrdenById(ordenId) {
-        return await this.db.get(
-            `SELECT * FROM orden_produccion WHERE id = ?`, [ordenId]
-        );
-    }
-
-    // ── Producción / registros_trabajo ────────────────────────────────────
-    // Afecta tabla: registros_trabajo
-    async saveRegistroTrabajo(data) {
-        const { cantidad_producida, merma_kg, observaciones, parametros,
-                linea_ejecucion_id, bitacora_id, maquina_id, usuario_modificacion } = data;
-        const result = await this.db.run(`
-            INSERT INTO registros_trabajo
-            (cantidad_producida, merma_kg, observaciones, parametros,
-             linea_ejecucion_id, bitacora_id, maquina_id, usuario_modificacion)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [cantidad_producida, merma_kg, observaciones, parametros,
-            linea_ejecucion_id, bitacora_id, maquina_id, usuario_modificacion]);
-        return result.lastID;
-    }
-
-    async getUltimoRegistro(bitacoraId, maquinaId) {
-        return await this.db.get(`
-            SELECT * FROM registros_trabajo
-            WHERE bitacora_id = ? AND maquina_id = ?
-            ORDER BY created_at DESC LIMIT 1
-        `, [bitacoraId, maquinaId]);
+        super(db, 4); // proceso_id = 4
     }
 
     async deleteRegistrosByBitacoraYMaquina(bitacoraId, maquinaId) {
@@ -61,7 +13,6 @@ class ImprentaRepository {
     }
 
     // ── Rollos consumidos ─────────────────────────────────────────────────
-    // Afecta tabla: imprenta_consumo_rollo
     async saveConsumoRollo(data) {
         const { bitacora_id, maquina_id, orden_id, codigo_rollo, origen_proceso_id,
                 metros_consumidos, impresiones_producidas, lote_id,
@@ -93,7 +44,6 @@ class ImprentaRepository {
     }
 
     // ── Tintas ────────────────────────────────────────────────────────────
-    // Afecta tabla: imprenta_tintas
     async saveTinta(data) {
         const { bitacora_id, maquina_id, orden_id, posicion, numero_color,
                 codigo_pantone, tipo, marca, lote, usuario_modificacion } = data;
@@ -121,7 +71,6 @@ class ImprentaRepository {
     }
 
     // ── Muestras de Calidad ───────────────────────────────────────────────
-    // Afecta tabla: imprenta_muestras_calidad
     async saveMuestraCalidad(data) {
         const { bitacora_id, maquina_id, orden_id, inspeccion_indice, parametro,
                 valor, resultado, tinta_posicion, tinta_numero_color,
@@ -153,7 +102,6 @@ class ImprentaRepository {
     }
 
     // ── Lotes ─────────────────────────────────────────────────────────────
-    // Afecta tabla: lotes
     async getMaxCorrelativoImprentaPorOrden(ordenId) {
         const row = await this.db.get(
             `SELECT COUNT(*) as total FROM lotes
@@ -169,30 +117,6 @@ class ImprentaRepository {
              WHERE orden_produccion_id = ? AND codigo_lote LIKE ?`,
             [ordenId, `${codigoRollo}-I%`]
         );
-    }
-
-    // ── Estado bitacora_maquina_status ────────────────────────────────────
-    // Afecta tabla: bitacora_maquina_status
-    async saveEstadoMaquina(bitacoraId, maquinaId, estado, obs) {
-        return await this.db.run(`
-            INSERT INTO bitacora_maquina_status (bitacora_id, maquina_id, estado, observacion_advertencia)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(bitacora_id, maquina_id) DO UPDATE SET
-                estado = EXCLUDED.estado,
-                observacion_advertencia = EXCLUDED.observacion_advertencia
-        `, [bitacoraId, maquinaId, estado, obs]);
-    }
-
-    async getEstadoMaquina(bitacoraId, maquinaId) {
-        return await this.db.get(
-            `SELECT * FROM bitacora_maquina_status WHERE bitacora_id = ? AND maquina_id = ?`,
-            [bitacoraId, maquinaId]
-        );
-    }
-
-    // ── Transacción ───────────────────────────────────────────────────────
-    async withTransaction(fn) {
-        return await this.db.withTransaction(fn);
     }
 }
 

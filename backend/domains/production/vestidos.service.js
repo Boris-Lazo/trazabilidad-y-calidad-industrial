@@ -1,48 +1,43 @@
+const BaseProcesoService = require('./base/BaseProcesoService');
 const ValidationError = require('../../shared/errors/ValidationError');
 const NotFoundError = require('../../shared/errors/NotFoundError');
 
-class VestidosService {
+class VestidosService extends BaseProcesoService {
     constructor(vestidosRepository, lineaEjecucionRepository,
-                registroTrabajoRepository, loteService) {
-        this.vestidosRepository = vestidosRepository;
-        this.lineaEjecucionRepository = lineaEjecucionRepository;
-        this.registroTrabajoRepository = registroTrabajoRepository;
-        this.loteService = loteService;
+                registroTrabajoRepository, loteService, auditService) {
+        // Base constructor: (repository, loteService, lineaEjecucionRepository, auditService, config)
+        super(vestidosRepository, loteService, lineaEjecucionRepository, auditService, {
+            procesoId: 9,
+            digitoOrden: '9'
+        });
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // getDetalle: datos específicos de la máquina en el turno
-    // ─────────────────────────────────────────────────────────────────────
     async getDetalle(bitacoraId) {
-        const maquina = await this.vestidosRepository.getMaquina();
-        const maquinaId = maquina.id;
-        const estadoMaquina = await this.vestidosRepository.getEstadoMaquina(bitacoraId, maquinaId);
-        const ultimoRegistro = await this.vestidosRepository.getUltimoRegistro(bitacoraId, maquinaId);
-        const rollosSaco = await this.vestidosRepository.getConsumoRollosSacoByBitacora(bitacoraId, maquinaId);
-        const rollosPE = await this.vestidosRepository.getConsumoRollosPEByBitacora(bitacoraId, maquinaId);
-        const muestrasCalidad = await this.vestidosRepository.getMuestrasCalidadByBitacora(bitacoraId, maquinaId);
+        const baseDetalle = await super.getDetalle(bitacoraId);
+        const maquinaId = baseDetalle.maquina.id;
+
+        const rollosSaco = await this.repository.getConsumoRollosSacoByBitacora(bitacoraId, maquinaId);
+        const rollosPE = await this.repository.getConsumoRollosPEByBitacora(bitacoraId, maquinaId);
+        const muestrasCalidad = await this.repository.getMuestrasCalidadByBitacora(bitacoraId, maquinaId);
 
         let mFisica = null;
-        if (ultimoRegistro && ultimoRegistro.orden_id) {
-            mFisica = await this.vestidosRepository.getMuestraFisicaByOrdenYBitacora(ultimoRegistro.orden_id, bitacoraId);
+        if (baseDetalle.ultimo_registro && baseDetalle.ultimo_registro.orden_id) {
+            mFisica = await this.repository.getMuestraFisicaByOrdenYBitacora(baseDetalle.ultimo_registro.orden_id, bitacoraId);
         }
 
-        const defectos = await this.vestidosRepository.getDefectosByBitacora(bitacoraId, maquinaId);
+        const defectos = await this.repository.getDefectosByBitacora(bitacoraId, maquinaId);
 
-        // Extraer parámetros del último registro si existe
         let params = {};
-        if (ultimoRegistro && ultimoRegistro.parametros) {
+        if (baseDetalle.ultimo_registro && baseDetalle.ultimo_registro.parametros) {
             try {
-                params = JSON.parse(ultimoRegistro.parametros);
+                params = JSON.parse(baseDetalle.ultimo_registro.parametros);
             } catch (e) {
                 params = {};
             }
         }
 
         return {
-            maquina,
-            estado_proceso: estadoMaquina ? estadoMaquina.estado : 'Sin datos',
-            ultimo_registro: ultimoRegistro,
+            ...baseDetalle,
             rollos_saco: rollosSaco,
             rollos_pe: rollosPE,
             muestras_calidad: muestrasCalidad,
@@ -54,9 +49,6 @@ class VestidosService {
         };
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // saveDetalle: guarda el registro del turno de vestidos
-    // ─────────────────────────────────────────────────────────────────────
     async saveDetalle(data, usuario) {
         const {
             bitacora_id,
@@ -72,23 +64,13 @@ class VestidosService {
             observaciones = ''
         } = data;
 
-        const procesoId = 9;
+        const procesoId = this.config.procesoId;
 
         // ── Validaciones ──────────────────────────────────────────────────
+        await this.validarOrden(orden_id);
+        const orden = await this.repository.getOrdenById(orden_id);
 
-        // 1. Validar orden
-        const codigoOrden = await this.vestidosRepository.findOrdenCodigo(orden_id);
-        if (!codigoOrden) throw new ValidationError(`La orden ID ${orden_id} no existe.`);
-        if (!codigoOrden.startsWith('9')) {
-            throw new ValidationError(`La orden ${codigoOrden} no pertenece al proceso de Conversión de Sacos Vestidos.`);
-        }
-        const orden = await this.vestidosRepository.getOrdenById(orden_id);
-        if (orden && orden.estado === 'Cancelada') {
-            throw new ValidationError(`La orden ${codigoOrden} está cancelada.`);
-        }
-
-        // 2. Validar máquina
-        const maquina = await this.vestidosRepository.getMaquina();
+        const maquina = await this.repository.getMaquina();
         const maquinaId = maquina.id;
 
         // 3. REGLA DURA DE ASIGNACIÓN
@@ -112,16 +94,10 @@ class VestidosService {
             if (!r.lote_pe_id) {
                 throw new ValidationError('El ID de lote PE es obligatorio para los rollos PE.');
             }
-            try {
-                const lotePE = await this.loteService.getById(r.lote_pe_id);
-                if (lotePE.estado === 'cerrado') {
-                    throw new ValidationError(`El lote PE ${lotePE.codigo_lote} está cerrado.`);
-                }
-            } catch (error) {
-                if (error instanceof NotFoundError) {
-                    throw new ValidationError('El lote PE indicado no existe en el sistema.');
-                }
-                throw error;
+            const lotePE = await this.loteService.getById(r.lote_pe_id);
+            if (!lotePE) throw new ValidationError('El lote PE indicado no existe in the system.');
+            if (lotePE.estado === 'cerrado') {
+                throw new ValidationError(`El lote PE ${lotePE.codigo_lote} está cerrado.`);
             }
         }
 
@@ -159,25 +135,17 @@ class VestidosService {
         }
 
         // ── Transacción ───────────────────────────────────────────────────
-        return await this.vestidosRepository.withTransaction(async () => {
+        return await this.repository.withTransaction(async () => {
             // Limpiar registros previos (Idempotencia)
-            await this.vestidosRepository.deleteConsumoRollosSacoByBitacora(bitacora_id, maquinaId);
-            await this.vestidosRepository.deleteConsumoRollosPEByBitacora(bitacora_id, maquinaId);
-            await this.vestidosRepository.deleteRegistrosByBitacoraYMaquina(bitacora_id, maquinaId);
-            await this.vestidosRepository.deleteMuestrasCalidadByBitacora(bitacora_id, maquinaId);
-            await this.vestidosRepository.deleteMuestraFisicaByBitacora(bitacora_id, maquinaId);
-            await this.vestidosRepository.deleteDefectosByBitacora(bitacora_id, maquinaId);
+            await this.repository.deleteConsumoRollosSacoByBitacora(bitacora_id, maquinaId);
+            await this.repository.deleteConsumoRollosPEByBitacora(bitacora_id, maquinaId);
+            await this.repository.deleteRegistrosByBitacoraYMaquina(bitacora_id, maquinaId);
+            await this.repository.deleteMuestrasCalidadByBitacora(bitacora_id, maquinaId);
+            await this.repository.deleteMuestraFisicaByBitacora(bitacora_id, maquinaId);
+            await this.repository.deleteDefectosByBitacora(bitacora_id, maquinaId);
 
             // a. Obtener/crear linea_ejecucion
-            let linea = await this.lineaEjecucionRepository.findByOrdenAndProceso(
-                orden_id, procesoId, maquinaId
-            );
-            if (!linea) {
-                const lineaId = await this.lineaEjecucionRepository.create(
-                    orden_id, procesoId, maquinaId
-                );
-                linea = { id: lineaId };
-            }
+            const linea = await this.obtenerOCrearLineaEjecucion(orden_id, maquinaId);
 
             // b. Guardar registro de trabajo
             const parametrosJSON = {
@@ -188,11 +156,11 @@ class VestidosService {
                 observaciones
             };
 
-            const registroId = await this.registroTrabajoRepository.create({
+            const registroId = await this.repository.saveRegistroTrabajo({
                 cantidad_producida: sacos_total,
                 merma_kg: desperdicio_tela_kg,
                 observaciones,
-                parametros: JSON.stringify(parametrosJSON),
+                parametros: parametrosJSON,
                 linea_ejecucion_id: linea.id,
                 bitacora_id,
                 maquina_id: maquinaId,
@@ -200,9 +168,9 @@ class VestidosService {
             });
 
             // c. Rollos de saco — generar/reusar lote con sufijo -V
-            let correlativoVestidos = await this.vestidosRepository.getMaxCorrelativoVestidosPorOrden(orden_id);
+            let correlativoVestidos = await this.repository.getMaxCorrelativoVestidosPorOrden(orden_id);
             for (const rollo of rollos_saco) {
-                let existingLote = await this.vestidosRepository.findLoteExistentePorRolloSaco(orden_id, rollo.codigo_rollo);
+                let existingLote = await this.repository.findLoteExistentePorRolloSaco(orden_id, rollo.codigo_rollo);
 
                 if (!existingLote) {
                     correlativoVestidos++;
@@ -218,7 +186,6 @@ class VestidosService {
                     existingLote = { id: newLoteId };
                 }
 
-                // Inferir origen_proceso_id del codigo_rollo
                 let origenProcesoId = 2; // Telares
                 if (rollo.codigo_rollo.includes('-I')) {
                     origenProcesoId = 4; // Imprenta
@@ -226,7 +193,7 @@ class VestidosService {
                     origenProcesoId = 3; // Laminado
                 }
 
-                await this.vestidosRepository.saveConsumoRolloSaco({
+                await this.repository.saveConsumoRolloSaco({
                     bitacora_id,
                     maquina_id: maquinaId,
                     orden_id,
@@ -242,7 +209,7 @@ class VestidosService {
             // d. Rollos PE — declarar consumo referencial
             for (const r of rollos_pe) {
                 const lotePE = await this.loteService.getById(r.lote_pe_id);
-                await this.vestidosRepository.saveConsumoRolloPE({
+                await this.repository.saveConsumoRolloPE({
                     bitacora_id,
                     maquina_id: maquinaId,
                     orden_id,
@@ -272,11 +239,10 @@ class VestidosService {
                         resultado = 'No cumple';
                     }
                 } else if (m.parametro === 'sello_liner') {
-                    // Ya validado que sea 'Cumple' o 'No cumple'
                     resultado = m.resultado;
                 }
 
-                await this.vestidosRepository.saveMuestraCalidad({
+                await this.repository.saveMuestraCalidad({
                     bitacora_id,
                     maquina_id: maquinaId,
                     orden_id,
@@ -291,7 +257,7 @@ class VestidosService {
 
             // f. Guardar muestra física
             if (muestra_fisica) {
-                await this.vestidosRepository.saveMuestraFisica({
+                await this.repository.saveMuestraFisica({
                     bitacora_id,
                     maquina_id: maquinaId,
                     orden_id,
@@ -305,7 +271,7 @@ class VestidosService {
 
             // g. Guardar defectos
             for (const d of defectos) {
-                await this.vestidosRepository.saveDefecto({
+                await this.repository.saveDefecto({
                     bitacora_id,
                     maquina_id: maquinaId,
                     orden_id,
@@ -318,7 +284,7 @@ class VestidosService {
 
             // h. Calcular y guardar estado
             let estado = 'Sin datos';
-            const muestrasGuardadas = await this.vestidosRepository.getMuestrasCalidadByBitacora(bitacora_id, maquinaId);
+            const muestrasGuardadas = await this.repository.getMuestrasCalidadByBitacora(bitacora_id, maquinaId);
             const tieneProduccion = rollos_saco.length > 0;
             const tieneRollosPE = rollos_pe.length > 0;
             const tieneMuestras = muestrasGuardadas.length > 0;
@@ -326,7 +292,6 @@ class VestidosService {
             if (tieneProduccion || tieneMuestras || defectos.length > 0 || desperdicio_tela_kg > 0 || retorno_liner_kg > 0) {
                 estado = 'Parcial';
 
-                // Completo: al menos 1 rollo_saco + 1 rollo_pe + 4 inspecciones (1,2,3,4) con 5 parámetros cada una
                 const indicesIndices = [...new Set(muestrasGuardadas.map(m => m.inspeccion_indice))];
                 const tiene4Inspecciones = [1, 2, 3, 4].every(i => indicesIndices.includes(i));
 
@@ -353,7 +318,7 @@ class VestidosService {
                 }
             }
 
-            await this.vestidosRepository.saveEstadoMaquina(bitacora_id, maquinaId, estado, observaciones);
+            await this.actualizarEstado(bitacora_id, maquinaId, estado, observaciones);
 
             return { registro_id: registroId, estado };
         });

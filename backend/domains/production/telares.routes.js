@@ -1,35 +1,34 @@
-
 const express = require('express');
 const router = express.Router();
-const TelaresController = require('./telares.controller');
-const TelaresService = require('./telares.service');
-const TelaresRepository = require('./telares.repository');
+
+const TelaresRepository       = require('./telares.repository');
+const TelaresService          = require('./telares.service');
+const TelaresController       = require('./telares.controller');
 const LineaEjecucionRepository = require('./lineaEjecucion.repository');
 const RegistroTrabajoRepository = require('./registroTrabajo.repository');
-const MuestraRepository = require('./muestra.repository');
-const ParoService = require('./paro.service');
-const ParoRepository = require('./paro.repository');
-const BitacoraRepository = require('./bitacora.repository');
-const LoteRepository = require('../quality/lote.repository');
-const LoteService = require('../quality/lote.service');
-const AuditService = require('../../shared/audit/AuditService');
-const AuditRepository = require('../../shared/audit/AuditRepository');
-const sqlite = require('../../database/sqlite');
-const authMiddleware = require('../../middlewares/auth.middleware');
-const authorize = require('../../middlewares/authorize');
-const { PERMISSIONS } = require('../../shared/auth/permissions');
+const MuestraRepository        = require('./muestra.repository');
+const LoteRepository           = require('../quality/lote.repository');
+const LoteService              = require('../quality/lote.service');
+const ParoRepository           = require('./paro.repository');
+const ParoService              = require('./paro.service');
+const AuditRepository          = require('../../shared/audit/AuditRepository');
+const AuditService             = require('../../shared/audit/AuditService');
+const sqlite                   = require('../../database/sqlite');
+const authorize                = require('../../middlewares/authorize');
+const { PERMISSIONS }          = require('../../shared/auth/permissions');
 
-const telaresRepo = new TelaresRepository(sqlite);
-const lineaRepo = new LineaEjecucionRepository(sqlite);
+// Instanciación
+const telaresRepo  = new TelaresRepository(sqlite);
+const lineaRepo    = new LineaEjecucionRepository(sqlite);
 const registroRepo = new RegistroTrabajoRepository(sqlite);
-const muestraRepo = new MuestraRepository(sqlite);
-const paroRepo = new ParoRepository(sqlite);
-const bitacoraRepo = new BitacoraRepository(sqlite);
-const paroService = new ParoService(paroRepo, bitacoraRepo);
-const loteRepo = new LoteRepository(sqlite);
-const auditRepo = new AuditRepository(sqlite);
-const auditSvc = new AuditService(auditRepo);
-const loteService = new LoteService(loteRepo, auditSvc);
+const muestraRepo  = new MuestraRepository(sqlite);
+const loteRepo     = new LoteRepository(sqlite);
+const bitacoraRepo = require('./bitacora.repository'); // Importación diferente para paros
+const paroRepo     = new ParoRepository(sqlite);
+const auditRepo    = new AuditRepository(sqlite);
+const auditSvc     = new AuditService(auditRepo);
+const loteService  = new LoteService(loteRepo, auditSvc);
+const paroService  = new ParoService(paroRepo, bitacoraRepo);
 
 const telaresService = new TelaresService(
   telaresRepo,
@@ -42,9 +41,9 @@ const telaresService = new TelaresService(
 );
 const telaresController = new TelaresController(telaresService);
 
-router.get('/resumen', authMiddleware, telaresController.getResumen);
-router.get('/paro-tipos', authMiddleware, telaresController.getParoTipos);
-router.get('/detalle/:maquinaId', authMiddleware, telaresController.getDetalle);
-router.post('/guardar', authMiddleware, authorize(PERMISSIONS.MANAGE_QUALITY), telaresController.guardarDetalle);
+router.get('/resumen', authorize(), telaresController.getResumen);
+router.get('/paro-tipos', authorize(), telaresController.getParoTipos);
+router.get('/detalle/:maquinaId', authorize(), telaresController.getDetalle);
+router.post('/guardar', authorize(PERMISSIONS.MANAGE_QUALITY), telaresController.guardarDetalle);
 
 module.exports = router;

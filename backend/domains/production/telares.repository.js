@@ -1,7 +1,8 @@
+const BaseProcesoRepository = require('./base/BaseProcesoRepository');
 
-class TelaresRepository {
+class TelaresRepository extends BaseProcesoRepository {
   constructor(db) {
-    this.db = db;
+    super(db, 2); // proceso_id = 2
   }
 
   async getAllMaquinas() {
@@ -40,18 +41,6 @@ class TelaresRepository {
     return await this.db.query("SELECT * FROM CATALOGO_MOTIVO_PARO WHERE activo = 1 ORDER BY nombre ASC");
   }
 
-  async saveMaquinaStatus(bitacoraId, maquinaId, estado, observacion) {
-    await this.db.run(`
-      INSERT INTO bitacora_maquina_status (bitacora_id, maquina_id, estado, observacion_advertencia)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(bitacora_id, maquina_id) DO UPDATE SET estado = EXCLUDED.estado, observacion_advertencia = EXCLUDED.observacion_advertencia
-    `, [bitacoraId, maquinaId, estado, observacion]);
-  }
-
-  async getProcesoTelaresId() {
-    return 2;
-  }
-
   async getOrdenEspecificaciones(ordenId) {
     return await this.db.get("SELECT especificaciones FROM orden_produccion WHERE id = ?", [ordenId]);
   }
@@ -66,16 +55,6 @@ class TelaresRepository {
 
   async getBitacoraById(bitacoraId) {
     return await this.db.get("SELECT * FROM bitacora_turno WHERE id = ?", [bitacoraId]);
-  }
-
-  async getUltimoRegistroHistorico(maquinaId, bitacoraId) {
-    return await this.db.get(`
-      SELECT rt.*, bt.fecha_operativa
-      FROM registros_trabajo rt
-      JOIN bitacora_turno bt ON rt.bitacora_id = bt.id
-      WHERE rt.maquina_id = ? AND rt.bitacora_id != ?
-      ORDER BY rt.fecha_hora DESC LIMIT 1
-    `, [maquinaId, bitacoraId]);
   }
 
   async getUltimoAcumulado(maquinaId, bitacoraId) {
@@ -94,7 +73,6 @@ class TelaresRepository {
       return 0;
     }
   }
-
 
   async getMuestrasByMaquina(bitacoraId, maquinaId) {
     return await this.db.query("SELECT * FROM muestras WHERE bitacora_id = ? AND maquina_id = ? AND proceso_id = 2", [bitacoraId, maquinaId]);
@@ -120,8 +98,19 @@ class TelaresRepository {
     );
   }
 
-  async withTransaction(fn) {
-    return await this.db.withTransaction(fn);
+  async findByLineaYBitacoraYMaquina(linea_ejecucion_id, bitacora_id, maquina_id) {
+    const sql = `SELECT * FROM registros_trabajo WHERE linea_ejecucion_id = ? AND bitacora_id = ? AND maquina_id = ?`;
+    return await this.db.get(sql, [linea_ejecucion_id, bitacora_id, maquina_id]);
+  }
+
+  async updateRegistro(id, data) {
+    const { cantidad_producida, merma_kg, observaciones, parametros, usuario_modificacion } = data;
+    const sql = `
+      UPDATE registros_trabajo
+      SET cantidad_producida = ?, merma_kg = ?, observaciones = ?, parametros = ?, usuario_modificacion = ?
+      WHERE id = ?
+    `;
+    return await this.db.run(sql, [cantidad_producida, merma_kg, observaciones, parametros, usuario_modificacion, id]);
   }
 }
 

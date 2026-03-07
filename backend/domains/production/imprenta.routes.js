@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+
 const ImprentaRepository       = require('./imprenta.repository');
 const ImprentaService          = require('./imprenta.service');
 const ImprentaController       = require('./imprenta.controller');
@@ -13,6 +14,7 @@ const sqlite                   = require('../../database/sqlite');
 const authorize                = require('../../middlewares/authorize');
 const { PERMISSIONS }          = require('../../shared/auth/permissions');
 
+// Instanciación
 const imprentaRepo = new ImprentaRepository(sqlite);
 const lineaRepo    = new LineaEjecucionRepository(sqlite);
 const registroRepo = new RegistroTrabajoRepository(sqlite);
@@ -22,11 +24,19 @@ const auditSvc     = new AuditService(auditRepo);
 const loteService  = new LoteService(loteRepo, auditSvc);
 
 const imprentaService    = new ImprentaService(
-  imprentaRepo, lineaRepo, registroRepo, loteService
+    imprentaRepo, lineaRepo, registroRepo, loteService, auditSvc
 );
 const imprentaController = new ImprentaController(imprentaService);
 
-router.get('/detalle/:maquinaId', authorize(PERMISSIONS.VIEW_PRODUCTION), imprentaController.getDetalle);
-router.post('/guardar', authorize(PERMISSIONS.MANAGE_PRODUCTION), imprentaController.guardarDetalle);
+// Endpoints
+router.get('/detalle/:maquinaId',
+    authorize(PERMISSIONS.VIEW_PRODUCTION),
+    imprentaController.getDetalle
+);
+
+router.post('/guardar',
+    authorize(PERMISSIONS.MANAGE_PRODUCTION),
+    imprentaController.guardarDetalle
+);
 
 module.exports = router;

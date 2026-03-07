@@ -14,7 +14,7 @@ const sqlite                   = require('../../database/sqlite');
 const authorize                = require('../../middlewares/authorize');
 const { PERMISSIONS }          = require('../../shared/auth/permissions');
 
-// Instanciación de dependencias
+// Instanciación
 const vestidosRepo = new VestidosRepository(sqlite);
 const lineaRepo    = new LineaEjecucionRepository(sqlite);
 const registroRepo = new RegistroTrabajoRepository(sqlite);
@@ -24,7 +24,7 @@ const auditSvc     = new AuditService(auditRepo);
 const loteService  = new LoteService(loteRepo, auditSvc);
 
 const vestidosService    = new VestidosService(
-  vestidosRepo, lineaRepo, registroRepo, loteService
+    vestidosRepo, lineaRepo, registroRepo, loteService, auditSvc
 );
 const vestidosController = new VestidosController(vestidosService);
 

@@ -1,9 +1,8 @@
-
-const AppError = require('../../shared/errors/AppError');
+const BaseProcesoService = require('./base/BaseProcesoService');
 const ValidationError = require('../../shared/errors/ValidationError');
 const NotFoundError = require('../../shared/errors/NotFoundError');
 
-class TelaresService {
+class TelaresService extends BaseProcesoService {
   constructor(
     telaresRepository,
     lineaEjecucionRepository,
@@ -13,21 +12,20 @@ class TelaresService {
     paroService,
     auditService
   ) {
-    this.telaresRepository          = telaresRepository;
-    this.lineaEjecucionRepository   = lineaEjecucionRepository;
-    this.registroTrabajoRepository  = registroTrabajoRepository;
+    // Base constructor: (repository, loteService, lineaEjecucionRepository, auditService, config)
+    super(telaresRepository, loteService, lineaEjecucionRepository, auditService, {
+      procesoId: 2
+    });
     this.muestraRepository          = muestraRepository;
-    this.loteService                = loteService;
     this.paroService                = paroService;
-    this.auditService               = auditService;
   }
 
   async getResumen(bitacoraId) {
-    const maquinas = await this.telaresRepository.getAllMaquinas();
-    const statusMaquinas = await this.telaresRepository.getStatusMaquinas(bitacoraId);
-    const registros = await this.telaresRepository.getRegistrosByBitacora(bitacoraId);
-    const muestras = await this.telaresRepository.getMuestrasByBitacora(bitacoraId);
-    const visuales = await this.telaresRepository.getDefectosVisuales(bitacoraId);
+    const maquinas = await this.repository.getAllMaquinas();
+    const statusMaquinas = await this.repository.getStatusMaquinas(bitacoraId);
+    const registros = await this.repository.getRegistrosByBitacora(bitacoraId);
+    const muestras = await this.repository.getMuestrasByBitacora(bitacoraId);
+    const visuales = await this.repository.getDefectosVisuales(bitacoraId);
 
     return maquinas.map(m => {
       const mStatus = statusMaquinas.find(s => s.maquina_id === m.id);
@@ -53,28 +51,23 @@ class TelaresService {
   }
 
   async getDetalle(bitacoraId, maquinaId) {
-    const maquinas = await this.telaresRepository.getAllMaquinas();
+    const maquinas = await this.repository.getAllMaquinas();
     const maquina = maquinas.find(m => m.id == maquinaId);
     if (!maquina) throw new NotFoundError('Máquina no encontrada');
 
-    const statusMaquinas = await this.telaresRepository.getStatusMaquinas(bitacoraId);
+    const statusMaquinas = await this.repository.getStatusMaquinas(bitacoraId);
     const mStatus = statusMaquinas.find(s => s.maquina_id == maquinaId);
 
-    const registros = await this.telaresRepository.getRegistrosByBitacora(bitacoraId);
+    const registros = await this.repository.getRegistrosByBitacora(bitacoraId);
     const mRegistros = registros.filter(r => r.maquina_id == maquinaId);
 
-    const muestras = await this.telaresRepository.getMuestrasByMaquina(bitacoraId, maquinaId);
-    const visuales = await this.telaresRepository.getDefectosVisuales(bitacoraId);
+    const muestras = await this.repository.getMuestrasByMaquina(bitacoraId, maquinaId);
+    const visuales = await this.repository.getDefectosVisuales(bitacoraId);
     const mVisuales = visuales.filter(v => v.maquina_id == maquinaId);
 
-    const allParos = await this.paroService.getParosByProceso(bitacoraId, 2);
-    // Como el esquema no tiene maquina_id en paros, el filtrado es conceptual
-    // o se asume que todos pertenecen al proceso. Para cumplimiento estricto
-    // del plan, si existiera la columna filtraríamos, pero el repositorio
-    // ya nos advirtió que no la tiene.
-    const paros = allParos;
+    const paros = await this.paroService.getParosByProceso(bitacoraId, 2);
 
-    const ultimoAcumulado = await this.telaresRepository.getUltimoAcumulado(maquinaId, bitacoraId);
+    const ultimoAcumulado = await this.repository.getUltimoAcumulado(maquinaId, bitacoraId);
 
     // Obtener especificaciones de la última orden registrada
     let specs = {};
@@ -82,8 +75,7 @@ class TelaresService {
         specs = JSON.parse(mRegistros[mRegistros.length - 1].especificaciones);
     }
 
-    const lotesConsumidos = await this.loteService
-      .getConsumoTelar(maquinaId, bitacoraId);
+    const lotesConsumidos = await this.loteService.getConsumoTelar(maquinaId, bitacoraId);
 
     return {
       maquina,
@@ -155,13 +147,11 @@ class TelaresService {
         if (!['DEF-01', 'DEF-02', 'DEF-03'].includes(v.tipo_defecto_id)) throw new ValidationError('ID de defecto visual inválido.');
     }
 
-    const bitacora = await this.telaresRepository.getBitacoraById(bitacora_id);
+    const bitacora = await this.repository.getBitacoraById(bitacora_id);
     if (!bitacora) throw new NotFoundError('Bitácora no encontrada');
 
     function esResetAnual(acumuladoNuevo, acumuladoAnterior, bitacoraFecha) {
       if (acumuladoNuevo >= acumuladoAnterior) return false;
-      // Solo es reset válido si el acumulado nuevo es pequeño (< 10% del anterior)
-      // y si la fecha de la bitácora es de un año diferente al año actual
       const dateBitacora = new Date(bitacoraFecha);
       const añoBitacora = dateBitacora.getFullYear();
       const añoActual = new Date().getFullYear();
@@ -170,12 +160,11 @@ class TelaresService {
       return esNuevoAño && esValorPequeño;
     }
 
-    const ultimoAcumuladoBase = await this.telaresRepository.getUltimoAcumulado(maquina_id, bitacora_id);
+    const ultimoAcumuladoBase = await this.repository.getUltimoAcumulado(maquina_id, bitacora_id);
     let acumuladoReferencia = ultimoAcumuladoBase;
 
     for (const p of produccion) {
         if (p.acumulado_contador < acumuladoReferencia) {
-            // Verificar si es un reset anual legítimo
             if (!esResetAnual(p.acumulado_contador, acumuladoReferencia, bitacora.fecha_apertura)) {
                 throw new ValidationError(
                     `El acumulado (${p.acumulado_contador}) no puede ser menor al anterior ` +
@@ -190,7 +179,6 @@ class TelaresService {
     const produccionTotal = produccion.reduce((acc, p, i) => {
         const anterior = (i === 0) ? ultimoAcumuladoBase : produccion[i-1].acumulado_contador;
         const diff = p.acumulado_contador - anterior;
-        // Si diff es negativo (reset anual), usar el acumulado nuevo como producción del período
         return acc + (diff >= 0 ? diff : p.acumulado_contador);
     }, 0);
 
@@ -228,18 +216,14 @@ class TelaresService {
         throw new ValidationError('Un color fuera de especificación obliga a registrar un paro.');
     }
 
-    const result = await this.telaresRepository.withTransaction(async () => {
+    const result = await this.repository.withTransaction(async () => {
       const procesoId = 2;
 
       // Guardar Producción (Idempotente)
       let refAcumulado = ultimoAcumuladoBase;
       const registroIds = [];
       for (const p of produccion) {
-          let linea = await this.lineaEjecucionRepository.findByOrdenAndProceso(p.orden_id, procesoId, maquina_id);
-          if (!linea) {
-              const resId = await this.lineaEjecucionRepository.create(p.orden_id, procesoId, maquina_id);
-              linea = { id: resId };
-          }
+          let linea = await this.obtenerOCrearLineaEjecucion(p.orden_id, maquina_id);
 
           if (p.acumulado_contador < refAcumulado && esResetAnual(p.acumulado_contador, refAcumulado, bitacora.fecha_apertura)) {
               refAcumulado = 0;
@@ -257,13 +241,14 @@ class TelaresService {
               usuario_modificacion: usuario
           };
 
-          const existente = await this.registroTrabajoRepository.findByLineaYBitacoraYMaquina(linea.id, bitacora_id, maquina_id);
+          const existente = await this.repository.findByLineaYBitacoraYMaquina(linea.id, bitacora_id, maquina_id);
+
           let registroId;
           if (existente) {
-              await this.registroTrabajoRepository.update(existente.id, regData);
+              await this.repository.updateRegistro(existente.id, regData);
               registroId = existente.id;
           } else {
-              registroId = await this.registroTrabajoRepository.create(regData);
+              registroId = await this.repository.saveRegistroTrabajo(regData);
           }
 
           registroIds.push(registroId);
@@ -276,8 +261,8 @@ class TelaresService {
 
       // Calidad y Visual solo se reemplazan si la bitácora está ABIERTA o REVISION
       if (['ABIERTA', 'REVISION'].includes(bitacora.estado)) {
-          await this.telaresRepository.deleteMuestrasByMaquinaYBitacora(maquina_id, bitacora_id, procesoId);
-          await this.telaresRepository.deleteDefectosVisualesByMaquinaYBitacora(maquina_id, bitacora_id);
+          await this.repository.deleteMuestrasByMaquinaYBitacora(maquina_id, bitacora_id, procesoId);
+          await this.repository.deleteDefectosVisualesByMaquinaYBitacora(maquina_id, bitacora_id);
 
           // Guardar Muestras Ancho
           for (const a of calidad.ancho) {
@@ -324,7 +309,7 @@ class TelaresService {
 
           // Guardar Visual
           for (const v of visual) {
-              await this.telaresRepository.saveDefectoVisual({
+              await this.repository.saveDefectoVisual({
                   bitacora_id,
                   maquina_id,
                   orden_id: v.orden_id,
@@ -348,9 +333,6 @@ class TelaresService {
       }
 
       // Guardar Consumo de Lotes
-      // registro_trabajo_id apunta al último registro del
-      // telar en este turno — representa el vínculo de
-      // trazabilidad lote → producción del turno.
       if (ultimoRegistroId) {
         await this.loteService.guardarConsumoTelar(
           maquina_id,
@@ -381,7 +363,7 @@ class TelaresService {
           if (desviacion) estadoFinal = 'Con desviación';
       }
 
-      await this.telaresRepository.saveMaquinaStatus(bitacora_id, maquina_id, estadoFinal, observacion_advertencia);
+      await this.actualizarEstado(bitacora_id, maquina_id, estadoFinal, observacion_advertencia);
 
       return { produccionTotal, registroIds };
     });
@@ -406,7 +388,7 @@ class TelaresService {
   }
 
   async getParoTipos() {
-    return await this.telaresRepository.getParoTipos();
+    return await this.repository.getParoTipos();
   }
 }
 
