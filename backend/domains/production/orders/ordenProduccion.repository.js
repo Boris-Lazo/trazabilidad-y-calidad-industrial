@@ -119,6 +119,54 @@ class OrdenProduccionRepository {
   async remove(id) {
     await this.db.run('DELETE FROM orden_produccion WHERE id = ?', [id]);
   }
+
+  async getTraceabilityBaseData(ordenId) {
+    const sql = `
+      SELECT
+        bt.id as bitacora_id,
+        bt.turno,
+        bt.fecha_operativa as fecha,
+        le.proceso_id,
+        m.codigo as maquina_codigo,
+        m.nombre_visible as maquina_nombre,
+        bms.estado as maquina_estado,
+        SUM(rt.cantidad_producida) as cantidad_producida,
+        SUM(rt.merma_kg) as merma_kg
+      FROM registros_trabajo rt
+      JOIN lineas_ejecucion le ON rt.linea_ejecucion_id = le.id
+      JOIN bitacora_turno bt ON rt.bitacora_id = bt.id
+      JOIN MAQUINAS m ON rt.maquina_id = m.id
+      LEFT JOIN bitacora_maquina_status bms ON bt.id = bms.bitacora_id AND m.id = bms.maquina_id
+      WHERE le.orden_produccion_id = ?
+      GROUP BY bt.id, le.proceso_id, m.id
+      ORDER BY bt.fecha_operativa DESC, bt.turno DESC
+    `;
+    return await this.db.query(sql, [ordenId]);
+  }
+
+  async getLotsForTraceability(ordenId) {
+    const sql = `
+      SELECT
+        id,
+        codigo_lote,
+        estado,
+        bitacora_id
+      FROM lotes
+      WHERE orden_produccion_id = ?
+    `;
+    return await this.db.query(sql, [ordenId]);
+  }
+
+  async getIncidentsForTraceability(ordenId) {
+    const sql = `
+      SELECT
+        i.*
+      FROM incidentes i
+      JOIN lineas_ejecucion le ON i.linea_ejecucion_id = le.id
+      WHERE le.orden_produccion_id = ?
+    `;
+    return await this.db.query(sql, [ordenId]);
+  }
 }
 
 module.exports = OrdenProduccionRepository;

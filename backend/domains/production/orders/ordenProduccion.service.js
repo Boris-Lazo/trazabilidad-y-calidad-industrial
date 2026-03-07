@@ -3,6 +3,7 @@ const XLSX = require('xlsx');
 const { parsearFila } = require('./ordenProduccion.parser');
 const ValidationError = require('../../../shared/errors/ValidationError');
 const NotFoundError = require('../../../shared/errors/NotFoundError');
+const processRegistry = require('../processes/contracts/ProcessRegistry');
 
 const MAPEO_SAP = {
   'ExtruPP': 1,
@@ -175,6 +176,93 @@ class OrdenProduccionService {
 
   async remove(id) {
     return await this.ordenProduccionRepository.remove(id);
+  }
+
+  async getTraceability(id) {
+    const orden = await this.ordenProduccionRepository.findById(id);
+    if (!orden) throw new NotFoundError('Orden no encontrada');
+
+    const baseData = await this.ordenProduccionRepository.getTraceabilityBaseData(id);
+    const lots = await this.ordenProduccionRepository.getLotsForTraceability(id);
+    const incidents = await this.ordenProduccionRepository.getIncidentsForTraceability(id);
+
+    // Agrupar por bitácora
+    const bitacorasMap = new Map();
+
+    baseData.forEach(row => {
+      if (!bitacorasMap.has(row.bitacora_id)) {
+        bitacorasMap.set(row.bitacora_id, {
+          id: row.bitacora_id,
+          turno: row.turno,
+          fecha: row.fecha,
+          procesos_ejecutados: [],
+          lotes_generados: [],
+          incidentes: []
+        });
+      }
+
+      const bitacora = bitacorasMap.get(row.bitacora_id);
+
+      // Intentar obtener el nombre del proceso desde el contrato
+      let nombreProceso = `Proceso ${row.proceso_id}`;
+      try {
+        const contract = processRegistry.get(row.proceso_id);
+        nombreProceso = contract.nombre;
+      } catch (err) {
+        // Ignorar si no se encuentra el contrato
+      }
+
+      bitacora.procesos_ejecutados.push({
+        proceso_id: row.proceso_id,
+        nombre_proceso: nombreProceso,
+        maquina: row.maquina_nombre || row.maquina_codigo,
+        estado: row.maquina_estado || 'Sin datos',
+        cantidad_producida: row.cantidad_producida,
+        merma_kg: row.merma_kg
+      });
+    });
+
+    // Asignar lotes e incidentes a sus bitácoras
+    lots.forEach(lot => {
+      const bitacora = bitacorasMap.get(lot.bitacora_id);
+      if (bitacora) {
+        bitacora.lotes_generados.push({
+          codigo_lote: lot.codigo_lote,
+          estado: lot.estado
+        });
+      }
+    });
+
+    incidents.forEach(inc => {
+      const bitacora = bitacorasMap.get(inc.bitacora_id);
+      if (bitacora) {
+        bitacora.incidentes.push(inc);
+      }
+    });
+
+    const bitacoras = Array.from(bitacorasMap.values());
+
+    // Calcular resumen
+    const total_producido = baseData.reduce((sum, row) => sum + (row.cantidad_producida || 0), 0);
+    const total_merma = baseData.reduce((sum, row) => sum + (row.merma_kg || 0), 0);
+    const num_turnos = bitacoras.length;
+    const num_lotes = lots.length;
+
+    return {
+      orden: {
+        id: orden.id,
+        codigo_orden: orden.codigo_orden,
+        producto: orden.producto,
+        estado: orden.estado
+      },
+      bitacoras,
+      resumen: {
+        total_producido,
+        total_merma,
+        num_turnos,
+        num_lotes
+      }
+    };
   }
 
   async procesarImportacionExcel(buffer, usuario) {

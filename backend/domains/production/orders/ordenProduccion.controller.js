@@ -33,6 +33,15 @@ class OrdenProduccionController {
       }
   };
 
+  getTraceability = async (req, res, next) => {
+    try {
+        const trazabilidad = await this.ordenProduccionService.getTraceability(req.params.id);
+        return sendSuccess(res, trazabilidad);
+    } catch (error) {
+        next(error);
+    }
+  };
+
   create = async (req, res, next) => {
     try {
       const usuario = req.user ? req.user.username : 'SISTEMA';

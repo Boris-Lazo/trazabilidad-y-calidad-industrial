@@ -27,6 +27,7 @@ const router = express.Router();
 
 router.get('/',    ordenProduccionController.getAll);
 router.get('/:id', ordenProduccionController.getById);
+router.get('/:id/trazabilidad', ordenProduccionController.getTraceability);
 router.post('/',   authorize(PERMISSIONS.MANAGE_PRODUCTION), ordenProduccionController.create);
 router.put('/:id', authorize(PERMISSIONS.MANAGE_PRODUCTION), ordenProduccionController.update);
 router.delete('/:id', authorize(PERMISSIONS.MANAGE_PRODUCTION), ordenProduccionController.remove);
