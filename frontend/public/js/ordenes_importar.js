@@ -210,24 +210,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Resumen — agregar no_reconocidas al conteo
         resumenImportacion.innerHTML = `
-            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
-                <span style="font-size:11px; color:rgba(255,255,255,0.5)">NUEVAS A IMPORTAR</span>
-                <div style="font-size:20px; font-weight:bold; color:var(--primary-color)">${data.nuevas.length}</div>
+            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:var(--bg-alt); border-radius:8px; border:1px solid var(--border)">
+                <span style="font-size:11px; color:var(--text-secondary)">NUEVAS A IMPORTAR</span>
+                <div style="font-size:20px; font-weight:bold; color:var(--primary)">${data.nuevas.length}</div>
             </div>
-            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
-                <span style="font-size:11px; color:rgba(255,255,255,0.5)">YA EN PROD-SYS</span>
-                <div style="font-size:20px; font-weight:bold; color:rgba(255,255,255,0.4)">${data.ya_existentes.length}</div>
-                <span style="font-size:10px; color:rgba(255,255,255,0.3)">No se modificarán</span>
+            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:var(--bg-alt); border-radius:8px; border:1px solid var(--border)">
+                <span style="font-size:11px; color:var(--text-secondary)">YA EN PROD-SYS</span>
+                <div style="font-size:20px; font-weight:bold; color:var(--text-secondary)">${data.ya_existentes.length}</div>
+                <span style="font-size:10px; color:var(--text-secondary)">No se modificarán</span>
             </div>
-            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
-                <span style="font-size:11px; color:rgba(255,255,255,0.5)">REQUIEREN VALIDACIÓN</span>
-                <div style="font-size:20px; font-weight:bold; color:var(--warning-color)">${data.requieren_validacion}</div>
+            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:var(--bg-alt); border-radius:8px; border:1px solid var(--border)">
+                <span style="font-size:11px; color:var(--text-secondary)">REQUIEREN VALIDACIÓN</span>
+                <div style="font-size:20px; font-weight:bold; color:var(--warning)">${data.requieren_validacion}</div>
             </div>
             ${data.no_reconocidas.length > 0 ? `
-            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(239,68,68,0.4)">
-                <span style="font-size:11px; color:rgba(255,255,255,0.5)">SERIES DESCONOCIDAS</span>
-                <div style="font-size:20px; font-weight:bold; color:var(--danger-color, #ef4444)">${data.no_reconocidas.length}</div>
-                <span style="font-size:10px; color:rgba(255,255,255,0.3)">Ver detalle abajo</span>
+            <div class="stat-card" style="padding:12px; flex:1; min-width:130px; background:var(--bg-alt); border-radius:8px; border:1px solid rgba(239,68,68,0.4)">
+                <span style="font-size:11px; color:var(--text-secondary)">SERIES DESCONOCIDAS</span>
+                <div style="font-size:20px; font-weight:bold; color:var(--error)">${data.no_reconocidas.length}</div>
+                <span style="font-size:10px; color:var(--text-secondary)">Ver detalle abajo</span>
             </div>` : ''}
         `;
 
@@ -242,12 +242,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const fechaVenc = orden.fecha_vencimiento ? new Date(orden.fecha_vencimiento).toLocaleDateString() : '-';
 
             // Generar lista de especificaciones editables
-            let especHtml = '<div class="espec-list" style="font-size:11px; color:rgba(255,255,255,0.7)">';
+            let especHtml = '<div class="espec-list" style="font-size:11px; color:var(--text-primary)">';
             for (const [key, val] of Object.entries(orden.especificaciones)) {
                 if (key.startsWith('nota_')) continue;
                 especHtml += `<div class="espec-item" data-key="${key}">
                     <span style="color:var(--primary-color)">${key}:</span>
-                    <span class="editable-val" contenteditable="true" style="border-bottom:1px dashed #666; padding:0 2px">${val}</span>
+                    <span class="editable-val" contenteditable="true" style="border-bottom:1px dashed var(--border-medium); padding:0 2px; color:var(--text-primary)">${val}</span>
                 </div>`;
             }
             especHtml += '</div>';
@@ -305,9 +305,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <tr>
                         <td>${e.codigo_orden}</td>
                         <td><span class="badge badge-outline">${e.estado_prodsys}</span></td>
-                        <td style="font-size:11px; color:rgba(255,255,255,0.5)">${e.sap_cantidad_planificada?.toLocaleString() || '-'}</td>
-                        <td style="font-size:11px; color:rgba(255,255,255,0.5)">${e.sap_fecha_vencimiento || '-'}</td>
-                        <td style="font-size:11px; color:var(--success-color, #22c55e)">✓ PROD-SYS actualizado</td>
+                        <td style="font-size:11px; color:var(--text-secondary)">${e.sap_cantidad_planificada?.toLocaleString() || '-'}</td>
+                        <td style="font-size:11px; color:var(--text-secondary)">${e.sap_fecha_vencimiento || '-'}</td>
+                        <td style="font-size:11px; color:var(--success)">✓ PROD-SYS actualizado</td>
                     </tr>
                 `).join('');
             } else {
@@ -326,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${e.codigo_orden}</td>
                         <td style="color:var(--danger-color, #ef4444)">${e.nombre_proceso_sap}</td>
                         <td style="font-size:11px">${e.descripcion_producto}</td>
-                        <td style="font-size:11px; color:rgba(255,255,255,0.5)">${e.motivo}</td>
+                        <td style="font-size:11px; color:var(--text-secondary)">${e.motivo}</td>
                     </tr>
                 `).join('');
             } else {

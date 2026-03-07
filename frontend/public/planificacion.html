@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <script src="/design-system/theme/index.js"></script>
     <meta charset="UTF-8">
@@ -9,274 +8,483 @@
     <link rel="stylesheet" href="/design-system/index.css">
     <script src="js/auth.js?v=1.5"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.css">
     <script src="/design-system/index.js" defer></script>
     <style>
-        .planning-grid {
-            display: grid;
-            grid-template-columns: 150px repeat(7, 1fr);
-            border: 1px solid var(--border-color);
-            background: var(--card-bg);
+        /* ── Topbar ──────────────────────────────────────────── */
+        .plan-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+        .plan-controls label { font-size:13px; color:var(--text-secondary); white-space:nowrap; }
+        .plan-controls .form-control { height:32px; padding:4px 8px; font-size:13px; }
+        #input-anio   { width:70px; }
+        #input-semana { width:54px; }
+        #select-proceso-vista { min-width:210px; }
+        .sep { width:1px; height:22px; background:var(--border); }
+
+        /* ── Status bar ──────────────────────────────────────── */
+        .status-bar {
+            display:flex; align-items:center; justify-content:space-between;
+            gap:16px; padding:10px 16px;
+            background:var(--bg-card); border:1px solid var(--border);
+            border-radius:8px; margin-bottom:14px;
+        }
+        .status-bar .fechas { font-size:13px; font-weight:600; color:var(--text-primary); }
+        .status-bar .kpi { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary); }
+        .status-bar .kpi strong { font-size:18px; color:var(--primary); }
+
+        /* ── Grid principal ──────────────────────────────────── */
+        .plan-grid { width:100%; border-collapse:collapse; table-layout:fixed; }
+
+        .plan-grid thead th {
+            background:var(--primary); color:#fff;
+            text-align:center; font-size:12px; font-weight:600;
+            padding:8px 4px; border:1px solid rgba(255,255,255,0.15);
+        }
+        .plan-grid thead th:first-child {
+            width:52px; background:var(--bg-alt);
+            color:var(--text-secondary); border-color:var(--border);
+        }
+        .plan-grid thead th .dia-fecha {
+            display:block; font-size:10px; font-weight:400; opacity:.75; margin-top:2px;
         }
 
-        .grid-header {
-            background: var(--primary-color);
-            color: white;
-            padding: 10px;
-            text-align: center;
-            font-weight: bold;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        /* Celdas turno label */
+        .plan-grid td.turno-label {
+            background:var(--bg-alt); border:1px solid var(--border);
+            text-align:center; vertical-align:middle; padding:4px 2px;
         }
-
-        .grid-cell {
-            border: 1px solid var(--border-color);
-            min-height: 100px;
-            padding: 5px;
+        .turno-badge {
+            display:inline-flex; align-items:center; justify-content:center;
+            width:30px; height:30px; border-radius:6px;
+            font-size:11px; font-weight:700;
         }
+        .turno-T1 { background:var(--primary); color:#fff; }
+        .turno-T2 { background:var(--warning); color:#1a1a1a; }
+        .turno-T3 { background:var(--bg-card); color:var(--text-secondary); border:1px solid var(--border-medium); }
 
-        .day-label {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-bottom: 5px;
-            display: block;
+        /* Celdas de datos */
+        .plan-grid td.turno-cell {
+            border:1px solid var(--border); vertical-align:top;
+            padding:6px; background:var(--bg-card);
+            transition:background .12s;
         }
+        .plan-grid td.turno-cell:hover { background:var(--bg-alt); }
+        .plan-grid tbody tr:last-child td { border-bottom:2px solid var(--border-medium); }
 
-        .shift-block {
-            margin-bottom: 10px;
-            padding: 5px;
-            background: rgba(0, 0, 0, 0.02);
-            border-radius: 4px;
+        /* ── Chip de orden (solo nombre producto) ────────────────── */
+        .orden-chip {
+            display:flex; align-items:center; gap:5px;
+            padding:4px 6px; margin-bottom:3px;
+            background:var(--bg-card); border:1px solid var(--border);
+            border-left:3px solid var(--primary); border-radius:4px;
+            font-size:11px; cursor:pointer;
+            transition:box-shadow .12s, border-color .12s;
         }
-
-        .shift-title {
-            font-size: 0.7rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: var(--primary-color);
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 5px;
+        .dark .orden-chip { background:rgba(255,255,255,.04); }
+        .orden-chip:hover { border-color:var(--primary); box-shadow:0 1px 5px rgba(0,0,0,.15); }
+        .chip-producto-main {
+            flex:1; min-width:0; font-size:11px; font-weight:500;
+            color:var(--text-primary); white-space:nowrap;
+            overflow:hidden; text-overflow:ellipsis;
         }
-
-        .planned-item {
-            font-size: 0.75rem;
-            padding: 4px;
-            margin-bottom: 2px;
-            background: white;
-            border: 1px solid var(--border-color);
-            border-left: 3px solid var(--primary-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .chip-del {
+            display:none; flex-shrink:0;
+            background:none; border:none; cursor:pointer;
+            color:var(--text-secondary); padding:0 1px;
+            font-size:14px; line-height:1; border-radius:3px;
         }
+        .chip-del:hover { color:var(--error); }
+        .orden-chip:hover .chip-del,
+        .personal-chip:hover .chip-del { display:block; }
 
-        .item-actions {
-            display: none;
+        /* ── Sección personal dentro de celda ────────────────────── */
+        .personal-section {
+            margin-top:5px; padding-top:4px;
+            border-top:1px dashed var(--border);
         }
-
-        .planned-item:hover .item-actions {
-            display: flex;
-            gap: 4px;
+        .personal-chip {
+            display:flex; align-items:center; gap:5px;
+            padding:3px 5px; margin-bottom:2px;
+            background:var(--bg-alt); border:1px solid var(--border);
+            border-radius:4px; font-size:10px; cursor:default;
         }
-
-        .btn-icon {
-            padding: 2px;
-            cursor: pointer;
-            border: none;
-            background: transparent;
-            color: var(--text-secondary);
+        .personal-dot {
+            flex-shrink:0; width:7px; height:7px;
+            border-radius:50%; display:inline-block;
         }
-
-        .btn-icon:hover {
-            color: var(--danger);
+        .personal-nombre {
+            flex:1; min-width:0; color:var(--text-secondary);
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
         }
+        .btn-add-personal {
+            display:flex; align-items:center; justify-content:center; gap:3px;
+            width:100%; padding:3px 0; font-size:10px;
+            color:var(--text-secondary); background:transparent;
+            border:1px dashed var(--border); border-radius:3px;
+            cursor:pointer; margin-top:2px;
+            transition:color .12s, border-color .12s;
+        }
+        .btn-add-personal:hover { color:var(--warning); border-color:var(--warning); }
 
+        /* ── Botón + Orden ────────────────────────────────────────── */
+        .btn-add-orden {
+            display:flex; align-items:center; justify-content:center; gap:3px;
+            width:100%; padding:5px 0; font-size:11px;
+            color:var(--text-secondary); background:transparent;
+            border:1px dashed var(--border-medium); border-radius:4px;
+            cursor:pointer; margin-top:2px;
+            transition:color .12s, border-color .12s, background .12s;
+        }
+        .btn-add-orden:hover { color:var(--primary); border-color:var(--primary); background:var(--bg-alt); }
+        .cell-empty .btn-add-orden { padding:10px 0; color:var(--border-medium); }
+
+
+        /* ── Modal ───────────────────────────────────────────── */
         .modal-planning {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            justify-content: center;
-            align-items: center;
+            display:none; position:fixed; z-index:2000; inset:0;
+            background:rgba(0,0,0,.5);
+            justify-content:center; align-items:center;
         }
+        .modal-planning.active { display:flex; }
+        .modal-card {
+            background:var(--bg-card); border:1px solid var(--border);
+            border-radius:10px; width:420px; max-width:95vw;
+            max-height:90vh; display:flex; flex-direction:column;
+            box-shadow:0 8px 32px rgba(0,0,0,.22);
+        }
+        .modal-card-header {
+            display:flex; justify-content:space-between; align-items:center;
+            padding:13px 18px; border-bottom:1px solid var(--border);
+            flex-shrink:0;
+        }
+        .modal-card-header h3 { margin:0; font-size:15px; font-weight:600; color:var(--text-primary); }
+        .modal-card-body { padding:18px; overflow-y:auto; flex:1; }
+        .modal-ctx {
+            display:inline-flex; align-items:center; gap:6px;
+            font-size:12px; color:var(--text-secondary);
+            background:var(--bg-alt); border:1px solid var(--border);
+            border-radius:20px; padding:3px 10px; margin-bottom:14px;
+        }
+        .modal-ctx strong { color:var(--text-primary); }
+
+        /* ── Panel Auto-llenado ──────────────────────────────────── */
+        #autofill-panel {
+            margin-top:14px; border:1px solid var(--primary);
+            border-radius:8px; overflow:hidden;
+        }
+        .autofill-header {
+            display:flex; align-items:center; gap:8px;
+            padding:9px 12px; background:var(--info-bg);
+            font-size:12px; font-weight:600; color:var(--info);
+            border-bottom:1px solid var(--primary);
+        }
+        .autofill-body { padding:12px; }
+        .autofill-row {
+            display:flex; align-items:center; gap:10px;
+            margin-bottom:10px; font-size:12px; color:var(--text-secondary);
+        }
+        .autofill-row label { white-space:nowrap; font-weight:500; color:var(--text-primary); }
+        .autofill-row input[type="number"] {
+            width:90px; height:28px; padding:2px 8px; font-size:13px;
+            border:1px solid var(--border-medium); border-radius:5px;
+            background:var(--bg-card); color:var(--text-primary);
+        }
+        .tag-estandar {
+            background:var(--bg-alt); border:1px solid var(--border);
+            border-radius:4px; padding:3px 8px; font-size:11px; color:var(--text-secondary);
+        }
+        #autofill-preview {
+            display:flex; flex-wrap:wrap; gap:4px;
+            margin-bottom:8px; min-height:20px;
+        }
+        .autofill-slot {
+            display:inline-flex; align-items:center; font-size:10px;
+            background:var(--success-bg); color:var(--success);
+            border:1px solid var(--success); border-radius:4px;
+            padding:2px 6px; white-space:nowrap;
+        }
+        .autofill-slot-more { font-size:10px; color:var(--text-secondary); padding:2px 4px; }
+        #autofill-resumen { font-size:11px; color:var(--text-secondary); line-height:1.5; }
+        .autofill-check-row {
+            display:flex; align-items:center; gap:6px; cursor:pointer;
+            margin-top:10px; font-size:12px; color:var(--text-secondary);
+            padding-top:10px; border-top:1px solid var(--border);
+        }
+
+        /* ── No plan ─────────────────────────────────────────── */
+        .no-plan-card { text-align:center; padding:48px 24px; }
+        .no-plan-card p { color:var(--text-secondary); margin-bottom:16px; }
+
+        /* ── Hint seleccionar proceso ────────────────────────── */
+        .hint-card { text-align:center; padding:40px 24px; }
+        .hint-card p { color:var(--text-secondary); margin:0; }
     </style>
 </head>
-
 <body>
-    <div class="app-layout">
-        <aside class="sidebar" id="sidebar"></aside>
+<div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
 
-        <div class="main-container">
-            <header class="topbar">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <i data-lucide="calendar" class="text-primary"></i>
-                    <h1 style="margin:0;">Planificación Operativa Semanal</h1>
-                </div>
-                <div style="display: flex; gap: 1rem; align-items: center;">
-                    <div class="form-group" style="margin:0; flex-direction: row; align-items: center; gap: 10px;">
-                        <label>Semana:</label>
-                        <input type="number" id="input-anio" class="form-control" style="width: 80px;" value="2025">
-                        <input type="number" id="input-semana" class="form-control" style="width: 60px;" value="1">
-                        <button id="btn-cargar-plan" class="btn btn-secondary">Cargar</button>
-                    </div>
-                    <button id="btn-publicar" class="btn btn-primary" style="display:none;">Publicar Plan</button>
-                </div>
-            </header>
+    <div class="main-container">
+        <header class="topbar">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <i data-lucide="calendar" style="width:20px;height:20px;color:var(--primary);"></i>
+                <h1 style="margin:0;font-size:18px;">Planificación Semanal</h1>
+            </div>
+            <div class="plan-controls">
+                <label>Semana:</label>
+                <input type="number" id="input-anio"   class="form-control" value="2025">
+                <input type="number" id="input-semana" class="form-control" value="1">
+                <button id="btn-cargar-plan" class="btn btn-secondary" style="height:32px;padding:4px 12px;font-size:13px;">Cargar</button>
+                <div class="sep"></div>
+                <label>Proceso:</label>
+                <select id="select-proceso-vista" class="form-control">
+                    <option value="">— Seleccionar proceso —</option>
+                </select>
+                <button id="btn-publicar" class="btn btn-primary" style="display:none;height:32px;padding:4px 14px;font-size:13px;">
+                    <i data-lucide="send" style="width:13px;height:13px;margin-right:5px;vertical-align:middle;"></i>
+                    Publicar Plan
+                </button>
+            </div>
+        </header>
 
-            <div class="page-content">
-                <div id="plan-status-bar" class="card" style="margin-bottom: 1rem; display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>Estado: <span id="plan-estado-badge" class="badge">BORRADOR</span></div>
-                        <div id="plan-fechas-rango" style="font-weight: bold;"></div>
-                        <div id="kpi-indicator" style="display: none;">
-                            <span style="font-size: 0.8rem; color: var(--text-secondary);">Cumplimiento:</span>
-                            <strong id="kpi-value" class="text-primary" style="font-size: 1.2rem;">0%</strong>
-                        </div>
-                    </div>
-                </div>
+        <div class="page-content">
 
-                <div id="no-plan-alert" class="card" style="text-align: center; padding: 3rem;">
-                    <p>No existe una planificación para esta semana.</p>
-                    <button id="btn-crear-plan" class="btn btn-primary">Crear Planificación</button>
+            <!-- Status bar -->
+            <div id="plan-status-bar" class="status-bar" style="display:none;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:12px;color:var(--text-secondary);">Estado:</span>
+                    <span id="plan-estado-badge" class="badge">BORRADOR</span>
                 </div>
+                <div class="fechas" id="plan-fechas-rango"></div>
+                <div id="kpi-indicator" class="kpi" style="display:none;">
+                    <i data-lucide="bar-chart-2" style="width:14px;height:14px;"></i>
+                    Cumplimiento: <strong id="kpi-value">0%</strong>
+                </div>
+            </div>
 
-                <!-- Filtros de Planificación -->
-                <div id="planning-filters" class="card" style="display: none; margin-bottom: 1rem; padding: 1rem;">
-                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-                        <strong><i data-lucide="filter" style="width:16px; height:16px; vertical-align:middle;"></i>
-                            Filtros:</strong>
-                        <div class="form-group" style="margin: 0;">
-                            <select id="filter-proceso" class="form-control" style="min-width: 150px;">
-                                <option value="">Todos los Procesos</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin: 0;">
-                            <select id="filter-turno" class="form-control" style="min-width: 150px;">
-                                <option value="">Todos los Turnos</option>
-                                <option value="T1">Turno 1</option>
-                                <option value="T2">Turno 2</option>
-                                <option value="T3">Turno 3</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin: 0;">
-                            <input type="text" id="filter-text" class="form-control"
-                                placeholder="Buscar orden o personal..." style="min-width: 200px;">
-                        </div>
-                        <button id="btn-clear-filters" class="btn btn-secondary" style="padding: 4px 8px;"
-                            title="Limpiar Filtros">
-                            <i data-lucide="x" style="width:16px; height:16px;"></i>
-                        </button>
-                    </div>
+            <!-- Sin plan -->
+            <div id="no-plan-alert" class="card no-plan-card">
+                <i data-lucide="calendar-x" style="width:40px;height:40px;color:var(--border-medium);margin-bottom:12px;"></i>
+                <p>No existe una planificación para esta semana.</p>
+                <button id="btn-crear-plan" class="btn btn-primary">Crear Planificación</button>
+            </div>
+
+            <!-- Contenedor principal -->
+            <div id="planning-container" style="display:none;">
+
+                <!-- Hint sin proceso seleccionado -->
+                <div id="select-proceso-hint" class="card hint-card">
+                    <i data-lucide="mouse-pointer-click" style="width:36px;height:36px;color:var(--border-medium);margin-bottom:12px;"></i>
+                    <p>Selecciona un proceso arriba para ver su planificación semanal.</p>
                 </div>
 
-                <div id="planning-container" style="display: none;">
-                    <div class="planning-grid" id="grid-main">
-                        <div class="grid-header">Proceso</div>
-                        <div class="grid-header">Lunes</div>
-                        <div class="grid-header">Martes</div>
-                        <div class="grid-header">Miércoles</div>
-                        <div class="grid-header">Jueves</div>
-                        <div class="grid-header">Viernes</div>
-                        <div class="grid-header">Sábado</div>
-                        <div class="grid-header">Domingo</div>
-                        <!-- Filas dinámicas por proceso -->
+                <!-- Cuadrícula -->
+                <div id="grid-wrapper" style="display:none;">
+                    <div style="overflow-x:auto;">
+                        <table class="plan-grid" id="plan-grid-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Lunes     <span class="dia-fecha" id="fecha-dia-1"></span></th>
+                                    <th>Martes    <span class="dia-fecha" id="fecha-dia-2"></span></th>
+                                    <th>Miércoles <span class="dia-fecha" id="fecha-dia-3"></span></th>
+                                    <th>Jueves    <span class="dia-fecha" id="fecha-dia-4"></span></th>
+                                    <th>Viernes   <span class="dia-fecha" id="fecha-dia-5"></span></th>
+                                    <th>Sábado    <span class="dia-fecha" id="fecha-dia-6"></span></th>
+                                    <th>Domingo   <span class="dia-fecha" id="fecha-dia-7"></span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="grid-tbody"></tbody>
+                        </table>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Modal Asignación -->
-    <div id="modal-asignar" class="modal-planning">
-        <div class="card" style="width: 400px;">
-            <div class="card-header" id="modal-title">Asignar a Plan</div>
-            <div style="padding: 1.5rem;">
-                <input type="hidden" id="form-dia">
-                <input type="hidden" id="form-turno">
-                <input type="hidden" id="form-proceso">
+<!-- ── Modal Asignación ──────────────────────────────────────────── -->
+<div id="modal-asignar" class="modal-planning">
+    <div class="modal-card">
+        <div class="modal-card-header">
+            <h3 id="modal-title">Asignar Orden</h3>
+            <button class="btn-modal-close" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);">
+                <i data-lucide="x" style="width:18px;height:18px;"></i>
+            </button>
+        </div>
+        <div class="modal-card-body">
+            <input type="hidden" id="form-dia">
+            <input type="hidden" id="form-turno">
+            <input type="hidden" id="form-proceso">
 
-                <div class="form-group">
-                    <label>Tipo de Asignación</label>
-                    <select id="select-tipo-asig" class="form-control">
-                        <option value="ORDEN">Orden de Producción</option>
-                        <option value="PERSONAL">Personal Operativo</option>
-                    </select>
+            <div class="modal-ctx" id="modal-context-tag">
+                <i data-lucide="calendar" style="width:12px;height:12px;"></i>
+                <span id="modal-context-text">—</span>
+            </div>
+
+            <div class="form-group">
+                <label>Orden de Producción</label>
+                <select id="select-orden" class="form-control"></select>
+            </div>
+            <div class="form-group">
+                <label>Máquina <span style="font-size:11px;color:var(--text-secondary);">(opcional)</span></label>
+                <select id="select-maquina" class="form-control"></select>
+            </div>
+
+            <!-- ── Panel Auto-llenado ── -->
+            <div id="autofill-panel" style="display:none;">
+                <div class="autofill-header">
+                    <i data-lucide="zap" style="width:13px;height:13px;"></i>
+                    Auto-llenado semanal
                 </div>
-
-                <div id="group-orden">
-                    <div class="form-group">
-                        <label>Orden de Producción</label>
-                        <select id="select-orden" class="form-control"></select>
+                <div class="autofill-body">
+                    <div class="autofill-row">
+                        <label>Meta turno de arranque:</label>
+                        <input type="number" id="autofill-meta-arranque" min="0" step="10">
+                        <span class="tag-estandar">Estándar: <span id="autofill-meta-estandar">—</span></span>
                     </div>
-                    <div class="form-group">
-                        <label>Máquina (Opcional)</label>
-                        <select id="select-maquina" class="form-control"></select>
-                    </div>
-                </div>
-
-                <div id="group-personal" style="display: none;">
-                    <div class="form-group">
-                        <label>Colaborador</label>
-                        <select id="select-persona" class="form-control"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Rol Operativo</label>
-                        <select id="select-rol-op" class="form-control"></select>
-                    </div>
-                </div>
-
-                <!-- Campos Desviación Plan Publicado -->
-                <div id="group-desviacion-plan"
-                    style="display: none; border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: 1rem;">
-                    <p class="text-error" style="font-size: 0.8rem; font-weight: bold; margin-bottom: 0.5rem;">⚠️ El
-                        plan ya está publicado. Registre el motivo del cambio.</p>
-                    <div class="form-group">
-                        <label>Motivo del Ajuste</label>
-                        <select id="select-motivo-ajuste" class="form-control"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Comentario</label>
-                        <textarea id="comentario-ajuste" class="form-control" rows="2"></textarea>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
-                    <button id="btn-cancelar-modal" class="btn btn-secondary">Cancelar</button>
-                    <button id="btn-guardar-asig" class="btn btn-primary">Guardar</button>
+                    <div id="autofill-preview"></div>
+                    <div id="autofill-resumen"></div>
+                    <label class="autofill-check-row">
+                        <input type="checkbox" id="autofill-solo-este">
+                        Solo guardar este turno (sin auto-llenado)
+                    </label>
                 </div>
             </div>
-        </div>
-    </div>
-    <!-- Modal Desviación Drag & Drop -->
-    <div id="modal-desviacion" class="modal-planning">
-        <div class="card" style="width: 400px;">
-            <div class="card-header">Registrar Desviación</div>
-            <div style="padding: 1.5rem;">
-                <p class="text-error" style="font-size: 0.8rem; font-weight: bold; margin-bottom: 0.5rem;">
-                    ⚠️ El plan ya está publicado. Registre el motivo del cambio.
+
+            <div id="group-desviacion-plan" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+                <p style="font-size:12px;font-weight:600;color:var(--error);margin-bottom:10px;">
+                    ⚠ El plan ya está publicado. Registre el motivo del cambio.
                 </p>
                 <div class="form-group">
-                    <label>Motivo</label>
-                    <select id="select-motivo-desviacion-dd" class="form-control"></select>
+                    <label>Motivo del ajuste</label>
+                    <select id="select-motivo-ajuste" class="form-control"></select>
                 </div>
                 <div class="form-group">
                     <label>Comentario</label>
-                    <textarea id="comentario-desviacion-dd" class="form-control" rows="2"></textarea>
+                    <textarea id="comentario-ajuste" class="form-control" rows="2"></textarea>
                 </div>
-                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
-                    <button id="btn-cancelar-desviacion" class="btn btn-secondary">Cancelar</button>
-                    <button id="btn-guardar-desviacion" class="btn btn-primary">Confirmar</button>
-                </div>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
+                <button id="btn-cancelar-modal" class="btn btn-secondary">Cancelar</button>
+                <button id="btn-guardar-asig" class="btn btn-primary">Guardar</button>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js"></script>
-    <script src="js/planificacion.js"></script>
-    <script src="/js/sidebar.js"></script>
+<!-- ── Modal Desviación drag & drop ─────────────────────────────── -->
+<div id="modal-desviacion" class="modal-planning">
+    <div class="modal-card">
+        <div class="modal-card-header">
+            <h3>Registrar Desviación</h3>
+        </div>
+        <div class="modal-card-body">
+            <p style="font-size:12px;font-weight:600;color:var(--error);margin-bottom:12px;">
+                ⚠ El plan ya está publicado. Registre el motivo del cambio.
+            </p>
+            <div class="form-group">
+                <label>Motivo</label>
+                <select id="select-motivo-desviacion-dd" class="form-control"></select>
+            </div>
+            <div class="form-group">
+                <label>Comentario</label>
+                <textarea id="comentario-desviacion-dd" class="form-control" rows="2"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
+                <button id="btn-cancelar-desviacion" class="btn btn-secondary">Cancelar</button>
+                <button id="btn-guardar-desviacion" class="btn btn-primary">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Campos ocultos requeridos por planificacion.js (compatibilidad) -->
+<div style="display:none;">
+    <select id="filter-proceso"></select>
+    <select id="filter-turno"></select>
+    <input  id="filter-text">
+    <button id="btn-clear-filters"></button>
+    <select id="select-tipo-asig">
+        <option value="ORDEN">ORDEN</option>
+        <option value="PERSONAL">PERSONAL</option>
+    </select>
+    <div id="group-orden"></div>
+    <div id="group-personal"></div>
+    <select id="select-persona"></select>
+    <select id="select-rol-op"></select>
+    <div id="planning-filters"></div>
+</div>
+
+<!-- ── Modal Personal ──────────────────────────────────────────────── -->
+<div id="modal-personal" class="modal-planning">
+    <div class="modal-card">
+        <div class="modal-card-header">
+            <h3 id="pmodal-title">Asignar Personal</h3>
+            <button id="btn-cerrar-personal-x"
+                style="background:none;border:none;cursor:pointer;color:var(--text-secondary);">
+                <i data-lucide="x" style="width:18px;height:18px;"></i>
+            </button>
+        </div>
+        <div class="modal-card-body">
+            <input type="hidden" id="pform-dia">
+            <input type="hidden" id="pform-turno">
+            <input type="hidden" id="pform-proceso">
+
+            <div class="modal-ctx" style="margin-bottom:14px;">
+                <i data-lucide="users" style="width:12px;height:12px;"></i>
+                <span id="pmodal-context-text">—</span>
+            </div>
+
+            <p style="font-size:11px;color:var(--text-secondary);margin-bottom:12px;">
+                Los roles son orientativos — cualquier colaborador puede cubrir cualquier posición según necesidad de la planta.
+            </p>
+
+            <!-- Slot Operador -->
+            <div style="border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:6px;padding:10px 12px;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0;display:inline-block;"></span>
+                    <span style="font-size:12px;font-weight:600;color:var(--text-primary);">Operador</span>
+                </div>
+                <select id="select-operador-p" class="form-control" style="margin-bottom:6px;">
+                    <option value="">— Sin asignar —</option>
+                </select>
+                <select id="select-rol-operador-p" class="form-control"></select>
+            </div>
+
+            <!-- Slot Auxiliar -->
+            <div style="border:1px solid var(--border);border-left:3px solid var(--warning);border-radius:6px;padding:10px 12px;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:var(--warning);flex-shrink:0;display:inline-block;"></span>
+                    <span style="font-size:12px;font-weight:600;color:var(--text-primary);">Auxiliar</span>
+                </div>
+                <select id="select-auxiliar-p" class="form-control" style="margin-bottom:6px;">
+                    <option value="">— Sin asignar —</option>
+                </select>
+                <select id="select-rol-auxiliar-p" class="form-control"></select>
+            </div>
+
+            <div class="form-group">
+                <label>Máquina <span style="font-size:11px;color:var(--text-secondary);">(opcional)</span></label>
+                <select id="pselect-maquina" class="form-control"></select>
+            </div>
+
+            <!-- Auto-llenado semanal personal -->
+            <label class="autofill-check-row" style="margin-top:10px;">
+                <input type="checkbox" id="personal-autofill-check" checked>
+                Repetir esta asignación en todos los días restantes de la semana
+            </label>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
+                <button id="btn-cancelar-personal" class="btn btn-secondary">Cancelar</button>
+                <button id="btn-guardar-personal" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="js/planificacion.js"></script>
+<script src="/js/sidebar.js"></script>
 </body>
-
 </html>

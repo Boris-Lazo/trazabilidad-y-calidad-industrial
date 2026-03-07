@@ -96,9 +96,13 @@
                     <form id="form-crear-orden">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                             <div class="form-group">
-                                <label for="proceso_select">Proceso</label>
+                                <label for="codigo_orden">Código SAP (7 dígitos)</label>
+                                <input class="form-control" type="text" id="codigo_orden" name="codigo_orden" required placeholder="Ej: 1000001" maxlength="7" pattern="\d{7}">
+                            </div>
+                            <div class="form-group">
+                                <label for="proceso_select">Proceso <span id="proceso-autodetectado" style="font-size:11px; color:var(--success); margin-left:6px; font-weight:400;"></span></label>
                                 <select class="form-control" id="proceso_select" required>
-                                    <option value="" disabled selected>Seleccione proceso</option>
+                                    <option value="" disabled selected>Se detecta al ingresar el código</option>
                                     <option value="1">1 - Extrusor PP</option>
                                     <option value="2">2 - Telares</option>
                                     <option value="3">3 - Laminado</option>
@@ -109,10 +113,6 @@
                                     <option value="8">8 - Peletizado</option>
                                     <option value="9">9 - Sacos vestidos</option>
                                 </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="codigo_orden">Código SAP (7 dígitos)</label>
-                                <input class="form-control" type="text" id="codigo_orden" name="codigo_orden" required placeholder="Ej: 1000001" maxlength="7" pattern="\d{7}">
                             </div>
                         </div>
 
@@ -129,20 +129,6 @@
                                 <label for="unidad">Unidad</label>
                                 <input class="form-control" id="unidad" name="unidad" readonly placeholder="Auto">
                             </div>
-                            <div class="form-group">
-                                <label for="fecha_planificada">Fecha Planificada</label>
-                                <input class="form-control" type="date" id="fecha_planificada" name="fecha_planificada" required>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="prioridad">Prioridad</label>
-                            <select class="form-control" id="prioridad" name="prioridad">
-                                <option value="baja">Baja</option>
-                                <option value="media" selected>Media</option>
-                                <option value="alta">Alta</option>
-                                <option value="critica">Crítica</option>
-                            </select>
                         </div>
 
                         <div class="form-group">
@@ -156,9 +142,9 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                         <span>Listado de Órdenes de Producción</span>
-                        <div style="display: flex; gap: 8px; align-items: center;">
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                             <button class="btn btn-secondary" id="btn-nueva-emergencia" style="height: 32px; padding: 4px 12px; font-size: 13px; border-color: var(--warning); color: var(--warning);">
                                 <i data-lucide="zap" style="width:14px; height:14px; margin-right:6px; vertical-align:middle;"></i>
                                 Nueva Emergencia
@@ -176,16 +162,36 @@
                             </select>
                         </div>
                     </div>
+                    <div style="padding: 8px 16px; border-bottom: 1px solid var(--border);">
+                        <div style="position: relative; max-width: 340px;">
+                            <i data-lucide="search" style="position:absolute; left:9px; top:50%; transform:translateY(-50%); width:15px; height:15px; color:var(--text-secondary); pointer-events:none;"></i>
+                            <input type="text" id="busqueda-ordenes" class="form-control"
+                                   placeholder="Buscar por N° de orden o producto…"
+                                   style="padding-left:32px; height:32px; font-size:13px;">
+                        </div>
+                    </div>
                     <div class="table-container">
                         <table class="table" id="tabla-ordenes">
                             <thead>
                                 <tr>
-                                    <th>Orden</th>
-                                    <th>Producto</th>
-                                    <th>Cant. Objetivo</th>
-                                    <th>Cant. Producida</th>
-                                    <th>Merma (kg)</th>
-                                    <th>Estado</th>
+                                    <th class="col-sortable" data-col="orden" style="cursor:pointer; user-select:none; white-space:nowrap;">
+                                        Orden <span class="sort-icon" style="font-size:10px; margin-left:3px; opacity:0.4;">↕</span>
+                                    </th>
+                                    <th class="col-sortable" data-col="producto" style="cursor:pointer; user-select:none; white-space:nowrap;">
+                                        Producto <span class="sort-icon" style="font-size:10px; margin-left:3px; opacity:0.4;">↕</span>
+                                    </th>
+                                    <th class="col-sortable" data-col="cant_objetivo" style="cursor:pointer; user-select:none; white-space:nowrap;">
+                                        Cant. Objetivo <span class="sort-icon" style="font-size:10px; margin-left:3px; opacity:0.4;">↕</span>
+                                    </th>
+                                    <th class="col-sortable" data-col="cant_producida" style="cursor:pointer; user-select:none; white-space:nowrap;">
+                                        Cant. Producida <span class="sort-icon" style="font-size:10px; margin-left:3px; opacity:0.4;">↕</span>
+                                    </th>
+                                    <th class="col-sortable" data-col="merma" style="cursor:pointer; user-select:none; white-space:nowrap;">
+                                        Merma (kg) <span class="sort-icon" style="font-size:10px; margin-left:3px; opacity:0.4;">↕</span>
+                                    </th>
+                                    <th class="col-sortable" data-col="estado" style="cursor:pointer; user-select:none; white-space:nowrap;">
+                                        Estado <span class="sort-icon" style="font-size:10px; margin-left:3px; opacity:0.4;">↕</span>
+                                    </th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -345,7 +351,7 @@
 
                     <!-- Órdenes ya existentes en PROD-SYS (informativo) -->
                     <div id="seccion-ya-existentes" style="display:none; margin-top:1.5rem;">
-                        <h4 style="font-size:13px; color:rgba(255,255,255,0.5); margin-bottom:8px;">
+                        <h4 style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">
                             <i data-lucide="shield-check" style="width:14px; height:14px; vertical-align:middle; margin-right:6px; color:var(--success-color)"></i>
                             Órdenes ya registradas en PROD-SYS (no se modificarán)
                         </h4>
