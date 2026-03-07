@@ -1,32 +1,29 @@
+const BaseProcesoService = require('./base/BaseProcesoService');
 const ValidationError = require('../../shared/errors/ValidationError');
-const NotFoundError = require('../../shared/errors/NotFoundError');
-const { logger } = require('../../shared/logger/logger');
 
-class LaminadoService {
+class LaminadoService extends BaseProcesoService {
     constructor(laminadoRepository, lineaEjecucionRepository,
-                registroTrabajoRepository, muestraRepository, loteService) {
-        this.laminadoRepository = laminadoRepository;
-        this.lineaEjecucionRepository = lineaEjecucionRepository;
-        this.registroTrabajoRepository = registroTrabajoRepository;
+                registroTrabajoRepository, muestraRepository, loteService, auditService) {
+        // Base constructor: (repository, loteService, lineaEjecucionRepository, auditService, config)
+        super(laminadoRepository, loteService, lineaEjecucionRepository, auditService, {
+            procesoId: 3,
+            digitoOrden: '3'
+        });
         this.muestraRepository = muestraRepository;
-        this.loteService = loteService;
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // getDetalle: estado actual de la laminadora en una bitácora
-    // ─────────────────────────────────────────────────────────────────────
     async getDetalle(bitacoraId) {
-        const maquina = await this.laminadoRepository.getMaquina();
-        const estadoMaquina = await this.laminadoRepository.getEstadoMaquina(bitacoraId, maquina.id);
-        const ultimoRegistro = await this.laminadoRepository.getUltimoRegistro(bitacoraId, maquina.id);
-        const muestras = await this.laminadoRepository.getMuestrasByBitacora(bitacoraId, maquina.id);
-        const rollosConsumidos = await this.laminadoRepository.getConsumoRollosByBitacora(bitacoraId, maquina.id);
-        const materiasPrimas = await this.laminadoRepository.getMateriasPrimasByBitacora(bitacoraId, maquina.id);
+        const baseDetalle = await super.getDetalle(bitacoraId);
+        const maquinaId = baseDetalle.maquina.id;
+
+        const muestras = await this.repository.getMuestrasByBitacora(bitacoraId, maquinaId);
+        const rollosConsumidos = await this.repository.getConsumoRollosByBitacora(bitacoraId, maquinaId);
+        const materiasPrimas = await this.repository.getMateriasPrimasByBitacora(bitacoraId, maquinaId);
 
         // Enriquecer materias primas: indicar si tienen PDF disponible en el almacén central
         const materiasPrimasEnriquecidas = await Promise.all(
             materiasPrimas.map(async (mp) => {
-                const pdfCentral = await this.laminadoRepository.getPdfMaterial(
+                const pdfCentral = await this.repository.getPdfMaterial(
                     mp.tipo, mp.marca, mp.lote_material
                 );
                 return {
@@ -39,18 +36,13 @@ class LaminadoService {
         );
 
         return {
-            maquina,
-            estado_proceso: estadoMaquina ? estadoMaquina.estado : 'Sin datos',
-            ultimo_registro: ultimoRegistro,
+            ...baseDetalle,
             muestras,
             rollos_consumidos: rollosConsumidos,
             materias_primas: materiasPrimasEnriquecidas
         };
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // saveDetalle: guarda el registro del turno de laminado
-    // ─────────────────────────────────────────────────────────────────────
     async saveDetalle(data, usuario) {
         const {
             bitacora_id,
@@ -64,20 +56,11 @@ class LaminadoService {
             observaciones = ''
         } = data;
 
-        const procesoId = 3;
+        const procesoId = this.config.procesoId;
 
         // ── Validaciones ──────────────────────────────────────────────────
-
-        // 1. Validar orden
-        const codigoOrden = await this.laminadoRepository.findOrdenCodigo(orden_id);
-        if (!codigoOrden) throw new ValidationError(`La orden ID ${orden_id} no existe.`);
-        if (!codigoOrden.startsWith('3')) {
-            throw new ValidationError(`La orden ${codigoOrden} no pertenece al proceso de Laminado.`);
-        }
-        const orden = await this.laminadoRepository.getOrdenById(orden_id);
-        if (orden && orden.estado === 'Cancelada') {
-            throw new ValidationError(`La orden ${codigoOrden} está cancelada.`);
-        }
+        await this.validarOrden(orden_id);
+        const orden = await this.repository.getOrdenById(orden_id);
 
         // 2. Validar rollos: al menos 1 si hay producción
         const metrosTotales = rollos.reduce((acc, r) => acc + (r.metros_laminados || 0), 0);
@@ -116,51 +99,41 @@ class LaminadoService {
         }
 
         // ── Transacción ───────────────────────────────────────────────────
-        return await this.laminadoRepository.withTransaction(async () => {
-            const maquina = await this.laminadoRepository.getMaquina();
+        return await this.repository.withTransaction(async () => {
+            const maquina = await this.repository.getMaquina();
 
             // Limpiar registros previos del turno (idempotente)
-            // IMPORTANTE: Primero borrar dependencias de registros_trabajo por las FK
-            await this.laminadoRepository.deleteConsumoRollosByBitacoraYMaquina(bitacora_id, maquina.id);
-            await this.laminadoRepository.deleteRegistrosByBitacoraYMaquina(bitacora_id, maquina.id);
-            await this.laminadoRepository.deleteMuestrasByBitacoraYMaquina(bitacora_id, maquina.id);
-            await this.laminadoRepository.deleteMateriasPrimasByBitacoraYMaquina(bitacora_id, maquina.id);
+            await this.repository.deleteConsumoRollosByBitacoraYMaquina(bitacora_id, maquina.id);
+            await this.repository.deleteRegistrosByBitacoraYMaquina(bitacora_id, maquina.id);
+            await this.repository.deleteMuestrasByBitacoraYMaquina(bitacora_id, maquina.id);
+            await this.repository.deleteMateriasPrimasByBitacoraYMaquina(bitacora_id, maquina.id);
 
             // a. Obtener/crear linea_ejecucion
-            let linea = await this.lineaEjecucionRepository.findByOrdenAndProceso(
-                orden_id, procesoId, maquina.id
-            );
-            if (!linea) {
-                const lineaId = await this.lineaEjecucionRepository.create(
-                    orden_id, procesoId, maquina.id
-                );
-                linea = { id: lineaId };
-            }
+            const linea = await this.obtenerOCrearLineaEjecucion(orden_id, maquina.id);
 
-            // b. Guardar registro de trabajo (producción total del turno)
+            // b. Guardar registro de trabajo
             const parametrosJSON = {
                 metros_totales: metrosTotales,
                 ...parametros_operativos,
                 ...(pelicula_impresa ? { pelicula_impresa } : {})
             };
 
-            const registroId = await this.registroTrabajoRepository.create({
+            const registroId = await this.repository.saveRegistroTrabajo({
                 cantidad_producida: metrosTotales,
                 merma_kg: desperdicio_kg,
                 observaciones,
-                parametros: JSON.stringify(parametrosJSON),
+                parametros: parametrosJSON,
                 linea_ejecucion_id: linea.id,
                 bitacora_id,
                 maquina_id: maquina.id,
                 usuario_modificacion: usuario
             });
 
-            // c. Guardar rollos consumidos + generar lote por rollo (IDEMPOTENTE)
-            let correlativoLaminado = await this.laminadoRepository.getMaxCorrelativoLaminadoPorOrden(orden_id);
+            // c. Guardar rollos consumidos + generar lote por rollo
+            let correlativoLaminado = await this.repository.getMaxCorrelativoLaminadoPorOrden(orden_id);
 
             for (const rollo of rollos) {
-                // Guardar consumo de rollo
-                await this.laminadoRepository.saveConsumoRollo({
+                await this.repository.saveConsumoRollo({
                     bitacora_id,
                     maquina_id: maquina.id,
                     orden_id,
@@ -170,18 +143,7 @@ class LaminadoService {
                     usuario_modificacion: usuario
                 });
 
-                // Generar lote Laminado: {codigo_rollo}-L{correlativo}
-                // Verificamos si ya existe un lote para esta bitácora y este rollo para evitar duplicados
-                // pero como borramos registros_trabajo pero NO lotes (porque los lotes son transversales),
-                // buscamos si el lote ya existe.
-
-                // Opción robusta: buscar por codigo_lote que sigue el patrón
-                // Pero como el correlativo es incremental por orden, es mejor ver si ya existe algo para esta bitacora+orden
-                // Sin embargo, Laminado genera MULTIPLES lotes por bitácora (uno por rollo).
-
-                // Buscamos si ya existe el lote con el patrón {rollo.codigo_rollo}-L...
-                const existingLote = await this.laminadoRepository
-                    .findLoteExistentePorRollo(orden_id, rollo.codigo_rollo);
+                const existingLote = await this.repository.findLoteExistentePorRollo(orden_id, rollo.codigo_rollo);
 
                 if (!existingLote) {
                     correlativoLaminado++;
@@ -216,9 +178,8 @@ class LaminadoService {
                 let finalPdfNombre = mp.pdf_nombre;
                 let finalPdfBlob = mp.pdf_base64;
 
-                // Si no viene PDF en el payload, intentar recuperar del almacén central
                 if (!finalPdfBlob) {
-                    const pdfCentral = await this.laminadoRepository.getPdfMaterial(
+                    const pdfCentral = await this.repository.getPdfMaterial(
                         mp.tipo, mp.marca, mp.lote_material
                     );
                     if (pdfCentral) {
@@ -226,32 +187,29 @@ class LaminadoService {
                         finalPdfNombre = pdfCentral.pdf_nombre_archivo;
                     }
                 } else {
-                    // Si viene un PDF nuevo, actualizar almacén central
-                    await this.laminadoRepository.upsertPdfMaterial(
+                    await this.repository.upsertPdfMaterial(
                         mp.tipo, mp.marca, mp.lote_material,
-                        finalPdfBlob, finalPdfNombre, usuario
+                        Buffer.from(finalPdfBlob, 'base64'), finalPdfNombre, usuario
                     );
                 }
 
-                await this.laminadoRepository.saveMateriasPrimas({
+                await this.repository.saveMateriasPrimas({
                     bitacora_id,
                     maquina_id: maquina.id,
                     tipo: mp.tipo,
                     marca: mp.marca,
                     lote_material: mp.lote_material,
                     porcentaje: mp.porcentaje,
-                    pdf_hoja_tecnica: finalPdfBlob,
+                    pdf_hoja_tecnica: finalPdfBlob ? Buffer.from(finalPdfBlob, 'base64') : null,
                     pdf_nombre_archivo: finalPdfNombre,
                     usuario_modificacion: usuario
                 });
             }
 
-            // f. Calcular estado del proceso en la máquina
+            // f. Calcular estado del proceso
             let estado = 'Sin datos';
             if (metrosTotales > 0 || desperdicio_kg > 0 || muestras.length > 0) {
                 estado = 'Parcial';
-
-                // Criterio de "Completo"
                 const tieneProduccion = metrosTotales > 0;
                 const tieneMuestrasSuficientes = rollos.length > 0 ? muestras.length >= rollos.length : muestras.length > 0;
                 const tieneMateriasPrimas = materias_primas.length > 0;
@@ -265,7 +223,7 @@ class LaminadoService {
                 }
             }
 
-            await this.laminadoRepository.saveEstadoMaquina(bitacora_id, maquina.id, estado, observaciones);
+            await this.actualizarEstado(bitacora_id, maquina.id, estado, observaciones);
 
             return { registro_id: registroId, estado };
         });
@@ -276,13 +234,13 @@ class LaminadoService {
             throw new ValidationError('Se requiere el archivo PDF y su nombre.');
         }
 
-        const existente = await this.laminadoRepository.getPdfMaterial(
+        const existente = await this.repository.getPdfMaterial(
             tipo, marca, loteMaterial
         );
         const estaSobrescribiendo = !!existente;
 
         const pdfBlob = Buffer.from(pdfBase64, 'base64');
-        await this.laminadoRepository.upsertPdfMaterial(
+        await this.repository.upsertPdfMaterial(
             tipo, marca, loteMaterial, pdfBlob, pdfNombre, usuario
         );
 

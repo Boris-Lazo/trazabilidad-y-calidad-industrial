@@ -1,34 +1,28 @@
+const BaseProcesoService = require('./base/BaseProcesoService');
 const ValidationError = require('../../shared/errors/ValidationError');
-const NotFoundError = require('../../shared/errors/NotFoundError');
 
-class LinerPEService {
+class LinerPEService extends BaseProcesoService {
     constructor(linerPERepository, lineaEjecucionRepository,
-                registroTrabajoRepository, loteService) {
-        this.linerPERepository = linerPERepository;
-        this.lineaEjecucionRepository = lineaEjecucionRepository;
-        this.registroTrabajoRepository = registroTrabajoRepository;
-        this.loteService = loteService;
+                registroTrabajoRepository, loteService, auditService) {
+        // Base constructor: (repository, loteService, lineaEjecucionRepository, auditService, config)
+        super(linerPERepository, loteService, lineaEjecucionRepository, auditService, {
+            procesoId: 7,
+            digitoOrden: '7'
+        });
     }
 
     async getDetalle(bitacoraId) {
-        const maquina = await this.linerPERepository.getMaquina();
-        const estadoMaquina = await this.linerPERepository.getEstadoMaquina(bitacoraId, maquina.id);
-        const ultimoRegistro = await this.linerPERepository.getUltimoRegistro(bitacoraId, maquina.id);
-        const rollos = await this.linerPERepository.getConsumoRollosPEByBitacora(bitacoraId, maquina.id);
-        const muestrasCalidad = await this.linerPERepository.getMuestrasCalidadByBitacora(bitacoraId, maquina.id);
+        const baseDetalle = await super.getDetalle(bitacoraId);
+        const maquinaId = baseDetalle.maquina.id;
 
-        let loteTurno = null;
-        if (ultimoRegistro && ultimoRegistro.orden_id) {
-            loteTurno = await this.loteService.getByBitacoraYOrden(bitacoraId, ultimoRegistro.orden_id);
-        }
+        const rollos = await this.repository.getConsumoRollosPEByBitacora(bitacoraId, maquinaId);
+        const muestrasCalidad = await this.repository.getMuestrasCalidadByBitacora(bitacoraId, maquinaId);
 
         return {
-            maquina,
-            estado_proceso: estadoMaquina ? estadoMaquina.estado : 'Sin datos',
-            ultimo_registro: ultimoRegistro,
+            ...baseDetalle,
             rollos_pe_consumidos: rollos,
             muestras_calidad: muestrasCalidad,
-            lote_turno: loteTurno
+            lote_turno: baseDetalle.lote
         };
     }
 
@@ -45,18 +39,11 @@ class LinerPEService {
             observaciones = ''
         } = data;
 
-        const procesoId = 7;
+        const procesoId = this.config.procesoId;
 
         // 1. Validar orden
-        const codigoOrden = await this.linerPERepository.findOrdenCodigo(orden_id);
-        if (!codigoOrden) throw new ValidationError(`La orden ID ${orden_id} no existe.`);
-        if (!codigoOrden.startsWith('7')) {
-            throw new ValidationError(`La orden ${codigoOrden} no pertenece al proceso de Conversión de Liner PE.`);
-        }
-        const orden = await this.linerPERepository.getOrdenById(orden_id);
-        if (orden && orden.estado === 'Cancelada') {
-            throw new ValidationError(`La orden ${codigoOrden} está cancelada.`);
-        }
+        await this.validarOrden(orden_id);
+        const orden = await this.repository.getOrdenById(orden_id);
 
         // 2. Validar Rollos PE
         for (const rollo of rollos_pe) {
@@ -89,24 +76,16 @@ class LinerPEService {
             }
         }
 
-        const maquina = await this.linerPERepository.getMaquina();
+        const maquina = await this.repository.getMaquina();
 
-        return await this.linerPERepository.withTransaction(async () => {
+        return await this.repository.withTransaction(async () => {
             // Idempotencia: borrar previos
-            await this.linerPERepository.deleteConsumoRollosPEByBitacora(bitacora_id, maquina.id);
-            await this.linerPERepository.deleteRegistrosByBitacoraYMaquina(bitacora_id, maquina.id);
-            await this.linerPERepository.deleteMuestrasCalidadByBitacora(bitacora_id, maquina.id);
+            await this.repository.deleteConsumoRollosPEByBitacora(bitacora_id, maquina.id);
+            await this.repository.deleteRegistrosByBitacoraYMaquina(bitacora_id, maquina.id);
+            await this.repository.deleteMuestrasCalidadByBitacora(bitacora_id, maquina.id);
 
             // a. Obtener/crear linea_ejecucion
-            let linea = await this.lineaEjecucionRepository.findByOrdenAndProceso(
-                orden_id, procesoId, maquina.id
-            );
-            if (!linea) {
-                const lineaId = await this.lineaEjecucionRepository.create(
-                    orden_id, procesoId, maquina.id
-                );
-                linea = { id: lineaId };
-            }
+            const linea = await this.obtenerOCrearLineaEjecucion(orden_id, maquina.id);
 
             // b. Guardar registro_trabajo
             const parametrosJSON = {
@@ -118,11 +97,11 @@ class LinerPEService {
                 observaciones
             };
 
-            const registroId = await this.registroTrabajoRepository.create({
+            const registroId = await this.repository.saveRegistroTrabajo({
                 cantidad_producida: liners_producidos,
                 merma_kg,
                 observaciones,
-                parametros: JSON.stringify(parametrosJSON),
+                parametros: parametrosJSON,
                 linea_ejecucion_id: linea.id,
                 bitacora_id,
                 maquina_id: maquina.id,
@@ -132,7 +111,7 @@ class LinerPEService {
             // c. Guardar rollos PE
             for (const rollo of rollos_pe) {
                 const lote = await this.loteService.getById(rollo.lote_pe_id);
-                await this.linerPERepository.saveConsumoRolloPE({
+                await this.repository.saveConsumoRolloPE({
                     bitacora_id,
                     maquina_id: maquina.id,
                     orden_id,
@@ -146,9 +125,9 @@ class LinerPEService {
             // d. Lote del turno
             let loteTurno = await this.loteService.getByBitacoraYOrden(bitacora_id, orden_id);
             if (!loteTurno) {
-                const count = await this.linerPERepository.getMaxCorrelativoLinerPEPorOrden(orden_id);
+                const count = await this.repository.getMaxCorrelativoLinerPEPorOrden(orden_id);
                 const correlativo = count + 1;
-                const codigo_lote = `${codigoOrden}-${String(correlativo).padStart(3, '0')}`;
+                const codigo_lote = `${orden.codigo_orden}-${String(correlativo).padStart(3, '0')}`;
                 await this.loteService.crearLoteDirecto({
                     codigo_lote,
                     orden_produccion_id: orden_id,
@@ -175,7 +154,7 @@ class LinerPEService {
                     }
                 }
 
-                await this.linerPERepository.saveMuestraCalidad({
+                await this.repository.saveMuestraCalidad({
                     bitacora_id,
                     maquina_id: maquina.id,
                     orden_id,
@@ -190,7 +169,7 @@ class LinerPEService {
 
             // f. Calcular estado
             let estado = 'Sin datos';
-            const muestrasGuardadas = await this.linerPERepository.getMuestrasCalidadByBitacora(bitacora_id, maquina.id);
+            const muestrasGuardadas = await this.repository.getMuestrasCalidadByBitacora(bitacora_id, maquina.id);
 
             const tieneProduccion = liners_producidos > 0;
             const tieneMuestras = muestrasGuardadas.length > 0;
@@ -198,8 +177,6 @@ class LinerPEService {
             if (tieneProduccion || tieneMuestras || merma_kg > 0) {
                 estado = 'Parcial';
 
-                // Completo: prod > 0 + al menos 1 rollo + 4 inspecciones (1,2,3,4) con 3 params cada una
-                // + temperatura y velocidad
                 if (tieneProduccion && rollos_pe.length > 0 && temperatura_sellado > 0 && velocidad_operacion > 0) {
                     const indices = [...new Set(muestrasGuardadas.map(m => m.inspeccion_indice))];
                     const tiene4Inspecciones = [1, 2, 3, 4].every(i => indices.includes(i));
@@ -227,7 +204,7 @@ class LinerPEService {
                 }
             }
 
-            await this.linerPERepository.saveEstadoMaquina(bitacora_id, maquina.id, estado, observaciones);
+            await this.actualizarEstado(bitacora_id, maquina.id, estado, observaciones);
 
             return { registro_id: registroId, estado };
         });

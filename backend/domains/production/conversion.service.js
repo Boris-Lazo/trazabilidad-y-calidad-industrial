@@ -1,28 +1,26 @@
+const BaseProcesoService = require('./base/BaseProcesoService');
 const ValidationError = require('../../shared/errors/ValidationError');
-const NotFoundError = require('../../shared/errors/NotFoundError');
 
-class ConversionService {
+class ConversionService extends BaseProcesoService {
     constructor(conversionRepository, lineaEjecucionRepository,
-                registroTrabajoRepository, loteService) {
-        this.conversionRepository = conversionRepository;
-        this.lineaEjecucionRepository = lineaEjecucionRepository;
-        this.registroTrabajoRepository = registroTrabajoRepository;
-        this.loteService = loteService;
+                registroTrabajoRepository, loteService, auditService) {
+        // Base constructor: (repository, loteService, lineaEjecucionRepository, auditService, config)
+        super(conversionRepository, loteService, lineaEjecucionRepository, auditService, {
+            procesoId: 5,
+            digitoOrden: '5'
+        });
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // getResumen: estado de todas las máquinas de Conversión en el turno
-    // ─────────────────────────────────────────────────────────────────────
     async getResumen(bitacoraId) {
-        const maquinas = await this.conversionRepository.getMaquinasByProceso();
-        const estados = await this.conversionRepository.getEstadosMaquinasByBitacora(bitacoraId);
+        const maquinas = await this.repository.getMaquinasByProceso();
+        const estados = await this.repository.getEstadosMaquinasByBitacora(bitacoraId);
 
         return await Promise.all(maquinas.map(async (m) => {
             const estadoData = estados.find(e => e.maquina_id === m.id);
-            const rollos = await this.conversionRepository.getConsumoRollosByBitacoraYMaquina(bitacoraId, m.id);
+            const rollos = await this.repository.getConsumoRollosByBitacoraYMaquina(bitacoraId, m.id);
             const sacosTotal = rollos.reduce((acc, r) => acc + (r.sacos_producidos || 0), 0);
 
-            const muestras = await this.conversionRepository.getMuestrasCalidadByBitacoraYMaquina(bitacoraId, m.id);
+            const muestras = await this.repository.getMuestrasCalidadByBitacoraYMaquina(bitacoraId, m.id);
             const tieneDesviacion = muestras.some(mu => mu.resultado === 'No cumple');
 
             return {
@@ -34,22 +32,19 @@ class ConversionService {
         }));
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // getDetalle: datos específicos de una máquina en el turno
-    // ─────────────────────────────────────────────────────────────────────
     async getDetalle(bitacoraId, maquinaId) {
-        const maquina = await this.conversionRepository.getMaquinaById(maquinaId);
-        const estadoMaquina = await this.conversionRepository.getEstadoMaquina(bitacoraId, maquinaId);
-        const ultimoRegistro = await this.conversionRepository.getUltimoRegistro(bitacoraId, maquinaId);
-        const rollos = await this.conversionRepository.getConsumoRollosByBitacoraYMaquina(bitacoraId, maquinaId);
-        const muestrasCalidad = await this.conversionRepository.getMuestrasCalidadByBitacoraYMaquina(bitacoraId, maquinaId);
+        const maquina = await this.repository.getMaquinaById(maquinaId);
+        const estadoMaquina = await this.repository.getEstadoMaquina(bitacoraId, maquinaId);
+        const ultimoRegistro = await this.repository.getUltimoRegistro(bitacoraId, maquinaId);
+        const rollos = await this.repository.getConsumoRollosByBitacoraYMaquina(bitacoraId, maquinaId);
+        const muestrasCalidad = await this.repository.getMuestrasCalidadByBitacoraYMaquina(bitacoraId, maquinaId);
 
         let mFisica = null;
         if (ultimoRegistro && ultimoRegistro.orden_id) {
-            mFisica = await this.conversionRepository.getMuestraFisicaByOrdenYBitacora(ultimoRegistro.orden_id, bitacoraId);
+            mFisica = await this.repository.getMuestraFisicaByOrdenYBitacora(ultimoRegistro.orden_id, bitacoraId);
         }
 
-        const defectos = await this.conversionRepository.getDefectosByBitacoraYMaquina(bitacoraId, maquinaId);
+        const defectos = await this.repository.getDefectosByBitacoraYMaquina(bitacoraId, maquinaId);
 
         return {
             maquina,
@@ -62,9 +57,6 @@ class ConversionService {
         };
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // saveDetalle: guarda el registro del turno de conversión
-    // ─────────────────────────────────────────────────────────────────────
     async saveDetalle(data, usuario) {
         const {
             bitacora_id,
@@ -79,23 +71,13 @@ class ConversionService {
             observaciones = ''
         } = data;
 
-        const procesoId = 5;
+        const procesoId = this.config.procesoId;
 
         // ── Validaciones ──────────────────────────────────────────────────
+        await this.validarOrden(orden_id);
+        const orden = await this.repository.getOrdenById(orden_id);
 
-        // 1. Validar orden
-        const codigoOrden = await this.conversionRepository.findOrdenCodigo(orden_id);
-        if (!codigoOrden) throw new ValidationError(`La orden ID ${orden_id} no existe.`);
-        if (!codigoOrden.startsWith('5')) {
-            throw new ValidationError(`La orden ${codigoOrden} no pertenece al proceso de Conversión.`);
-        }
-        const orden = await this.conversionRepository.getOrdenById(orden_id);
-        if (orden && orden.estado === 'Cancelada') {
-            throw new ValidationError(`La orden ${codigoOrden} está cancelada.`);
-        }
-
-        // 2. Validar máquina
-        const maquina = await this.conversionRepository.getMaquinaById(maquina_id);
+        const maquina = await this.repository.getMaquinaById(maquina_id);
 
         // 3. REGLA DURA DE ASIGNACIÓN (CONV#03)
         if (maquina.codigo === 'CONV03') {
@@ -133,24 +115,16 @@ class ConversionService {
         }
 
         // ── Transacción ───────────────────────────────────────────────────
-        return await this.conversionRepository.withTransaction(async () => {
+        return await this.repository.withTransaction(async () => {
             // Limpiar registros previos (Idempotencia)
-            await this.conversionRepository.deleteConsumoRollosByBitacoraYMaquina(bitacora_id, maquina_id);
-            await this.conversionRepository.deleteRegistrosByBitacoraYMaquina(bitacora_id, maquina_id);
-            await this.conversionRepository.deleteMuestrasCalidadByBitacoraYMaquina(bitacora_id, maquina_id);
-            await this.conversionRepository.deleteMuestraFisicaByBitacoraYMaquina(bitacora_id, maquina_id);
-            await this.conversionRepository.deleteDefectosByBitacoraYMaquina(bitacora_id, maquina_id);
+            await this.repository.deleteConsumoRollosByBitacoraYMaquina(bitacora_id, maquina_id);
+            await this.repository.deleteRegistrosByBitacoraYMaquina(bitacora_id, maquina_id);
+            await this.repository.deleteMuestrasCalidadByBitacoraYMaquina(bitacora_id, maquina_id);
+            await this.repository.deleteMuestraFisicaByBitacoraYMaquina(bitacora_id, maquina_id);
+            await this.repository.deleteDefectosByBitacoraYMaquina(bitacora_id, maquina_id);
 
             // a. Obtener/crear linea_ejecucion
-            let linea = await this.lineaEjecucionRepository.findByOrdenAndProceso(
-                orden_id, procesoId, maquina_id
-            );
-            if (!linea) {
-                const lineaId = await this.lineaEjecucionRepository.create(
-                    orden_id, procesoId, maquina_id
-                );
-                linea = { id: lineaId };
-            }
+            const linea = await this.obtenerOCrearLineaEjecucion(orden_id, maquina_id);
 
             // b. Guardar registro de trabajo
             const parametrosJSON = {
@@ -159,11 +133,11 @@ class ConversionService {
                 observaciones
             };
 
-            const registroId = await this.registroTrabajoRepository.create({
+            const registroId = await this.repository.saveRegistroTrabajo({
                 cantidad_producida: sacosTotal,
                 merma_kg: desperdicio_kg,
                 observaciones,
-                parametros: JSON.stringify(parametrosJSON),
+                parametros: parametrosJSON,
                 linea_ejecucion_id: linea.id,
                 bitacora_id,
                 maquina_id,
@@ -171,9 +145,9 @@ class ConversionService {
             });
 
             // d. Para cada rollo: generar/reusar lote
-            let correlativoConversion = await this.conversionRepository.getMaxCorrelativoConversionPorOrden(orden_id);
+            let correlativoConversion = await this.repository.getMaxCorrelativoConversionPorOrden(orden_id);
             for (const rollo of rollos) {
-                let existingLote = await this.conversionRepository.findLoteExistentePorRollo(orden_id, rollo.codigo_rollo);
+                let existingLote = await this.repository.findLoteExistentePorRollo(orden_id, rollo.codigo_rollo);
 
                 if (!existingLote) {
                     correlativoConversion++;
@@ -189,7 +163,7 @@ class ConversionService {
                     existingLote = { id: newLoteId };
                 }
 
-                await this.conversionRepository.saveConsumoRollo({
+                await this.repository.saveConsumoRollo({
                     bitacora_id,
                     maquina_id,
                     orden_id,
@@ -222,7 +196,7 @@ class ConversionService {
                     }
                 }
 
-                await this.conversionRepository.saveMuestraCalidad({
+                await this.repository.saveMuestraCalidad({
                     bitacora_id,
                     maquina_id,
                     orden_id,
@@ -237,7 +211,7 @@ class ConversionService {
 
             // f. Guardar muestra física
             if (muestra_fisica) {
-                await this.conversionRepository.saveMuestraFisica({
+                await this.repository.saveMuestraFisica({
                     bitacora_id,
                     maquina_id,
                     orden_id,
@@ -251,7 +225,7 @@ class ConversionService {
 
             // g. Guardar defectos
             for (const d of defectos) {
-                await this.conversionRepository.saveDefecto({
+                await this.repository.saveDefecto({
                     bitacora_id,
                     maquina_id,
                     orden_id,
@@ -264,18 +238,16 @@ class ConversionService {
 
             // h. Calcular y guardar estado
             let estado = 'Sin datos';
-            const muestrasGuardadas = await this.conversionRepository.getMuestrasCalidadByBitacoraYMaquina(bitacora_id, maquina_id);
+            const muestrasGuardadas = await this.repository.getMuestrasCalidadByBitacoraYMaquina(bitacora_id, maquina_id);
             const tieneRollos = rollos.length > 0;
             const tieneMuestras = muestrasGuardadas.length > 0;
 
             if (tieneRollos || tieneMuestras || defectos.length > 0 || desperdicio_kg > 0) {
                 estado = 'Parcial';
 
-                // Completo: al menos 1 rollo + 4 inspecciones (1,2,3,4)
                 const indicesIndices = [...new Set(muestrasGuardadas.map(m => m.inspeccion_indice))];
                 const tiene4Inspecciones = [1, 2, 3, 4].every(i => indicesIndices.includes(i));
 
-                // Verificar que cada inspección tenga los 4 parámetros
                 let parametrosOk = true;
                 if (tiene4Inspecciones) {
                     for (let i = 1; i <= 4; i++) {
@@ -299,7 +271,7 @@ class ConversionService {
                 }
             }
 
-            await this.conversionRepository.saveEstadoMaquina(bitacora_id, maquina_id, estado, observaciones);
+            await this.actualizarEstado(bitacora_id, maquina_id, estado, observaciones);
 
             return { registro_id: registroId, estado };
         });

@@ -1,12 +1,11 @@
+const BaseProcesoRepository = require('./base/BaseProcesoRepository');
 const NotFoundError = require('../../shared/errors/NotFoundError');
 
-class ConversionRepository {
+class ConversionRepository extends BaseProcesoRepository {
     constructor(db) {
-        this.db = db;
+        super(db, 5); // proceso_id = 5
     }
 
-    // ── Máquinas ──────────────────────────────────────────────────────────
-    // Afecta tabla: MAQUINAS
     async getMaquinasByProceso() {
         const maquinas = await this.db.query(
             `SELECT * FROM MAQUINAS WHERE (proceso_id = 5 OR codigo = 'CONV03') AND activo = 1`
@@ -26,46 +25,6 @@ class ConversionRepository {
         return maquina;
     }
 
-    // ── Orden ─────────────────────────────────────────────────────────────
-    // Afecta tabla: orden_produccion
-    async findOrdenCodigo(ordenId) {
-        const row = await this.db.get(
-            `SELECT codigo_orden FROM orden_produccion WHERE id = ?`, [ordenId]
-        );
-        return row ? row.codigo_orden : null;
-    }
-
-    async getOrdenById(ordenId) {
-        return await this.db.get(
-            `SELECT * FROM orden_produccion WHERE id = ?`, [ordenId]
-        );
-    }
-
-    // ── Producción / registros_trabajo ────────────────────────────────────
-    // Afecta tabla: registros_trabajo
-    async saveRegistroTrabajo(data) {
-        const { cantidad_producida, merma_kg, observaciones, parametros,
-                linea_ejecucion_id, bitacora_id, maquina_id, usuario_modificacion } = data;
-        const result = await this.db.run(`
-            INSERT INTO registros_trabajo
-            (cantidad_producida, merma_kg, observaciones, parametros,
-             linea_ejecucion_id, bitacora_id, maquina_id, usuario_modificacion)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [cantidad_producida, merma_kg, observaciones, parametros,
-            linea_ejecucion_id, bitacora_id, maquina_id, usuario_modificacion]);
-        return result.lastID;
-    }
-
-    async getUltimoRegistro(bitacoraId, maquinaId) {
-        return await this.db.get(`
-            SELECT rt.*, le.orden_produccion_id as orden_id
-            FROM registros_trabajo rt
-            JOIN lineas_ejecucion le ON rt.linea_ejecucion_id = le.id
-            WHERE rt.bitacora_id = ? AND rt.maquina_id = ?
-            ORDER BY rt.created_at DESC LIMIT 1
-        `, [bitacoraId, maquinaId]);
-    }
-
     async deleteRegistrosByBitacoraYMaquina(bitacoraId, maquinaId) {
         await this.db.run(
             `DELETE FROM registros_trabajo WHERE bitacora_id = ? AND maquina_id = ?`,
@@ -74,7 +33,6 @@ class ConversionRepository {
     }
 
     // ── Rollos consumidos ─────────────────────────────────────────────────
-    // Afecta tabla: conversion_consumo_rollo
     async saveConsumoRollo(data) {
         const { bitacora_id, maquina_id, orden_id, codigo_rollo,
                 sacos_producidos, lote_id, registro_trabajo_id, usuario_modificacion } = data;
@@ -103,7 +61,6 @@ class ConversionRepository {
     }
 
     // ── Muestras de Calidad ───────────────────────────────────────────────
-    // Afecta tabla: conversion_muestras_calidad
     async saveMuestraCalidad(data) {
         const { bitacora_id, maquina_id, orden_id, inspeccion_indice, parametro,
                 valor, valor_nominal, resultado, usuario_modificacion } = data;
@@ -132,7 +89,6 @@ class ConversionRepository {
     }
 
     // ── Muestra Física ────────────────────────────────────────────────────
-    // Afecta tabla: conversion_muestra_fisica
     async saveMuestraFisica(data) {
         const { bitacora_id, maquina_id, orden_id, ancho_muestra, largo_muestra,
                 peso_muestra_gramos, observaciones, usuario_modificacion } = data;
@@ -161,7 +117,6 @@ class ConversionRepository {
     }
 
     // ── Defectos ──────────────────────────────────────────────────────────
-    // Afecta tabla: conversion_defectos
     async saveDefecto(data) {
         const { bitacora_id, maquina_id, orden_id, origen_id,
                 descripcion_defecto, cantidad_sacos_afectados, usuario_modificacion } = data;
@@ -189,7 +144,6 @@ class ConversionRepository {
     }
 
     // ── Lotes ─────────────────────────────────────────────────────────────
-    // Afecta tabla: lotes
     async getMaxCorrelativoConversionPorOrden(ordenId) {
         const row = await this.db.get(
             `SELECT COUNT(*) as total FROM lotes
@@ -207,25 +161,6 @@ class ConversionRepository {
         );
     }
 
-    // ── Estado bitacora_maquina_status ────────────────────────────────────
-    // Afecta tabla: bitacora_maquina_status
-    async saveEstadoMaquina(bitacoraId, maquinaId, estado, obs) {
-        return await this.db.run(`
-            INSERT INTO bitacora_maquina_status (bitacora_id, maquina_id, estado, observacion_advertencia)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(bitacora_id, maquina_id) DO UPDATE SET
-                estado = EXCLUDED.estado,
-                observacion_advertencia = EXCLUDED.observacion_advertencia
-        `, [bitacoraId, maquinaId, estado, obs]);
-    }
-
-    async getEstadoMaquina(bitacoraId, maquinaId) {
-        return await this.db.get(
-            `SELECT * FROM bitacora_maquina_status WHERE bitacora_id = ? AND maquina_id = ?`,
-            [bitacoraId, maquinaId]
-        );
-    }
-
     async getEstadosMaquinasByBitacora(bitacoraId) {
         return await this.db.query(`
             SELECT bms.*, m.nombre_visible, m.codigo
@@ -233,11 +168,6 @@ class ConversionRepository {
             JOIN MAQUINAS m ON bms.maquina_id = m.id
             WHERE bms.bitacora_id = ? AND (m.proceso_id = 5 OR m.codigo = 'CONV03')
         `, [bitacoraId]);
-    }
-
-    // ── Transacción ───────────────────────────────────────────────────────
-    async withTransaction(fn) {
-        return await this.db.withTransaction(fn);
     }
 }
 
