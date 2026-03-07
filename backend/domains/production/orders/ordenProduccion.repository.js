@@ -127,7 +127,6 @@ class OrdenProduccionRepository {
         bt.turno,
         bt.fecha_operativa as fecha,
         le.proceso_id,
-        m.codigo as maquina_codigo,
         m.nombre_visible as maquina_nombre,
         bms.estado as maquina_estado,
         SUM(rt.cantidad_producida) as cantidad_producida,

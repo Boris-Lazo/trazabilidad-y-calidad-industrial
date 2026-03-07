@@ -215,7 +215,7 @@ class OrdenProduccionService {
       bitacora.procesos_ejecutados.push({
         proceso_id: row.proceso_id,
         nombre_proceso: nombreProceso,
-        maquina: row.maquina_nombre || row.maquina_codigo,
+        maquina: row.maquina_nombre,
         estado: row.maquina_estado || 'Sin datos',
         cantidad_producida: row.cantidad_producida,
         merma_kg: row.merma_kg
