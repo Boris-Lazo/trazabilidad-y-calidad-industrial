@@ -3,7 +3,7 @@ const ValidationError = require('../../../../shared/errors/ValidationError');
 
 class LinerPEService extends BaseProcesoService {
     constructor(linerPERepository, lineaEjecucionRepository,
-                registroTrabajoRepository, loteService, auditService) {
+                loteService, auditService) {
         // Base constructor: (repository, loteService, lineaEjecucionRepository, auditService, config)
         super(linerPERepository, loteService, lineaEjecucionRepository, auditService, {
             procesoId: 7,

@@ -1,13 +1,12 @@
+const BaseProcesoService = require('../base/BaseProcesoService');
 const ValidationError = require('../../../../shared/errors/ValidationError');
-const NotFoundError = require('../../../../shared/errors/NotFoundError');
-const { logger } = require('../../../../shared/logger/logger');
 
-class ExtrusorPPService {
+class ExtrusorPPService extends BaseProcesoService {
   constructor(extrusorPPRepository, loteService, lineaEjecucionRepository, auditService) {
-    this.extrusorPPRepository = extrusorPPRepository;
-    this.loteService = loteService;
-    this.lineaEjecucionRepository = lineaEjecucionRepository;
-    this.auditService = auditService;
+    super(extrusorPPRepository, loteService, lineaEjecucionRepository, auditService, {
+      procesoId: 1,
+      digitoOrden: '1'
+    });
   }
 
   async saveDetalle(data, usuario) {
@@ -22,8 +21,7 @@ class ExtrusorPPService {
     const procesoId = 1;
 
     // 1. Validar orden: verificar que orden_id existe, que su código empieza por 1 y que su estado no es Cancelada.
-    // Usamos el repository local para cumplir con la arquitectura.
-    const codigoOrden = await this.extrusorPPRepository.findOrdenCodigo(orden_id);
+    const codigoOrden = await this.repository.findOrdenCodigo(orden_id);
     if (!codigoOrden) {
         throw new ValidationError(`La orden ID ${orden_id} no existe.`);
     }
@@ -31,22 +29,22 @@ class ExtrusorPPService {
         throw new ValidationError(`La orden ${codigoOrden} no pertenece al proceso de Extrusión PP.`);
     }
 
-    const orden = await this.extrusorPPRepository.getOrdenById(orden_id);
+    const orden = await this.repository.getOrdenById(orden_id);
     if (orden && orden.estado === 'Cancelada') {
         throw new ValidationError(`La orden ${codigoOrden} está cancelada.`);
     }
 
     // 2. Obtener máquina
-    const maquina = await this.extrusorPPRepository.getMaquina();
+    const maquina = await this.repository.getMaquina();
 
     // 3. Calcular producción
-    const ultimoRegistroTurno = await this.extrusorPPRepository.getUltimoRegistro(bitacora_id, maquina.id);
+    const ultimoRegistroTurno = await this.repository.getUltimoRegistro(bitacora_id, maquina.id);
     let ultimoAcumulado;
 
     if (ultimoRegistroTurno) {
         ultimoAcumulado = JSON.parse(ultimoRegistroTurno.parametros).acumulado_contador;
     } else {
-        ultimoAcumulado = await this.extrusorPPRepository.getUltimoAcumuladoHistorico(maquina.id, bitacora_id);
+        ultimoAcumulado = await this.repository.getUltimoAcumuladoHistorico(maquina.id, bitacora_id);
     }
 
     const cantidad_producida = produccion.acumulado_contador - (ultimoAcumulado || 0);
@@ -63,7 +61,7 @@ class ExtrusorPPService {
     }
 
     // 6. Ejecutar en transacción
-    return await this.extrusorPPRepository.withTransaction(async () => {
+    return await this.repository.withTransaction(async () => {
         // a. Obtener/crear linea_ejecucion
         let linea = await this.lineaEjecucionRepository.findByOrdenAndProceso(orden_id, procesoId, maquina.id);
         if (!linea) {
@@ -77,7 +75,7 @@ class ExtrusorPPService {
             ...parametros_operativos
         };
 
-        const registro_id = await this.extrusorPPRepository.saveRegistroTrabajo({
+        const registro_id = await this.repository.saveRegistroTrabajo({
             linea_ejecucion_id: linea.id,
             bitacora_id,
             maquina_id: maquina.id,
@@ -109,7 +107,7 @@ class ExtrusorPPService {
             }
 
             for (const pm of parametrosMuestra) {
-                await this.extrusorPPRepository.saveMuestra({
+                await this.repository.saveMuestra({
                     bitacora_id,
                     proceso_id: procesoId,
                     maquina_id: maquina.id,
@@ -126,7 +124,7 @@ class ExtrusorPPService {
         const lote = await this.loteService.generarOObtenerLote(orden_id, bitacora_id, fechaHoy, usuario);
 
         // e. Calcular estado del proceso
-        const todasMuestras = await this.extrusorPPRepository.getMuestras(bitacora_id);
+        const todasMuestras = await this.repository.getMuestras(bitacora_id);
         const numSets = Math.floor(todasMuestras.length / 5);
 
         let estadoProceso = 'Parcial';
@@ -142,7 +140,7 @@ class ExtrusorPPService {
         }
 
         // f. Guardar estado real en bitacora_maquina_status
-        await this.extrusorPPRepository.saveEstadoMaquina(bitacora_id, maquina.id, estadoProceso, produccion.observaciones || '');
+        await this.repository.saveEstadoMaquina(bitacora_id, maquina.id, estadoProceso, produccion.observaciones || '');
 
         return {
             registro_id,
@@ -156,10 +154,10 @@ class ExtrusorPPService {
   }
 
   async getDetalle(bitacoraId) {
-    const maquina = await this.extrusorPPRepository.getMaquina();
-    const statusMaquina = await this.extrusorPPRepository.getEstadoMaquina(bitacoraId, maquina.id);
-    const ultimoRegistro = await this.extrusorPPRepository.getUltimoRegistro(bitacoraId, maquina.id);
-    const muestras = await this.extrusorPPRepository.getMuestras(bitacoraId);
+    const maquina = await this.repository.getMaquina();
+    const statusMaquina = await this.repository.getEstadoMaquina(bitacoraId, maquina.id);
+    const ultimoRegistro = await this.repository.getUltimoRegistro(bitacoraId, maquina.id);
+    const muestras = await this.repository.getMuestras(bitacoraId);
 
     let lote = null;
     if (ultimoRegistro) {

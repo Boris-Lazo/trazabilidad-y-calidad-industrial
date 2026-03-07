@@ -4,7 +4,7 @@ const NotFoundError = require('../../../../shared/errors/NotFoundError');
 
 class VestidosService extends BaseProcesoService {
     constructor(vestidosRepository, lineaEjecucionRepository,
-                registroTrabajoRepository, loteService, auditService) {
+                loteService, auditService) {
         // Base constructor: (repository, loteService, lineaEjecucionRepository, auditService, config)
         super(vestidosRepository, loteService, lineaEjecucionRepository, auditService, {
             procesoId: 9,
