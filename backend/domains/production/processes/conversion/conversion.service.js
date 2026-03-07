@@ -3,7 +3,7 @@ const ValidationError = require('../../../../shared/errors/ValidationError');
 
 class ConversionService extends BaseProcesoService {
     constructor(conversionRepository, lineaEjecucionRepository,
-                registroTrabajoRepository, loteService, auditService) {
+                loteService, auditService) {
         // Base constructor: (repository, loteService, lineaEjecucionRepository, auditService, config)
         super(conversionRepository, loteService, lineaEjecucionRepository, auditService, {
             procesoId: 5,

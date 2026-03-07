@@ -5,7 +5,6 @@ const LinerPERepository       = require('./linerPE.repository');
 const LinerPEService          = require('./linerPE.service');
 const LinerPEController       = require('./linerPE.controller');
 const LineaEjecucionRepository = require('../../execution/lineaEjecucion.repository');
-const RegistroTrabajoRepository = require('../../execution/registroTrabajo.repository');
 const LoteRepository          = require('../../../quality/lote.repository');
 const LoteService             = require('../../../quality/lote.service');
 const AuditRepository         = require('../../../../shared/audit/AuditRepository');
@@ -17,14 +16,13 @@ const { PERMISSIONS }         = require('../../../../shared/auth/permissions');
 // Instanciación
 const linerPERepo  = new LinerPERepository(sqlite);
 const lineaRepo    = new LineaEjecucionRepository(sqlite);
-const registroRepo = new RegistroTrabajoRepository(sqlite);
 const loteRepo     = new LoteRepository(sqlite);
 const auditRepo    = new AuditRepository(sqlite);
 const auditSvc     = new AuditService(auditRepo);
 const loteService  = new LoteService(loteRepo, auditSvc);
 
 const linerPEService    = new LinerPEService(
-    linerPERepo, lineaRepo, registroRepo, loteService, auditSvc
+    linerPERepo, lineaRepo, loteService, auditSvc
 );
 const linerPEController = new LinerPEController(linerPEService);
 

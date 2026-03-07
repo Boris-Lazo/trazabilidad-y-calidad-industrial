@@ -71,7 +71,7 @@ class PersonalService {
     const groupHistory = await this.personalRepository.getGroupHistory(id);
     const historialAusencias = await this.personalRepository.getHistorialAusenciasByPersona(id);
 
-    const ProcessRegistry = require('../production/contracts/ProcessRegistry');
+    const ProcessRegistry = require('../production/processes/contracts/ProcessRegistry');
     const enrichedAssignments = assignments.map(a => {
         try {
             const contract = ProcessRegistry.get(a.proceso_id);
