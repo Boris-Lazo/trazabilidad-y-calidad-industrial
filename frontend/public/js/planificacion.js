@@ -26,8 +26,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     selProcVista.addEventListener('change', () => {
         const pid = selProcVista.value;
         procesoActual = pid ? procesos.find(p => String(p.processId) === String(pid)) : null;
+        actualizarBreadcrumb();
         renderGrid();
     });
+
+    // ── Botón volver al dashboard ────────────────────────────────────────
+    document.getElementById('btn-volver-dashboard')?.addEventListener('click', () => {
+        procesoActual = null;
+        selProcVista.value = '';
+        actualizarBreadcrumb();
+        renderGrid();
+    });
+
+    function actualizarBreadcrumb() {
+        const el = document.getElementById('breadcrumb-proceso');
+        if (el) el.textContent = procesoActual?.nombre || '—';
+    }
 
     // ── KPIs ────────────────────────────────────────────────────────────
     async function cargarKPIs() {
@@ -110,32 +124,123 @@ document.addEventListener('DOMContentLoaded', async () => {
             badge.textContent = data.estado;
             badge.className   = `badge badge-${data.estado.toLowerCase()}`;
             document.getElementById('plan-fechas-rango').textContent = `${data.fecha_inicio} al ${data.fecha_fin}`;
-            document.getElementById('btn-publicar').style.display =
-                (data.estado === 'BORRADOR' || data.estado === 'AJUSTADO') ? 'inline-flex' : 'none';
-
             cargarKPIs();
             renderGrid();
+            renderDashboard();
         } else {
             currentPlan = null;
-            document.getElementById('no-plan-alert').style.display      = 'block';
-            document.getElementById('planning-container').style.display  = 'none';
+            document.getElementById('no-plan-alert').style.display      = 'none';
+            document.getElementById('planning-container').style.display  = 'block';
             document.getElementById('plan-status-bar').style.display     = 'none';
+            renderGrid();
+            renderDashboard();
         }
+    }
+
+    // ── Renderizar dashboard de procesos ─────────────────────────────────
+    function renderDashboard() {
+        const banner = document.getElementById('dashboard-semana-banner');
+        const grid   = document.getElementById('procesos-grid');
+        if (!grid) return;
+
+        // Banner semana — solo si hay plan
+        if (currentPlan && banner) {
+            banner.style.display = 'flex';
+            document.getElementById('dash-semana-num').textContent   = `S${currentPlan.semana_iso}`;
+            document.getElementById('dash-semana-rango').textContent = `${currentPlan.fecha_inicio} al ${currentPlan.fecha_fin}`;
+
+            const badgeEl = document.getElementById('dash-plan-estado');
+            badgeEl.innerHTML = `<span class="badge badge-${(currentPlan.estado||'').toLowerCase()}">${currentPlan.estado}</span>`;
+
+            const esBorrador = currentPlan.estado === 'BORRADOR' || currentPlan.estado === 'AJUSTADO';
+            document.getElementById('btn-publicar').style.display         = esBorrador ? 'inline-flex' : 'none';
+            document.getElementById('btn-siguiente-semana').style.display = 'inline-flex';
+        } else if (banner) {
+            banner.style.display = 'none';
+            document.getElementById('btn-publicar').style.display         = 'none';
+            document.getElementById('btn-siguiente-semana').style.display = 'none';
+        }
+
+        // Sin plan: mostrar aviso + botón crear
+        const noPlanAlert = document.getElementById('no-plan-alert');
+        if (!currentPlan) {
+            noPlanAlert.style.display = 'block';
+            grid.innerHTML = '';
+            return;
+        }
+        noPlanAlert.style.display = 'none';
+
+        // Contar turnos asignados por proceso
+        const turnosPorProceso = {};
+        (currentPlan?.ordenes || []).forEach(o => {
+            const pid = String(o.proceso_id);
+            turnosPorProceso[pid] = (turnosPorProceso[pid] || 0) + 1;
+        });
+
+        const procesosConPlan = Object.keys(turnosPorProceso).length;
+        document.getElementById('dash-procesos-ok').textContent    = procesosConPlan;
+        document.getElementById('dash-procesos-total').textContent = procesos.length;
+
+        // Tarjetas
+        grid.innerHTML = '';
+        procesos.forEach(p => {
+            const pid      = String(p.processId);
+            const turnos   = turnosPorProceso[pid] || 0;
+            const tienePlan = turnos > 0;
+            const unidad   = p.unidadesReporte?.produccion || p.unidadProduccion || '';
+            const meta     = p.metasProduccion?.metaEstandarTurno;
+
+            const card = document.createElement('div');
+            card.className = `proceso-card${tienePlan ? ' tiene-plan' : ''}`;
+
+            // Proceso 99 (Tareas Generales) — tarjeta de soporte, sin meta de producción
+            const esSoporte = pid === '99';
+            const metaHtml  = meta && !esSoporte
+                ? `<span class="proceso-stat highlight">Meta: ${meta.toLocaleString()} ${unidad}</span>`
+                : esSoporte
+                    ? `<span class="proceso-stat" style="color:var(--info);border-color:var(--info);">Soporte / Personal</span>`
+                    : '';
+            card.innerHTML = `
+                <div class="proceso-card-top">
+                    <div class="proceso-card-nombre">${p.nombre}</div>
+                    <div class="proceso-card-unidad">${unidad}</div>
+                </div>
+                <div class="proceso-card-body">
+                    <div class="proceso-estado">
+                        <span class="proceso-dot ${tienePlan ? 'ok' : 'empty'}"></span>
+                        <span style="color:${tienePlan ? 'var(--success)' : 'var(--text-secondary)'}">
+                            ${tienePlan ? `${turnos} turno${turnos > 1 ? 's' : ''} asignado${turnos > 1 ? 's' : ''}` : 'Sin planificar'}
+                        </span>
+                    </div>
+                    <div class="proceso-card-stats">${metaHtml}</div>
+                </div>
+            `;
+            card.addEventListener('click', () => {
+                // Seleccionar en el dropdown y disparar renderGrid
+                const sel = document.getElementById('select-proceso-vista');
+                sel.value = pid;
+                procesoActual = p;
+                renderGrid();
+            });
+            grid.appendChild(card);
+        });
+        if (window.lucide) lucide.createIcons();
     }
 
     // ── Renderizar cuadrícula ────────────────────────────────────────────
     function renderGrid() {
-        const hint    = document.getElementById('select-proceso-hint');
-        const wrapper = document.getElementById('grid-wrapper');
+        const dashboard = document.getElementById('proceso-dashboard');
+        const wrapper   = document.getElementById('grid-wrapper');
 
         if (!procesoActual) {
-            hint.style.display    = 'block';
-            wrapper.style.display = 'none';
+            dashboard.style.display = 'block';
+            wrapper.style.display   = 'none';
+            renderDashboard();
             return;
         }
 
-        hint.style.display    = 'none';
-        wrapper.style.display = 'block';
+        dashboard.style.display = 'none';
+        wrapper.style.display   = 'block';
 
         const tbody    = document.getElementById('grid-tbody');
         tbody.innerHTML = '';
@@ -246,6 +351,53 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         if (window.lucide) lucide.createIcons();
+        renderOrdenesDisponibles();
+    }
+
+    // ── Panel inferior: órdenes disponibles filtradas por proceso ────────
+    function renderOrdenesDisponibles() {
+        const lista = document.getElementById('ordenes-disp-lista');
+        const count = document.getElementById('ordenes-disp-count');
+        if (!lista || !procesoActual) return;
+
+        const pid    = String(procesoActual.processId);
+        const unidad = procesoActual.unidadesReporte?.produccion ||
+                       procesoActual.unidadProduccion || '';
+
+        const filtradas = ordenes.filter(o => {
+            const esEM = o.origen === 'EMERGENCIA' || String(o.codigo_orden).startsWith('EM-');
+            return esEM || String(o.codigo_orden).startsWith(pid);
+        });
+
+        const yaEnPlan = new Set(
+            (currentPlan?.ordenes || [])
+                .filter(o => String(o.proceso_id) === pid)
+                .map(o => String(o.orden_id))
+        );
+
+        count.textContent = filtradas.length;
+
+        if (filtradas.length === 0) {
+            lista.innerHTML = `<span style="font-size:12px;color:var(--text-secondary);">No hay órdenes liberadas para este proceso.</span>`;
+            return;
+        }
+
+        lista.innerHTML = '';
+        filtradas.forEach(o => {
+            const asignada = yaEnPlan.has(String(o.id));
+            const card     = document.createElement('div');
+            card.className = 'orden-disp-card';
+            const cant     = parseFloat(o.cantidad_objetivo || 0).toLocaleString();
+            card.innerHTML = `
+                <span class="odc-codigo">${o.codigo_orden}</span>
+                <span class="odc-producto">${o.producto || '—'}</span>
+                <div class="odc-meta">
+                    <span class="odc-tag">${cant} ${unidad}</span>
+                    ${asignada ? '<span class="odc-tag ya-asignada">✓ En plan</span>' : ''}
+                </div>
+            `;
+            lista.appendChild(card);
+        });
     }
 
     // ── Llenar select-orden filtrado por proceso ─────────────────────────
@@ -457,14 +609,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         llenarSelectPersonal('select-operador-p');
         llenarSelectPersonal('select-auxiliar-p');
-        llenarSelectRoles('select-rol-operador-p');
-        llenarSelectRoles('select-rol-auxiliar-p');
-
-        // Preseleccionar roles por nombre si coinciden
-        const rolOpId  = rolesOperativos.find(r => /operador|operario/i.test(r.nombre))?.id || '';
-        const rolAuxId = rolesOperativos.find(r => /auxiliar/i.test(r.nombre))?.id || '';
-        if (rolOpId)  document.getElementById('select-rol-operador-p').value  = rolOpId;
-        if (rolAuxId) document.getElementById('select-rol-auxiliar-p').value = rolAuxId;
 
         // Máquina
         const selMaq  = document.getElementById('pselect-maquina');
@@ -490,15 +634,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const operadorId = document.getElementById('select-operador-p').value;
         const auxId      = document.getElementById('select-auxiliar-p').value;
-        const rolOpId    = document.getElementById('select-rol-operador-p').value || null;
-        const rolAuxId   = document.getElementById('select-rol-auxiliar-p').value || null;
 
         if (!operadorId && !auxId) {
             DesignSystem.showErrorModal('Validación', 'Debe asignar al menos un colaborador (Operador o Auxiliar).');
             return;
         }
 
-        // Construir lista de slots a asignar
         const dias = autoFill
             ? Array.from({ length: 8 - diaInicio }, (_, i) => diaInicio + i)
             : [diaInicio];
@@ -508,12 +649,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (operadorId) asignaciones.push({
                 plan_id: currentPlan.id, proceso_id: procesoId,
                 dia_semana: dia, turno, persona_id: operadorId,
-                rol_operativo_id: rolOpId, maquina_id: maquinaId
+                rol_operativo_id: null, maquina_id: maquinaId
             });
             if (auxId) asignaciones.push({
                 plan_id: currentPlan.id, proceso_id: procesoId,
                 dia_semana: dia, turno, persona_id: auxId,
-                rol_operativo_id: rolAuxId, maquina_id: maquinaId
+                rol_operativo_id: null, maquina_id: maquinaId
             });
         }
 
@@ -751,6 +892,104 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         );
     };
+
+    // ── Programar siguiente semana ───────────────────────────────────────
+    document.getElementById('btn-siguiente-semana').addEventListener('click', async () => {
+        if (!currentPlan) return;
+
+        // Calcular semana siguiente
+        const semanaActual = currentPlan.semana_iso;
+        const anioActual   = currentPlan.anio || parseInt(document.getElementById('input-anio').value);
+        let siguienteSemana = semanaActual + 1;
+        let siguienteAnio   = anioActual;
+        // Manejo de cambio de año (semana 53/1)
+        const maxSemana = new Date(anioActual, 11, 28).getDay() === 4 ? 53 : 52;
+        if (siguienteSemana > maxSemana) { siguienteSemana = 1; siguienteAnio++; }
+
+        // Verificar si ya existe plan para esa semana
+        const checkRes = await fetch(`/api/planning/week/${siguienteAnio}/${siguienteSemana}`);
+        const checkData = await checkRes.json();
+        const planExiste = checkData.success && checkData.data?.plan;
+
+        // Calcular órdenes con saldo pendiente (no completadas en la semana actual)
+        const ordenesEnPlan    = currentPlan.ordenes || [];
+        const ordenesConSaldo  = [];
+        const ordenesVistas    = new Set();
+        ordenesEnPlan.forEach(o => {
+            if (!ordenesVistas.has(o.orden_id)) {
+                ordenesVistas.add(o.orden_id);
+                // Una orden tiene saldo si aún está Liberada o En Proceso
+                const ordenCompleta = ordenes.find(or => or.id === o.orden_id);
+                if (ordenCompleta && ['Liberada', 'En Proceso'].includes(ordenCompleta.estado)) {
+                    ordenesConSaldo.push(o);
+                }
+            }
+        });
+
+        const msgBase = planExiste
+            ? `Ya existe un plan para la semana ${siguienteSemana}/${siguienteAnio}.`
+            : `Se creará un plan BORRADOR para la semana ${siguienteSemana}/${siguienteAnio}.`;
+
+        const msgOrdenes = ordenesConSaldo.length > 0
+            ? ` Se copiarán automáticamente ${ordenesConSaldo.length} orden(es) con producción pendiente.`
+            : ' No hay órdenes con saldo pendiente para traspasar.';
+
+        DesignSystem.showConfirmModal(
+            'Programar siguiente semana',
+            msgBase + msgOrdenes + ' La publicación debe hacerse manualmente.',
+            async () => {
+                let planSigId;
+
+                if (planExiste) {
+                    planSigId = checkData.data.plan.id;
+                } else {
+                    // Crear plan borrador siguiente semana
+                    const crearRes = await fetch('/api/planning/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ anio: siguienteAnio, semana_iso: siguienteSemana })
+                    });
+                    const crearData = await crearRes.json();
+                    if (!crearData.success) {
+                        DesignSystem.showErrorModal('Error', 'No se pudo crear el plan para la siguiente semana.');
+                        return;
+                    }
+                    planSigId = crearData.data?.id || crearData.data?.plan?.id;
+                }
+
+                // Traspasar órdenes con saldo — asignar T1 Lunes como punto de inicio
+                // El planificador ajustará manualmente desde ahí
+                let traspasos = 0;
+                for (const o of ordenesConSaldo) {
+                    await fetch('/api/planning/assign-order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            plan_id:    planSigId,
+                            proceso_id: o.proceso_id,
+                            dia_semana: 1,
+                            turno:      'T1',
+                            orden_id:   o.orden_id,
+                            maquina_id: o.maquina_id || null
+                        })
+                    });
+                    traspasos++;
+                }
+
+                // Navegar a la siguiente semana
+                document.getElementById('input-anio').value   = siguienteAnio;
+                document.getElementById('input-semana').value = siguienteSemana;
+                await cargarPlan();
+
+                if (traspasos > 0) {
+                    DesignSystem.showErrorModal('✓ Listo',
+                        `Plan semana ${siguienteSemana} listo como BORRADOR. ` +
+                        `${traspasos} orden(es) traspasadas al Lunes T1. ` +
+                        `Distribuye los turnos y publica cuando esté completo.`);
+                }
+            }
+        );
+    });
 
     document.getElementById('btn-cargar-plan').onclick = cargarPlan;
 

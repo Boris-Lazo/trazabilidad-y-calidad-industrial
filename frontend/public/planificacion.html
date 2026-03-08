@@ -213,9 +213,101 @@
         .no-plan-card { text-align:center; padding:48px 24px; }
         .no-plan-card p { color:var(--text-secondary); margin-bottom:16px; }
 
-        /* ── Hint seleccionar proceso ────────────────────────── */
-        .hint-card { text-align:center; padding:40px 24px; }
-        .hint-card p { color:var(--text-secondary); margin:0; }
+        /* ── Dashboard de procesos ───────────────────────────── */
+        .semana-banner {
+            display:flex; align-items:center; gap:24px;
+            background:var(--bg-alt); border:1px solid var(--border);
+            border-radius:12px; padding:14px 24px; margin-bottom:20px;
+        }
+        .semana-bloque { flex-shrink:0; }
+        .semana-bloque-right { margin-left:auto; }
+        .semana-etiqueta {
+            font-size:11px; text-transform:uppercase; letter-spacing:1px;
+            color:var(--text-secondary); margin-bottom:4px;
+        }
+        .semana-numero { font-size:26px; font-weight:800; color:var(--text-primary); line-height:1; }
+        .semana-numero-next { opacity:.5; }
+        .semana-rango { font-size:12px; color:var(--text-secondary); margin-top:3px; }
+        .semana-divisor { width:1px; height:44px; background:var(--border); flex-shrink:0; }
+
+        .procesos-grid {
+            display:grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap:12px;
+            margin-bottom:20px;
+        }
+        .proceso-card {
+            border:2px solid var(--border); border-radius:10px;
+            background:var(--bg-card); cursor:pointer;
+            transition:border-color .15s, box-shadow .15s, transform .1s;
+            overflow:hidden;
+        }
+        .proceso-card:hover {
+            border-color:var(--primary);
+            box-shadow:0 4px 16px rgba(0,0,0,.12);
+            transform:translateY(-1px);
+        }
+        .proceso-card.tiene-plan { border-color:var(--success); }
+        .proceso-card.tiene-plan:hover { border-color:var(--success); box-shadow:0 4px 16px rgba(46,125,50,.2); }
+        .proceso-card-top {
+            padding:12px 14px 10px;
+            border-bottom:1px solid var(--border);
+        }
+        .proceso-card-nombre {
+            font-size:14px; font-weight:700; color:var(--text-primary);
+            margin-bottom:2px; line-height:1.2;
+        }
+        .proceso-card-unidad {
+            font-size:10px; text-transform:uppercase; letter-spacing:.5px;
+            color:var(--text-secondary);
+        }
+        .proceso-card-body { padding:10px 14px 12px; }
+        .proceso-estado {
+            display:flex; align-items:center; gap:6px;
+            font-size:11px; font-weight:600;
+        }
+        .proceso-dot {
+            width:8px; height:8px; border-radius:50%; flex-shrink:0;
+        }
+        .proceso-dot.ok    { background:var(--success); }
+        .proceso-dot.empty { background:var(--border-medium); }
+        .proceso-card-stats {
+            display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;
+        }
+        .proceso-stat {
+            font-size:10px; color:var(--text-secondary);
+            background:var(--bg-alt); border:1px solid var(--border);
+            border-radius:3px; padding:2px 6px;
+        }
+        .proceso-stat.highlight { color:var(--primary); border-color:var(--primary); }
+
+        /* ── Órdenes disponibles ─────────────────────────────── */
+        .orden-disp-card {
+            display:flex; flex-direction:column; gap:3px;
+            padding:8px 12px; min-width:180px; max-width:220px;
+            background:var(--bg-card); border:1px solid var(--border);
+            border-left:3px solid var(--primary); border-radius:6px;
+            font-size:11px; cursor:default;
+            transition:box-shadow .12s;
+        }
+        .orden-disp-card:hover { box-shadow:0 2px 8px rgba(0,0,0,.12); }
+        .orden-disp-card .odc-codigo { font-weight:700; color:var(--primary); font-size:12px; }
+        .orden-disp-card .odc-producto {
+            color:var(--text-primary); font-size:11px;
+            line-height:1.3; font-weight:500;
+        }
+        .orden-disp-card .odc-meta {
+            display:flex; gap:8px; margin-top:2px; flex-wrap:wrap;
+        }
+        .orden-disp-card .odc-tag {
+            font-size:10px; color:var(--text-secondary);
+            background:var(--bg-alt); border:1px solid var(--border);
+            border-radius:3px; padding:1px 5px; white-space:nowrap;
+        }
+        .orden-disp-card .odc-tag.ya-asignada {
+            color:var(--success); border-color:var(--success);
+            background:var(--success-bg);
+        }
     </style>
 </head>
 <body>
@@ -233,15 +325,6 @@
                 <input type="number" id="input-anio"   class="form-control" value="2025">
                 <input type="number" id="input-semana" class="form-control" value="1">
                 <button id="btn-cargar-plan" class="btn btn-secondary" style="height:32px;padding:4px 12px;font-size:13px;">Cargar</button>
-                <div class="sep"></div>
-                <label>Proceso:</label>
-                <select id="select-proceso-vista" class="form-control">
-                    <option value="">— Seleccionar proceso —</option>
-                </select>
-                <button id="btn-publicar" class="btn btn-primary" style="display:none;height:32px;padding:4px 14px;font-size:13px;">
-                    <i data-lucide="send" style="width:13px;height:13px;margin-right:5px;vertical-align:middle;"></i>
-                    Publicar Plan
-                </button>
             </div>
         </header>
 
@@ -260,24 +343,70 @@
                 </div>
             </div>
 
-            <!-- Sin plan -->
-            <div id="no-plan-alert" class="card no-plan-card">
-                <i data-lucide="calendar-x" style="width:40px;height:40px;color:var(--border-medium);margin-bottom:12px;"></i>
-                <p>No existe una planificación para esta semana.</p>
-                <button id="btn-crear-plan" class="btn btn-primary">Crear Planificación</button>
-            </div>
-
             <!-- Contenedor principal -->
             <div id="planning-container" style="display:none;">
 
-                <!-- Hint sin proceso seleccionado -->
-                <div id="select-proceso-hint" class="card hint-card">
-                    <i data-lucide="mouse-pointer-click" style="width:36px;height:36px;color:var(--border-medium);margin-bottom:12px;"></i>
-                    <p>Selecciona un proceso arriba para ver su planificación semanal.</p>
+                <!-- Dashboard de procesos (visible cuando no hay proceso seleccionado) -->
+                <div id="proceso-dashboard">
+                    <!-- Banner semana -->
+                    <div class="semana-banner" id="dashboard-semana-banner" style="display:none;">
+                        <div class="semana-bloque">
+                            <div class="semana-etiqueta">Semana actual</div>
+                            <div class="semana-numero" id="dash-semana-num">—</div>
+                            <div class="semana-rango" id="dash-semana-rango">—</div>
+                        </div>
+                        <div class="semana-divisor"></div>
+                        <div class="semana-bloque">
+                            <div class="semana-etiqueta">Estado del plan</div>
+                            <div id="dash-plan-estado" style="margin-top:4px;"></div>
+                        </div>
+                        <div class="semana-divisor"></div>
+                        <div class="semana-bloque semana-bloque-right">
+                            <div class="semana-etiqueta">Procesos planificados</div>
+                            <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px;">
+                                <span class="semana-numero" id="dash-procesos-ok" style="color:var(--success);">0</span>
+                                <span style="font-size:14px;color:var(--text-secondary);">/ <span id="dash-procesos-total">0</span></span>
+                            </div>
+                        </div>
+                        <div class="semana-divisor"></div>
+                        <!-- Acciones del plan -->
+                        <div class="semana-bloque" style="display:flex;flex-direction:column;gap:8px;">
+                            <button id="btn-publicar" class="btn btn-primary" style="display:none;height:34px;padding:4px 16px;font-size:13px;white-space:nowrap;">
+                                <i data-lucide="send" style="width:13px;height:13px;margin-right:6px;vertical-align:middle;"></i>
+                                Publicar Plan
+                            </button>
+                            <button id="btn-siguiente-semana" class="btn btn-secondary" style="display:none;height:34px;padding:4px 14px;font-size:13px;white-space:nowrap;">
+                                <i data-lucide="calendar-plus" style="width:13px;height:13px;margin-right:6px;vertical-align:middle;"></i>
+                                Programar Sig. Semana
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Selector de proceso (oculto, solo para compatibilidad interna) -->
+                    <select id="select-proceso-vista" style="display:none;">
+                        <option value="">— Seleccionar proceso —</option>
+                    </select>
+
+                    <!-- Grid de tarjetas por proceso -->
+                    <div id="no-plan-alert" class="card no-plan-card" style="display:none;">
+                        <i data-lucide="calendar-x" style="width:40px;height:40px;color:var(--border-medium);margin-bottom:12px;"></i>
+                        <p>No existe una planificación para esta semana.</p>
+                        <button id="btn-crear-plan" class="btn btn-primary">Crear Planificación</button>
+                    </div>
+                    <div class="procesos-grid" id="procesos-grid"></div>
                 </div>
 
                 <!-- Cuadrícula -->
                 <div id="grid-wrapper" style="display:none;">
+                    <!-- Breadcrumb + volver -->
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                        <button id="btn-volver-dashboard" class="btn btn-secondary" style="height:30px;padding:4px 10px;font-size:12px;display:flex;align-items:center;gap:5px;">
+                            <i data-lucide="arrow-left" style="width:13px;height:13px;"></i>
+                            Todos los procesos
+                        </button>
+                        <span style="font-size:13px;color:var(--text-secondary);">›</span>
+                        <span id="breadcrumb-proceso" style="font-size:13px;font-weight:600;color:var(--text-primary);">—</span>
+                    </div>
                     <div style="overflow-x:auto;">
                         <table class="plan-grid" id="plan-grid-table">
                             <thead>
@@ -294,6 +423,16 @@
                             </thead>
                             <tbody id="grid-tbody"></tbody>
                         </table>
+                    </div>
+
+                    <!-- ── Órdenes disponibles ── -->
+                    <div id="ordenes-disponibles-panel" style="margin-top:16px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                            <i data-lucide="clipboard-list" style="width:15px;height:15px;color:var(--primary);"></i>
+                            <span style="font-size:13px;font-weight:600;color:var(--text-primary);">Órdenes disponibles para este proceso</span>
+                            <span id="ordenes-disp-count" class="badge" style="font-size:10px;"></span>
+                        </div>
+                        <div id="ordenes-disp-lista" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
                     </div>
                 </div>
 
@@ -446,10 +585,9 @@
                     <span style="width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0;display:inline-block;"></span>
                     <span style="font-size:12px;font-weight:600;color:var(--text-primary);">Operador</span>
                 </div>
-                <select id="select-operador-p" class="form-control" style="margin-bottom:6px;">
+                <select id="select-operador-p" class="form-control">
                     <option value="">— Sin asignar —</option>
                 </select>
-                <select id="select-rol-operador-p" class="form-control"></select>
             </div>
 
             <!-- Slot Auxiliar -->
@@ -458,10 +596,9 @@
                     <span style="width:8px;height:8px;border-radius:50%;background:var(--warning);flex-shrink:0;display:inline-block;"></span>
                     <span style="font-size:12px;font-weight:600;color:var(--text-primary);">Auxiliar</span>
                 </div>
-                <select id="select-auxiliar-p" class="form-control" style="margin-bottom:6px;">
+                <select id="select-auxiliar-p" class="form-control">
                     <option value="">— Sin asignar —</option>
                 </select>
-                <select id="select-rol-auxiliar-p" class="form-control"></select>
             </div>
 
             <div class="form-group">
